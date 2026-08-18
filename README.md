@@ -56,4 +56,4 @@ The interface is available in English and Ukrainian.
 
 ## License
 
-Not decided yet. This will be set before a public release.
+MIT. See the [LICENSE](LICENSE) file.
