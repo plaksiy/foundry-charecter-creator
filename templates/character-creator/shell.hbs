@@ -1,0 +1,50 @@
+<div class="dnd-cc-wizard">
+  <header class="dnd-cc-identity-bar">
+    <button type="button" class="dnd-cc-identity-portrait" data-identity-portrait title="{{localize 'DND-CC.Identity.ChangePortrait'}}">
+      <img src="{{characterImg}}" alt="" />
+    </button>
+    <div class="dnd-cc-identity-fields">
+      <label class="dnd-cc-identity-label">{{localize "DND-CC.Identity.Name"}}</label>
+      <input type="text" class="dnd-cc-identity-name" data-identity-name value="{{characterName}}" placeholder="{{localize 'DND-CC.Identity.NamePlaceholder'}}" />
+    </div>
+    <button type="button" class="dnd-cc-sources-button" data-open-source-filter title="{{localize 'DND-CC.Sources.ButtonTitle'}}">
+      <i class="fa-solid fa-book-atlas"></i> {{localize "DND-CC.Sources.ButtonLabel"}}
+    </button>
+    <button type="button" class="dnd-cc-sources-button dnd-cc-discard-button" data-discard-draft title="{{localize 'DND-CC.Discard.ButtonTitle'}}">
+      <i class="fa-solid fa-trash"></i> {{localize "DND-CC.Discard.ButtonLabel"}}
+    </button>
+  </header>
+
+  <nav class="dnd-cc-steps">
+    <ol>
+      {{#each steps}}
+      <li
+        class="dnd-cc-step {{#if this.active}}active{{/if}} {{#if this.done}}{{#if this.complete}}done{{else}}warn{{/if}}{{/if}}"
+        data-step="{{this.id}}"
+      >
+        <span class="dnd-cc-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{{this.icon}}}</svg></span>
+        <span class="dnd-cc-step-label">{{this.label}}</span>
+      </li>
+      {{/each}}
+    </ol>
+  </nav>
+
+  <section class="dnd-cc-content">
+    {{> (lookup . "partialPath")}}
+  </section>
+
+  <footer class="dnd-cc-footer">
+    <button type="button" class="dnd-cc-back" {{#unless canGoBack}}disabled{{/unless}}>
+      <i class="fa-solid fa-arrow-left"></i> {{localize "DND-CC.Back"}}
+    </button>
+    <div class="dnd-cc-step-counter">{{stepCounterLabel}}</div>
+    <button type="button" class="dnd-cc-next" {{#unless canGoNext}}disabled{{/unless}}>
+      {{nextLabel}} <i class="fa-solid fa-arrow-right"></i>
+    </button>
+  </footer>
+
+  <div class="dnd-cc-overlay" data-overlay hidden>
+    <div class="dnd-cc-overlay-backdrop" data-overlay-close></div>
+    <div class="dnd-cc-overlay-panel" data-overlay-panel></div>
+  </div>
+</div>

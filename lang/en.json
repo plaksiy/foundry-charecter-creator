@@ -1,0 +1,300 @@
+{
+  "DND-CC": {
+    "WindowTitle": "Character Creator",
+    "OpenButton": "Create Character",
+    "Back": "Back",
+    "Next": "Next",
+    "Finish": "Finish",
+    "Select": "Select",
+    "Selected": "Selected",
+    "StepCounter": "Step {current} of {total}",
+    "Close": "Close",
+    "LearnMore": "Learn More",
+    "AddCustom": "Add Custom",
+    "Homebrew": "Homebrew",
+    "Advancement": {
+      "Cancel": "Cancel"
+    },
+    "Identity": {
+      "Name": "Character Name",
+      "NamePlaceholder": "Enter a name...",
+      "ChangePortrait": "Change portrait"
+    },
+    "Sources": {
+      "ButtonLabel": "Sources",
+      "ButtonTitle": "Filter which sourcebooks you see",
+      "PanelTitle": "Sources",
+      "PanelHint": "Hide sourcebooks you don't own or don't want to see - this only affects your own view, not what your GM has enabled for the table.",
+      "NoneEnabled": "Your GM hasn't enabled any sourcebooks yet."
+    },
+    "Discard": {
+      "ButtonLabel": "Start Over",
+      "ButtonTitle": "Discard this character and start a new one",
+      "Title": "Discard This Character?",
+      "Confirm": "This will permanently delete {name} and everything chosen so far. This can't be undone. A brand new, empty character will open right after."
+    },
+    "Detail": {
+      "Features": "Features",
+      "OpenInCompendium": "Open in Compendium"
+    },
+    "CustomForm": {
+      "Hint": "Creates a bare placeholder you can finish authoring on its own item sheet afterward (description, proficiencies, advancement, etc.).",
+      "Name": "Name",
+      "NamePlaceholder": "Enter a name...",
+      "Create": "Create"
+    },
+    "Lineage": {
+      "Count": "{count} lineages",
+      "SelectedRibbon": "Selected: {lineage}",
+      "ChooseButton": "Choose Lineage",
+      "PickerTitle": "{base} - Choose a Lineage"
+    },
+    "Steps": {
+      "Ruleset": "Ruleset",
+      "Class": "Class",
+      "Species": "Species",
+      "Background": "Background",
+      "Abilities": "Abilities",
+      "Feats": "Feats",
+      "Skills": "Skills",
+      "Spells": "Spells",
+      "Equipment": "Equipment",
+      "About": "About",
+      "Review": "Review"
+    },
+    "Class": {
+      "Intro": "Choose a class to see its features, proficiencies, and choices. You can add more than one class to multiclass, and remove any of them.",
+      "NoneAvailable": "No classes are available for the selected ruleset and enabled compendiums.",
+      "Level": "Level",
+      "Remove": "Remove",
+      "TotalLevel": "Character Level: {total}",
+      "OriginalClass": "Original Class",
+      "AddAnother": "Add Another Class",
+      "Choose": "Choose a Class",
+      "MaxLevelReached": "Character level 20 reached - remove or lower a class to add another.",
+      "RemoveTitle": "Remove This Class?",
+      "RemoveWarning": "Removing {name} will remove everything it granted, including the following:",
+      "LevelDecreaseTitle": "Lower This Class's Level?",
+      "LevelDecreaseWarning": "Lowering to level {level} will remove the following, granted at levels above it:",
+      "LevelDecreaseAbilityWarning": "An Ability Score Improvement from one of those levels will also be undone."
+    },
+    "Feats": {
+      "Intro": "Feats granted by your class, species, or background show up here. If a source grants a specific origin feat, you can swap it for a different one.",
+      "NoneYet": "No feats yet. Feats granted by your background, species, or a higher starting level will appear here.",
+      "OriginFeat": "Origin Feat",
+      "Granted": "Granted"
+    },
+    "Skills": {
+      "Intro": "Every skill proficiency granted so far, from your class, species, background, and feats, is aggregated here. Skill choices themselves are made where they're granted, not on this step.",
+      "Skill": "Skill",
+      "Ability": "Ability",
+      "Proficiency": "Proficiency",
+      "Modifier": "Modifier",
+      "Passive": "Passive"
+    },
+    "Spells": {
+      "Intro": "Pick your class's cantrips and known spells here. Spells granted by a feat or background (like Magic Initiate) are already resolved and just shown for reference.",
+      "CantripsHeader": "{class} Cantrips {current}/{max}",
+      "SpellsHeader": "{class} Spells {current}/{max}",
+      "CantripsFor": "{class} Cantrips",
+      "SpellsFor": "{class} Spells",
+      "FixedGrant": "Fixed Grant",
+      "AddCantrip": "Add Cantrip",
+      "AddSpell": "Add Spell",
+      "Remove": "Remove",
+      "NoSpellcasting": "This character has no spellcasting yet. Pick a spellcasting class to see cantrip and spell choices here."
+    },
+    "Duplicate": {
+      "Title": "Already Known",
+      "Warning": "{name} is already granted by {source}. Duplicate spells and proficiencies generally don't stack, so picking it again won't give any extra benefit - add it anyway?",
+      "UnknownSource": "another source"
+    },
+    "Equipment": {
+      "Intro": "Choose your class's and background's starting equipment kit, or clear a source and pick a different one. You can also add items of your own directly.",
+      "Clear": "Clear",
+      "Choose": "Choose",
+      "WealthOption": "Take {amount} GP instead, and buy your own equipment",
+      "Inventory": "Inventory",
+      "Currency": "Currency",
+      "Weight": "Weight",
+      "AddItem": "Add Item",
+      "AddItemHint": "Priced items are bought with your real currency ({available} available); unpriced items are still free to add.",
+      "CannotAfford": "You can't afford {item} ({price}) - you only have {available}.",
+      "Remove": "Remove",
+      "NoneYet": "No equipment yet. Pick a starting kit above, or add your own items."
+    },
+    "Species": {
+      "Intro": "Choose a species to see its traits and choices. You can change your mind and pick a different species before moving on.",
+      "Selected": "Selected: {name}",
+      "Change": "Change Species",
+      "NoneAvailable": "No species are available for the selected ruleset and enabled compendiums."
+    },
+    "Background": {
+      "Intro": "Choose a background to see its proficiencies and choices. You can change your mind and pick a different background before moving on.",
+      "Selected": "Selected: {name}",
+      "Change": "Change Background",
+      "NoneAvailable": "No backgrounds are available for the selected ruleset and enabled compendiums."
+    },
+    "Abilities": {
+      "Intro": "Choose how to generate your ability scores. Any Ability Score Improvement already granted by your background, species, or class shows up as a separate bonus on top, so it never gets overwritten.",
+      "StandardArray": "Standard Array",
+      "StandardArrayHint": "Assign the fixed set 15, 14, 13, 12, 10, 8 to your six abilities.",
+      "PointBuy": "Point Buy",
+      "PointBuyHint": "Spend a 27-point budget to buy scores between 8 and 15.",
+      "Roll": "Roll",
+      "RollHint": "Roll 4d6 (drop the lowest) six times and assign the results.",
+      "Manual": "Manual",
+      "ManualHint": "Type in each score directly.",
+      "Ability": "Ability",
+      "Base": "Base",
+      "Bonus": "Bonus",
+      "Total": "Total",
+      "Modifier": "Modifier",
+      "PointBuyRemaining": "{remaining} of {budget} points remaining",
+      "RollButton": "Roll",
+      "RerollButton": "Reroll",
+      "RollLogMessage": "{name} rolls {ability}",
+      "Incomplete": "Assign a value to every ability score before continuing."
+    },
+    "Ruleset": {
+      "Title": "Choose a ruleset",
+      "Description": "Create a character using the 2014 (D&D 5e) rules, the 2024 (D&D 5.5e) rules, or both at once. This determines which races, classes, backgrounds, and features are offered in later steps.",
+      "2014": "2014 Rules (D&D 5e)",
+      "2014Hint": "The classic fifth edition rules.",
+      "2024": "2024 Rules (D&D 5.5e)",
+      "2024Hint": "The updated rules from the 2024 core rulebooks.",
+      "Both": "Both Rulesets",
+      "BothHint": "Show content from both the 2014 and 2024 rules side by side."
+    },
+    "About": {
+      "Intro": "Fill in your character's personality, appearance, and background. None of this affects game mechanics, except Lifestyle, which is a reference for downtime upkeep costs.",
+      "Characteristics": "Characteristics",
+      "Alignment": "Alignment",
+      "Gender": "Gender",
+      "Eyes": "Eyes",
+      "Height": "Height",
+      "Weight": "Weight",
+      "Age": "Age",
+      "Hair": "Hair",
+      "Skin": "Skin",
+      "Faith": "Faith",
+      "Personality": "Personality",
+      "Trait": "Personality Traits",
+      "Ideal": "Ideals",
+      "Bond": "Bonds",
+      "Flaw": "Flaws",
+      "Appearance": "Appearance",
+      "Languages": "Languages",
+      "NoLanguages": "No languages known yet.",
+      "AddLanguage": "Add a language...",
+      "RemoveLanguage": "Remove",
+      "CustomLanguages": "Other languages (free text)",
+      "Lifestyle": "Lifestyle",
+      "LifestyleCostPerDay": "{cost}/day",
+      "LifestyleTier": {
+        "wretched": "Wretched",
+        "squalid": "Squalid",
+        "poor": "Poor",
+        "modest": "Modest",
+        "comfortable": "Comfortable",
+        "wealthy": "Wealthy",
+        "aristocratic": "Aristocratic"
+      },
+      "Backstory": "Backstory"
+    },
+    "Review": {
+      "Intro": "Review every choice before building your character. You can still go back to any earlier step to make changes.",
+      "IncompleteWarning": "Finish these steps first:",
+      "AC": "Armor Class",
+      "Bonus": "Bonus",
+      "Initiative": "Initiative",
+      "Speed": "Speed",
+      "Size": "Size",
+      "PassivePerception": "Passive Perception",
+      "NoProficientSkills": "No skill proficiencies yet.",
+      "ExportPdf": "Export to PDF",
+      "ExportPopupBlocked": "Your browser blocked the export tab. Please allow popups for this site and try again.",
+      "ExportJournal": "Export to Journal",
+      "ExportJournalSuccess": "Created a Journal Entry for {name}.",
+      "JournalPageName": "Character Summary",
+      "BuildCharacter": "Build Character",
+      "FinalizeTitle": "Finish Character Creation?",
+      "FinalizeConfirm": "This will finish creating {name} and add them to your Actor Directory. You can still edit the character afterward from its sheet.",
+      "FinalizeSuccess": "{name} has been created!",
+      "SubmitReviewTitle": "Submit for GM Review?",
+      "SubmitReviewConfirm": "This will send {name} to your GM for approval. You'll be notified once it's approved and added to the Actor Directory.",
+      "SubmitReviewSuccess": "{name} was submitted for GM review.",
+      "PendingReviewBanner": "Submitted - awaiting GM review before this character is finalized.",
+      "PendingReviewMessage": "{player} has finished building <strong>{name}</strong> and it's awaiting your review.",
+      "ApproveButton": "Approve & Finalize",
+      "ApprovedLabel": "Approved",
+      "ApproveActorMissing": "That character no longer exists."
+    },
+    "Placeholder": {
+      "Text": "This step is still in development. Tell us how it should work and we'll build it out."
+    },
+    "Settings": {
+      "DefaultRuleset": {
+        "Name": "Default ruleset",
+        "Hint": "Which ruleset (2014 or 2024) to default to in the character creation wizard."
+      },
+      "RequireGmReview": {
+        "Name": "Require GM review before finalizing",
+        "Hint": "When enabled, a player's \"Build Character\" submits the finished character for GM approval instead of finalizing it directly. The GM approves it from a whispered chat card. Off by default - GMs themselves are never gated by this."
+      }
+    },
+    "CompendiumSources": {
+      "MenuName": "Compendium Sources",
+      "MenuLabel": "Configure Compendiums",
+      "MenuHint": "Choose which compendiums the character creator wizard is allowed to pull races, classes, backgrounds, and other content from, and optionally tag each one as 2014 or 2024 content.",
+      "Title": "Compendium Sources",
+      "Intro": "Select which compendiums players can draw content from, and optionally tag each one with a ruleset. Packs left on \"Auto\" use the ruleset stored on each item when available, and are otherwise treated as available for any ruleset.",
+      "Column": {
+        "Enabled": "Enabled",
+        "Compendium": "Compendium",
+        "Source": "Source",
+        "Ruleset": "Ruleset"
+      },
+      "Ruleset": {
+        "auto": "Auto",
+        "2014": "2014 Only",
+        "2024": "2024 Only",
+        "both": "Both"
+      },
+      "Save": "Save"
+    },
+    "HouseRules": {
+      "MenuName": "House Rules",
+      "MenuLabel": "Configure House Rules",
+      "MenuHint": "Restrict how characters can be built in the character creator wizard: which ability score methods are offered, which alignments are allowed, the minimum level feats become available, and any banned species.",
+      "Title": "House Rules",
+      "Intro": "These restrict how a character can be built, on top of whatever content the Compendium Sources settings already allow.",
+      "AbilityMethods": "Ability Score Methods",
+      "AbilityMethodsHint": "Which generation methods players can choose from on the Ability Scores step.",
+      "DisallowedAlignments": "Disallowed Alignments",
+      "DisallowedAlignmentsHint": "Checked alignments won't be offered on the About step. None disallowed by default.",
+      "MinFeatLevel": "Minimum Feat Level",
+      "MinFeatLevelHint": "The level a character needs to reach before an origin feat can be swapped on the Feats step. Set to 0 to disable feat swapping entirely.",
+      "BannedSpecies": "Banned Species",
+      "BannedSpeciesHint": "Checked species won't be offered on the Species step, regardless of ruleset.",
+      "Save": "Save"
+    },
+    "ClassExtras": {
+      "ComplexityFilter": "Complexity",
+      "ComplexityAll": "All",
+      "ComplexityLow": "Low",
+      "ComplexityAverage": "Average",
+      "ComplexityHigh": "High",
+      "PartyAdvisorTitle": "Party Needs",
+      "PartyAdvisorMissing": "Your party could use a: {roles}",
+      "PartyAdvisorComplete": "Your party already covers every role.",
+      "PartyAdvisorNoParty": "Set a primary party (in the Actor Directory) to get role-coverage suggestions here.",
+      "PartyRole": {
+        "tank": "Tank",
+        "damage": "Damage Dealer",
+        "support": "Support/Utility Caster",
+        "healer": "Healer"
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+<div class="dnd-cc-step-body dnd-cc-step-equipment">
+  <h2>{{localize "DND-CC.Steps.Equipment"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Equipment.Intro"}}</p>
+
+  <div class="dnd-cc-equipment-sources">
+  {{#each equipmentSources}}
+  <section class="dnd-cc-equipment-source-card">
+    <div class="dnd-cc-equipment-source-head">
+      <span class="dnd-cc-equipment-source-name">{{this.sourceName}}</span>
+      {{#if this.selectedBranchId}}
+      <button type="button" class="dnd-cc-equipment-source-clear" data-equipment-clear="{{this.key}}">{{localize "DND-CC.Equipment.Clear"}}</button>
+      {{/if}}
+    </div>
+    {{#each this.branches}}
+    <button type="button" class="dnd-cc-branch-option {{#if this.selected}}selected{{/if}}" data-equipment-branch="{{this.key}}:{{this.id}}">
+      <span class="dnd-cc-branch-radio"></span>
+      <span class="dnd-cc-branch-label">{{{this.label}}}</span>
+    </button>
+    {{/each}}
+
+    {{#if this.pendingChoices.length}}
+    <ul class="dnd-cc-equipment-pending">
+      {{#each this.pendingChoices}}
+      <li class="dnd-cc-equipment-pending-entry">
+        <span>{{this.label}}</span>
+        {{#if this.isFocus}}
+        <select data-equipment-focus="{{this.key}}:{{this.id}}">
+          <option value="">-</option>
+          {{#each this.focusOptions}}
+          <option value="{{this.uuid}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+        {{else}}
+        <button type="button" data-equipment-choose="{{this.key}}:{{this.id}}">{{localize "DND-CC.Equipment.Choose"}}</button>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{/if}}
+  </section>
+  {{/each}}
+  </div>
+
+  <div class="dnd-cc-equipment-summary">
+    <span class="dnd-cc-equipment-summary-item">{{localize "DND-CC.Equipment.Weight"}}: <b>{{weightText}}</b></span>
+    <span class="dnd-cc-equipment-summary-item">{{localize "DND-CC.Equipment.Currency"}}: <b>{{currencyText}}</b></span>
+  </div>
+
+  <div class="dnd-cc-divider"><span>{{localize "DND-CC.Equipment.Inventory"}}</span></div>
+
+  {{#if inventory.length}}
+  <div class="dnd-cc-item-chips">
+    {{#each inventory}}
+    <span class="dnd-cc-item-chip">
+      <img src="{{this.img}}" alt="" />
+      {{this.name}}{{this.quantityText}}
+      {{#if this.priceText}}<span class="dnd-cc-item-chip-price">{{this.priceText}}</span>{{/if}}
+      <button type="button" class="dnd-cc-item-chip-remove" data-remove-equipment="{{this.id}}" aria-label="{{localize 'DND-CC.Equipment.Remove'}}"><i class="fa-solid fa-xmark"></i></button>
+    </span>
+    {{/each}}
+  </div>
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Equipment.NoneYet"}}</p>
+  {{/if}}
+
+  <button type="button" class="dnd-cc-add-item-btn" data-add-equipment>
+    <i class="fa-solid fa-plus"></i> {{localize "DND-CC.Equipment.AddItem"}}
+  </button>
+  <p class="dnd-cc-add-item-hint">{{localize "DND-CC.Equipment.AddItemHint" available=availableGpText}}</p>
+</div>

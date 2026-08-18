@@ -1,0 +1,73 @@
+<div class="dnd-cc-step-body dnd-cc-step-spells">
+  <h2>{{localize "DND-CC.Steps.Spells"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Spells.Intro"}}</p>
+
+  {{#if hasSpellcasting}}
+
+  {{#each spellcastingGroups}}
+
+  {{#if this.cantrips}}
+  <section class="dnd-cc-spell-group">
+    <div class="dnd-cc-spell-group-head">
+      <span class="dnd-cc-spell-group-name">{{localize "DND-CC.Spells.CantripsFor" class=this.className}}</span>
+      <span class="dnd-cc-spell-group-count">{{this.cantrips.current}} / {{this.cantrips.max}}</span>
+    </div>
+    <div class="dnd-cc-spell-chips">
+      {{#each this.cantrips.items}}
+      <span class="dnd-cc-spell-chip">
+        <img src="{{this.img}}" alt="" />
+        <span class="dnd-cc-spell-chip-name">{{this.name}}</span>
+        <button type="button" class="dnd-cc-spell-chip-remove" data-remove-spell="{{this.id}}" aria-label="{{localize 'DND-CC.Spells.Remove'}}"><i class="fa-solid fa-xmark"></i></button>
+      </span>
+      {{/each}}
+      {{#if this.cantrips.canAdd}}
+      <button type="button" class="dnd-cc-spell-chip-add" data-add-cantrip="{{this.identifier}}"><i class="fa-solid fa-plus"></i> {{localize "DND-CC.Spells.AddCantrip"}}</button>
+      {{/if}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if this.spells}}
+  <section class="dnd-cc-spell-group">
+    <div class="dnd-cc-spell-group-head">
+      <span class="dnd-cc-spell-group-name">{{localize "DND-CC.Spells.SpellsFor" class=this.className}}</span>
+      <span class="dnd-cc-spell-group-count">{{this.spells.current}} / {{this.spells.max}}</span>
+    </div>
+    <div class="dnd-cc-spell-chips">
+      {{#each this.spells.items}}
+      <span class="dnd-cc-spell-chip">
+        <img src="{{this.img}}" alt="" />
+        <span class="dnd-cc-spell-chip-name">{{this.name}}</span>
+        <button type="button" class="dnd-cc-spell-chip-remove" data-remove-spell="{{this.id}}" aria-label="{{localize 'DND-CC.Spells.Remove'}}"><i class="fa-solid fa-xmark"></i></button>
+      </span>
+      {{/each}}
+      {{#if this.spells.canAdd}}
+      <button type="button" class="dnd-cc-spell-chip-add" data-add-spell="{{this.identifier}}"><i class="fa-solid fa-plus"></i> {{localize "DND-CC.Spells.AddSpell"}}</button>
+      {{/if}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{/each}}
+
+  {{#each otherGroups}}
+  <section class="dnd-cc-spell-group">
+    <div class="dnd-cc-spell-group-head">
+      <span class="dnd-cc-spell-group-name">{{this.label}}</span>
+      <span class="dnd-cc-spell-group-readonly">{{localize "DND-CC.Spells.FixedGrant"}}</span>
+    </div>
+    <div class="dnd-cc-spell-chips">
+      {{#each this.items}}
+      <span class="dnd-cc-spell-chip">
+        <img src="{{this.img}}" alt="" />
+        <span class="dnd-cc-spell-chip-name">{{this.name}}</span>
+      </span>
+      {{/each}}
+    </div>
+  </section>
+  {{/each}}
+
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Spells.NoSpellcasting"}}</p>
+  {{/if}}
+</div>

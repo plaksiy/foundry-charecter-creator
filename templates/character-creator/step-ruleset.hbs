@@ -1,0 +1,19 @@
+<div class="dnd-cc-step-body dnd-cc-step-ruleset">
+  <h2>{{localize "DND-CC.Ruleset.Title"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Ruleset.Description"}}</p>
+
+  <div class="dnd-cc-ruleset-options">
+    <button type="button" class="dnd-cc-ruleset-card {{#if (eq ruleset "2014")}}selected{{/if}}" data-ruleset="2014">
+      <h3>{{localize "DND-CC.Ruleset.2014"}}</h3>
+      <p>{{localize "DND-CC.Ruleset.2014Hint"}}</p>
+    </button>
+    <button type="button" class="dnd-cc-ruleset-card {{#if (eq ruleset "2024")}}selected{{/if}}" data-ruleset="2024">
+      <h3>{{localize "DND-CC.Ruleset.2024"}}</h3>
+      <p>{{localize "DND-CC.Ruleset.2024Hint"}}</p>
+    </button>
+    <button type="button" class="dnd-cc-ruleset-card {{#if (eq ruleset "both")}}selected{{/if}}" data-ruleset="both">
+      <h3>{{localize "DND-CC.Ruleset.Both"}}</h3>
+      <p>{{localize "DND-CC.Ruleset.BothHint"}}</p>
+    </button>
+  </div>
+</div>

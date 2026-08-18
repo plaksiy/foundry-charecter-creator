@@ -1,0 +1,115 @@
+<div class="dnd-cc-step-body dnd-cc-step-review">
+  <h2>{{localize "DND-CC.Steps.Review"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Review.Intro"}}</p>
+
+  {{#if incompleteStepLabels.length}}
+  <p class="dnd-cc-review-warning">
+    {{localize "DND-CC.Review.IncompleteWarning"}}
+    <strong>{{#each incompleteStepLabels}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}</strong>
+  </p>
+  {{/if}}
+
+  <p class="dnd-cc-review-headline">
+    <strong>{{characterName}}</strong>
+    {{#if classSummary}} - {{classSummary}}{{/if}}
+    {{#if speciesName}} - {{speciesName}}{{/if}}
+    {{#if backgroundName}} - {{backgroundName}}{{/if}}
+    {{#if alignment}} - {{alignment}}{{/if}}
+  </p>
+
+  <div class="dnd-cc-stat-tiles">
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{hpText}}</span><span class="dnd-cc-stat-tile-label">HP</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{ac}}</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.AC"}}</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{proficiencyBonusText}}</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.Bonus"}}</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{initiativeText}}</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.Initiative"}}</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{speed}} ft</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.Speed"}}</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{sizeLabel}}</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.Size"}}</span></div>
+    <div class="dnd-cc-stat-tile"><span class="dnd-cc-stat-tile-value">{{passivePerception}}</span><span class="dnd-cc-stat-tile-label">{{localize "DND-CC.Review.PassivePerception"}}</span></div>
+  </div>
+
+  <div class="dnd-cc-review-grid">
+    <section class="dnd-cc-review-card">
+      <h3>{{localize "DND-CC.Steps.Abilities"}}</h3>
+      <table class="dnd-cc-ability-table dnd-cc-review-table">
+        <tbody>
+          {{#each abilities}}
+          <tr data-ability="{{this.key}}">
+            <td>{{this.label}}</td>
+            <td>{{this.totalText}}</td>
+            <td>{{this.modText}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="dnd-cc-review-card">
+      <h3>{{localize "DND-CC.Steps.Skills"}}</h3>
+      {{#if proficientSkills.length}}
+      {{#each proficientSkills}}
+      <div class="dnd-cc-review-line"><span>{{this.label}} ({{this.proficiencyLabel}})</span><span>{{this.totalText}}</span></div>
+      {{/each}}
+      {{else}}
+      <p class="dnd-cc-empty-state">{{localize "DND-CC.Review.NoProficientSkills"}}</p>
+      {{/if}}
+    </section>
+
+    <section class="dnd-cc-review-card">
+      <h3>{{localize "DND-CC.Steps.Feats"}}</h3>
+      {{#if feats.length}}
+      <div class="dnd-cc-review-taglist">
+        {{#each feats}}<span class="dnd-cc-pill">{{this.name}}</span>{{/each}}
+      </div>
+      {{else}}
+      <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
+      {{/if}}
+    </section>
+
+    {{#if hasSpellcasting}}
+    <section class="dnd-cc-review-card">
+      <h3>{{localize "DND-CC.Steps.Spells"}}</h3>
+      {{#each spellcastingGroups}}
+      {{#if this.cantrips}}
+      <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Spells.CantripsFor" class=this.className}}</span><span>{{#each this.cantrips.items}}{{#unless @first}}, {{/unless}}{{this.name}}{{/each}}</span></div>
+      {{/if}}
+      {{#if this.spells}}
+      <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Spells.SpellsFor" class=this.className}}</span><span>{{#each this.spells.items}}{{#unless @first}}, {{/unless}}{{this.name}}{{/each}}</span></div>
+      {{/if}}
+      {{/each}}
+      {{#each otherGroups}}
+      <div class="dnd-cc-review-line"><span>{{this.label}}</span><span>{{#each this.items}}{{#unless @first}}, {{/unless}}{{this.name}}{{/each}}</span></div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    <section class="dnd-cc-review-card">
+      <h3>{{localize "DND-CC.Steps.Equipment"}}</h3>
+      <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Equipment.Currency"}}</span><span>{{currencyText}}</span></div>
+      {{#if equipment.length}}
+      <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Equipment.Inventory"}}</span><span>{{equipment.length}}</span></div>
+      {{else}}
+      <p class="dnd-cc-empty-state">{{localize "DND-CC.Equipment.NoneYet"}}</p>
+      {{/if}}
+    </section>
+  </div>
+
+  {{#if pendingReview}}
+  <p class="dnd-cc-pending-review-banner">
+    <i class="fa-solid fa-hourglass-half"></i> {{localize "DND-CC.Review.PendingReviewBanner"}}
+  </p>
+  {{/if}}
+
+  <div class="dnd-cc-review-actions">
+    <button type="button" class="dnd-cc-export-pdf-button" data-export-pdf>
+      <i class="fa-solid fa-file-pdf"></i> {{localize "DND-CC.Review.ExportPdf"}}
+    </button>
+    <button type="button" class="dnd-cc-export-pdf-button" data-export-journal>
+      <i class="fa-solid fa-book-open"></i> {{localize "DND-CC.Review.ExportJournal"}}
+    </button>
+    {{#unless pendingReview}}
+    <button type="button" class="dnd-cc-finalize-button" data-finalize-character {{#unless canFinalize}}disabled{{/unless}}>
+      <i class="fa-solid fa-shield-halved"></i> {{localize "DND-CC.Review.BuildCharacter"}}
+    </button>
+    {{/unless}}
+  </div>
+</div>

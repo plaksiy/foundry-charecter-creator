@@ -1,0 +1,32 @@
+<div class="dnd-cc-step-body dnd-cc-step-feats">
+  <h2>{{localize "DND-CC.Steps.Feats"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Feats.Intro"}}</p>
+
+  {{#if feats.length}}
+  <ul class="dnd-cc-feat-list">
+    {{#each feats}}
+    <li class="dnd-cc-feat-row">
+      <div class="dnd-cc-feat-icon" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-feat-info">
+        <span class="dnd-cc-feat-name">{{this.name}}</span>
+        {{#if this.subtypeLabel}}<span class="dnd-cc-pill">{{this.subtypeLabel}}</span>{{/if}}
+      </div>
+      <div class="dnd-cc-feat-side">
+        {{#if this.canSwap}}
+        <span class="dnd-cc-feat-swap-label">{{localize "DND-CC.Feats.OriginFeat"}}</span>
+        <select data-origin-feat-select="{{this.id}}">
+          {{#each this.options}}
+          <option value="{{this.uuid}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+          {{/each}}
+        </select>
+        {{else}}
+        <span class="dnd-cc-feat-static-tag">{{localize "DND-CC.Feats.Granted"}}</span>
+        {{/if}}
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
+  {{/if}}
+</div>

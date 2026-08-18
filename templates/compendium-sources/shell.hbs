@@ -1,0 +1,41 @@
+<div class="dnd-cc-compendium-sources">
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.CompendiumSources.Intro"}}</p>
+
+  <div class="dnd-cc-compendium-table-scroll">
+    <table class="dnd-cc-compendium-table">
+      <thead>
+        <tr>
+          <th class="col-enabled">{{localize "DND-CC.CompendiumSources.Column.Enabled"}}</th>
+          <th class="col-name">{{localize "DND-CC.CompendiumSources.Column.Compendium"}}</th>
+          <th class="col-source">{{localize "DND-CC.CompendiumSources.Column.Source"}}</th>
+          <th class="col-ruleset">{{localize "DND-CC.CompendiumSources.Column.Ruleset"}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each packs}}
+        <tr>
+          <td class="col-enabled">
+            <input type="hidden" name="packs.{{@index}}.id" value="{{this.id}}">
+            <input type="checkbox" name="packs.{{@index}}.enabled" {{#if this.enabled}}checked{{/if}}>
+          </td>
+          <td class="col-name">{{this.label}}</td>
+          <td class="col-source">{{this.source}}</td>
+          <td class="col-ruleset">
+            <select name="packs.{{@index}}.ruleset">
+              {{#each this.rulesetOptions}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="dnd-cc-compendium-sources-footer">
+    <button type="submit" class="dnd-cc-save-button">
+      <i class="fa-solid fa-floppy-disk"></i> {{localize "DND-CC.CompendiumSources.Save"}}
+    </button>
+  </footer>
+</div>

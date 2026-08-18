@@ -1,0 +1,92 @@
+<div class="dnd-cc-step-body dnd-cc-step-class">
+  <h2>{{localize "DND-CC.Steps.Class"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Class.Intro"}}</p>
+
+  {{#if partyAdvisor.missingText}}
+  <p class="dnd-cc-party-advisor">
+    <i class="fa-solid fa-users"></i> {{partyAdvisor.missingText}}
+  </p>
+  {{/if}}
+
+  {{#if classes.length}}
+  <ul class="dnd-cc-class-list">
+    {{#each classes}}
+    <li class="dnd-cc-class-row">
+      <div class="dnd-cc-class-row-art" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-class-row-info">
+        <span class="dnd-cc-class-row-name">{{this.name}}</span>
+        <div class="dnd-cc-pill-row">
+          {{#if this.isOriginalClass}}<span class="dnd-cc-pill">{{localize "DND-CC.Class.OriginalClass"}}</span>{{/if}}
+          {{#each this.pills}}<span class="dnd-cc-pill">{{this}}</span>{{/each}}
+        </div>
+      </div>
+      <label class="dnd-cc-class-row-level">
+        {{localize "DND-CC.Class.Level"}}
+        <select data-class-level="{{this.id}}">
+          {{#each this.levelOptions}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>
+          {{/each}}
+        </select>
+      </label>
+      <button type="button" class="dnd-cc-class-row-remove" data-remove-class="{{this.id}}" aria-label="{{localize 'DND-CC.Class.Remove'}}" title="{{localize 'DND-CC.Class.Remove'}}">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </li>
+    {{/each}}
+  </ul>
+  <p class="dnd-cc-class-total">{{localize "DND-CC.Class.TotalLevel" total=totalLevel}}</p>
+  {{/if}}
+
+  {{#if canAddClass}}
+  <div class="dnd-cc-divider"><span>{{#if classes.length}}{{localize "DND-CC.Class.AddAnother"}}{{else}}{{localize "DND-CC.Class.Choose"}}{{/if}}</span></div>
+  <div class="dnd-cc-complexity-filter">
+    <span class="dnd-cc-filter-label">{{localize "DND-CC.ClassExtras.ComplexityFilter"}}</span>
+    <div class="dnd-cc-seg-group">
+      {{#each complexityOptions}}
+      <button type="button" class="{{#if this.active}}active{{/if}}" data-class-complexity="{{this.key}}">
+        {{this.label}}
+      </button>
+      {{/each}}
+    </div>
+  </div>
+  {{#unless addableClasses.length}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Class.NoneAvailable"}}</p>
+  {{/unless}}
+  <ul class="dnd-cc-card-grid">
+    {{#each addableClasses}}
+    <li class="dnd-cc-card" style="background-color:{{this.color}}">
+      {{#if this.custom}}
+      <span class="dnd-cc-card-edition dnd-cc-card-edition-custom">{{localize "DND-CC.Homebrew"}}</span>
+      {{else if this.book}}
+      <span class="dnd-cc-card-edition">{{this.book}}</span>
+      {{else if this.ruleset}}
+      <span class="dnd-cc-card-edition">{{this.ruleset}}</span>
+      {{/if}}
+      <div class="dnd-cc-card-icon"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-card-content">
+        <span class="dnd-cc-card-name">{{this.name}}</span>
+        {{#if this.pills.length}}
+        <div class="dnd-cc-pill-row">
+          {{#each this.pills}}<span class="dnd-cc-pill">{{this}}</span>{{/each}}
+        </div>
+        {{/if}}
+        <div class="dnd-cc-card-actions">
+          <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">
+            {{localize "DND-CC.LearnMore"}}
+          </button>
+          <button type="button" class="dnd-cc-card-select" data-add-class="{{this.uuid}}">
+            {{localize "DND-CC.Select"}} <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </li>
+    {{/each}}
+    <li class="dnd-cc-custom-card" data-add-custom="class">
+      <i class="fa-solid fa-plus"></i>
+      <span>{{localize "DND-CC.AddCustom"}}</span>
+    </li>
+  </ul>
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Class.MaxLevelReached"}}</p>
+  {{/if}}
+</div>

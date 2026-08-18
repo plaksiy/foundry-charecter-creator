@@ -1,0 +1,55 @@
+<div class="dnd-cc-house-rules">
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.HouseRules.Intro"}}</p>
+
+  <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.AbilityMethods"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.AbilityMethodsHint"}}</p>
+    <div class="dnd-cc-house-rules-checkgrid">
+      {{#each abilityMethodOptions}}
+      <label>
+        <input type="checkbox" name="abilityMethods.{{this.key}}" {{#if this.allowed}}checked{{/if}}>
+        {{this.label}}
+      </label>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.DisallowedAlignments"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.DisallowedAlignmentsHint"}}</p>
+    <div class="dnd-cc-house-rules-checkgrid">
+      {{#each alignmentOptions}}
+      <label>
+        <input type="checkbox" name="alignments.{{this.key}}" {{#if this.disallowed}}checked{{/if}}>
+        {{this.label}}
+      </label>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.MinFeatLevel"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.MinFeatLevelHint"}}</p>
+    <input type="number" name="minFeatLevel" min="0" max="20" value="{{minFeatLevel}}">
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.BannedSpecies"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.BannedSpeciesHint"}}</p>
+    <div class="dnd-cc-house-rules-checkgrid">
+      {{#each speciesOptions}}
+      <label>
+        <input type="hidden" name="species.{{@index}}.uuid" value="{{this.uuid}}">
+        <input type="checkbox" name="species.{{@index}}.banned" {{#if this.banned}}checked{{/if}}>
+        {{this.name}}
+      </label>
+      {{/each}}
+    </div>
+  </section>
+
+  <footer class="dnd-cc-house-rules-footer">
+    <button type="submit" class="dnd-cc-save-button">
+      <i class="fa-solid fa-floppy-disk"></i> {{localize "DND-CC.HouseRules.Save"}}
+    </button>
+  </footer>
+</div>

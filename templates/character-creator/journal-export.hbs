@@ -1,0 +1,89 @@
+<h1>{{characterName}}</h1>
+<p>
+  {{#if classSummary}}{{classSummary}}{{else}}-{{/if}}
+  {{#if speciesName}} - {{speciesName}}{{/if}}
+  {{#if backgroundName}} - {{backgroundName}}{{/if}}
+  {{#if alignment}} - {{alignment}}{{/if}}
+</p>
+
+<table>
+  <tbody>
+    <tr><td>HP</td><td>{{hpText}}</td><td>AC</td><td>{{ac}}</td></tr>
+    <tr><td>Proficiency</td><td>{{proficiencyBonusText}}</td><td>Initiative</td><td>{{initiativeText}}</td></tr>
+    <tr><td>Speed</td><td>{{speed}} ft</td><td>Size</td><td>{{sizeLabel}}</td></tr>
+    <tr><td>Passive Perception</td><td>{{passivePerception}}</td>{{#if lifestyleLabel}}<td>Lifestyle</td><td>{{lifestyleLabel}}</td>{{else}}<td></td><td></td>{{/if}}</tr>
+  </tbody>
+</table>
+
+<h2>Abilities &amp; Skills</h2>
+<table>
+  <thead><tr><th>Ability</th><th>Score</th><th>Mod</th></tr></thead>
+  <tbody>
+    {{#each abilities}}
+    <tr><td>{{this.label}}</td><td>{{this.totalText}}</td><td>{{this.modText}}</td></tr>
+    {{/each}}
+  </tbody>
+</table>
+<table>
+  <thead><tr><th>Skill</th><th>Prof.</th><th>Mod</th></tr></thead>
+  <tbody>
+    {{#each skills}}
+    <tr><td>{{this.label}}</td><td>{{this.proficiencyLabel}}</td><td>{{this.totalText}}</td></tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<h2>Feats</h2>
+{{#if feats.length}}
+<ul>{{#each feats}}<li>{{this.name}}</li>{{/each}}</ul>
+{{else}}
+<p><em>None.</em></p>
+{{/if}}
+
+{{#if hasSpellcasting}}
+<h2>Spells</h2>
+{{#each spellcastingGroups}}
+<p><strong>{{this.className}}</strong>
+  {{#if this.cantrips}} - Cantrips {{this.cantrips.current}}/{{this.cantrips.max}}{{/if}}
+  {{#if this.spells}} - Spells {{this.spells.current}}/{{this.spells.max}}{{/if}}
+</p>
+<ul>
+  {{#each this.cantrips.items}}<li>{{this.name}} (cantrip)</li>{{/each}}
+  {{#each this.spells.items}}<li>{{this.name}}</li>{{/each}}
+</ul>
+{{/each}}
+{{#each otherGroups}}
+<p><strong>{{this.label}}</strong></p>
+<ul>{{#each this.items}}<li>{{this.name}}</li>{{/each}}</ul>
+{{/each}}
+{{/if}}
+
+<h2>Equipment &amp; Currency</h2>
+<p>{{currencyText}}</p>
+{{#if equipment.length}}
+<ul>{{#each equipment}}<li>{{this.name}}{{this.quantityText}}</li>{{/each}}</ul>
+{{else}}
+<p><em>None.</em></p>
+{{/if}}
+
+<h2>Characteristics</h2>
+<p>
+  {{#each characteristics}}
+  <strong>{{this.label}}:</strong> {{this.value}}<br/>
+  {{/each}}
+</p>
+
+<h2>Personality</h2>
+{{#each personality}}
+<p><strong>{{this.label}}</strong><br/>{{#if this.value}}{{this.value}}{{else}}<em>-</em>{{/if}}</p>
+{{/each}}
+
+<h2>Languages</h2>
+{{#if languages.length}}
+<p>{{#each languages}}{{#unless @first}}, {{/unless}}{{this.label}}{{/each}}</p>
+{{else}}
+<p><em>None.</em></p>
+{{/if}}
+
+<h2>Backstory</h2>
+<div>{{{biography}}}</div>

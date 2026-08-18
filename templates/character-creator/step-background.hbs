@@ -1,0 +1,52 @@
+<div class="dnd-cc-step-body dnd-cc-step-background">
+  <h2>{{localize "DND-CC.Steps.Background"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Background.Intro"}}</p>
+
+  {{#if selectedBackgroundName}}
+  <div class="dnd-cc-current-pick">
+    <div class="dnd-cc-current-pick-art" style="background-color:{{selectedBackgroundColor}}"><img src="{{selectedBackgroundImg}}" alt="" /></div>
+    <div class="dnd-cc-current-pick-info">
+      <span class="dnd-cc-current-pick-label">{{localize "DND-CC.Steps.Background"}}</span>
+      <span class="dnd-cc-current-pick-name">{{selectedBackgroundName}}</span>
+    </div>
+  </div>
+  <div class="dnd-cc-divider"><span>{{localize "DND-CC.Background.Change"}}</span></div>
+  {{/if}}
+
+  {{#unless backgroundItems.length}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Background.NoneAvailable"}}</p>
+  {{/unless}}
+  <ul class="dnd-cc-card-grid">
+    {{#each backgroundItems}}
+    <li class="dnd-cc-card {{#if this.selected}}selected{{/if}}" style="background-color:{{this.color}}">
+      {{#if this.custom}}
+      <span class="dnd-cc-card-edition dnd-cc-card-edition-custom">{{localize "DND-CC.Homebrew"}}</span>
+      {{else if this.book}}
+      <span class="dnd-cc-card-edition">{{this.book}}</span>
+      {{else if this.ruleset}}
+      <span class="dnd-cc-card-edition">{{this.ruleset}}</span>
+      {{/if}}
+      <div class="dnd-cc-card-icon"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-card-content">
+        <span class="dnd-cc-card-name">{{this.name}}</span>
+        {{#if this.selected}}
+        <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
+        {{else}}
+        <div class="dnd-cc-card-actions">
+          <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">
+            {{localize "DND-CC.LearnMore"}}
+          </button>
+          <button type="button" class="dnd-cc-card-select" data-uuid="{{this.uuid}}">
+            {{localize "DND-CC.Select"}} <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        {{/if}}
+      </div>
+    </li>
+    {{/each}}
+    <li class="dnd-cc-custom-card" data-add-custom="background">
+      <i class="fa-solid fa-plus"></i>
+      <span>{{localize "DND-CC.AddCustom"}}</span>
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,73 @@
+<div class="dnd-cc-step-body dnd-cc-step-about">
+  <h2>{{localize "DND-CC.Steps.About"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.About.Intro"}}</p>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Characteristics"}}</div>
+  <div class="dnd-cc-about-characteristics">
+    <label class="dnd-cc-about-field">
+      <span>{{localize "DND-CC.About.Alignment"}}</span>
+      <select data-about-alignment>
+        <option value="">-</option>
+        {{#each alignmentOptions}}
+        <option value="{{this.label}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </label>
+    {{#each characteristics}}
+    <label class="dnd-cc-about-field">
+      <span>{{this.label}}</span>
+      <input type="text" data-about-field="{{this.key}}" value="{{this.value}}" />
+    </label>
+    {{/each}}
+  </div>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Personality"}}</div>
+  <div class="dnd-cc-about-personality">
+    {{#each personality}}
+    <label class="dnd-cc-about-textarea">
+      <span>{{this.label}}</span>
+      <textarea data-about-field="{{this.key}}" rows="3">{{this.value}}</textarea>
+    </label>
+    {{/each}}
+  </div>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Languages"}}</div>
+  <div class="dnd-cc-about-languages">
+    <div class="dnd-cc-language-chips">
+      {{#each languages}}
+      <span class="dnd-cc-language-chip">
+        {{this.label}}
+        <button type="button" data-language-remove="{{this.key}}" aria-label="{{localize 'DND-CC.About.RemoveLanguage'}}"><i class="fa-solid fa-xmark"></i></button>
+      </span>
+      {{/each}}
+      {{#unless languages.length}}
+      <span class="dnd-cc-empty-state-inline">{{localize "DND-CC.About.NoLanguages"}}</span>
+      {{/unless}}
+    </div>
+    <div class="dnd-cc-language-controls">
+      <select data-language-add>
+        <option value="">{{localize "DND-CC.About.AddLanguage"}}</option>
+        {{#each addableLanguageOptions}}
+        <option value="{{this.key}}">{{this.label}}</option>
+        {{/each}}
+      </select>
+      <label class="dnd-cc-about-field">
+        <span>{{localize "DND-CC.About.CustomLanguages"}}</span>
+        <input type="text" data-language-custom value="{{languagesCustom}}" />
+      </label>
+    </div>
+  </div>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Lifestyle"}}</div>
+  <div class="dnd-cc-lifestyle-tiers">
+    {{#each lifestyles}}
+    <button type="button" class="dnd-cc-lifestyle-tier {{#if this.selected}}selected{{/if}}" data-lifestyle="{{this.key}}">
+      <span class="dnd-cc-lifestyle-label">{{this.label}}</span>
+      <span class="dnd-cc-lifestyle-cost">{{localize "DND-CC.About.LifestyleCostPerDay" cost=this.costLabel}}</span>
+    </button>
+    {{/each}}
+  </div>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Backstory"}}</div>
+  <prose-mirror data-about-biography name="system.details.biography.value" value="{{biography}}" data-document-uuid="{{actorUuid}}"></prose-mirror>
+</div>

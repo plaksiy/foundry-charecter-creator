@@ -1,0 +1,2057 @@
+/*
+ * "Oath" visual theme: a red/black/gold palette with Cinzel/Spectral/RobotoCond type.
+ * Scoped entirely to `.application.dnd-cc` so it can't leak onto any other Foundry
+ * window. Every class name below matches what the wizard's own templates and
+ * character-creator-app.mjs's `_onRender` listeners actually render and query.
+ */
+
+@font-face { font-family: "DndCcCinzel"; src: url("../fonts/cinzel-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "DndCcCinzel"; src: url("../fonts/cinzel-900.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "DndCcSpectral"; src: url("../fonts/spectral-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "DndCcSpectral"; src: url("../fonts/spectral-400i.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "DndCcRoboto"; src: url("../fonts/robotocond-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "DndCcRoboto"; src: url("../fonts/robotocond-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "DndCcRoboto"; src: url("../fonts/robotocond-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+.application.dnd-cc {
+  --dcc-ink: #040404;
+  --dcc-bg: #0c0b0b;
+  --dcc-surface: #161514;
+  --dcc-surface-alt: #1f1c1a;
+  --dcc-border: #3a3633;
+  --dcc-border-strong: #df0000;
+  --dcc-text: #f2efe8;
+  --dcc-text-muted: #a8a49a;
+  --dcc-accent: #df0000;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-done: #3fae5c;
+  --dcc-warn: #d9b23f;
+  --dcc-danger: #8c1c1c;
+  --dcc-str: #d97a5a; --dcc-dex: #6fae6a; --dcc-con: #d9b25a;
+  --dcc-int: #6f93c9; --dcc-wis: #5fa89c; --dcc-cha: #b16fc2;
+  --dcc-font-display: "DndCcCinzel", serif;
+  --dcc-font-body: "DndCcSpectral", serif;
+  --dcc-font-ui: "DndCcRoboto", sans-serif;
+  background: var(--dcc-bg);
+  color: var(--dcc-text);
+}
+
+.application.dnd-cc .window-header {
+  background: var(--dcc-surface);
+  border-bottom: 1px solid var(--dcc-border);
+}
+
+.application.dnd-cc .window-title {
+  font-family: var(--dcc-font-display);
+  letter-spacing: 0.04em;
+}
+
+.application.dnd-cc .window-content {
+  padding: 0;
+  background: var(--dcc-bg);
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+}
+
+.application.dnd-cc h1, .application.dnd-cc h2, .application.dnd-cc h3 {
+  font-family: var(--dcc-font-display);
+  color: var(--dcc-text);
+  margin: 0 0 0.5rem;
+}
+
+.application.dnd-cc h2 { font-weight: 900; font-size: 1.55rem; letter-spacing: 0.01em; }
+.application.dnd-cc h3 { font-weight: 700; font-size: 1.05rem; color: var(--dcc-accent); margin: 1.4rem 0 0.7rem; }
+.application.dnd-cc h3:first-of-type { margin-top: 0; }
+
+.application.dnd-cc select,
+.application.dnd-cc input[type="text"],
+.application.dnd-cc input[type="number"],
+.application.dnd-cc textarea {
+  font-family: var(--dcc-font-ui);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.55rem;
+}
+
+.application.dnd-cc select:focus,
+.application.dnd-cc input:focus,
+.application.dnd-cc textarea:focus {
+  outline: none;
+  border-color: var(--dcc-accent);
+}
+
+/* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
+   UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
+   a real <button> for the whole clickable area) need `height: auto` or their h3+p content
+   overflows the fixed box and visually overlaps whatever sits next to them. Confirmed live:
+   without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
+   48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
+   buttons) is excluded from the font-family override specifically - it broke the Font
+   Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
+   to the button element itself (not a child), and our font would otherwise clobber it. */
+.application.dnd-cc button:not(.header-control) {
+  font-family: var(--dcc-font-ui);
+  height: auto;
+  min-height: 0;
+}
+
+.dnd-cc-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  cursor: pointer;
+}
+.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"][disabled] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.dnd-cc-draft-hidden {
+  display: none !important;
+}
+
+/* ---------------- Wizard shell: nav / content / footer ---------------- */
+
+.dnd-cc-wizard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "header header"
+    "nav content"
+    "nav footer";
+  height: 100%;
+  min-height: 0;
+}
+
+.dnd-cc-identity-bar {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--dcc-border);
+  background: var(--dcc-surface);
+}
+
+.dnd-cc-identity-portrait {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1.5px solid var(--dcc-border-strong);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--dcc-surface-alt);
+}
+.dnd-cc-identity-portrait:hover { border-color: var(--dcc-accent); }
+.dnd-cc-identity-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dnd-cc-identity-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.dnd-cc-identity-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-identity-name {
+  font-family: var(--dcc-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dcc-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0.1rem 0;
+  min-width: 260px;
+}
+.dnd-cc-identity-name:hover,
+.dnd-cc-identity-name:focus {
+  border-bottom-color: var(--dcc-border-strong);
+  outline: none;
+}
+
+.dnd-cc-sources-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  padding: 0.5rem 0.8rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 7px;
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-sources-button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+.dnd-cc-discard-button { margin-left: 0.5rem; }
+.dnd-cc-discard-button:hover { border-color: var(--dcc-danger); color: var(--dcc-danger); }
+
+.dnd-cc-sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dnd-cc-sources-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  cursor: pointer;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  color: var(--dcc-text);
+}
+.dnd-cc-sources-row-source {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-steps {
+  grid-area: nav;
+  border-right: 1px solid var(--dcc-border);
+  background: var(--dcc-surface);
+  overflow-y: auto;
+  padding: 0.75rem 0.5rem;
+}
+
+.dnd-cc-steps ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dnd-cc-step {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 7px;
+  cursor: default;
+}
+
+.dnd-cc-step:not(.active):hover {
+  background: var(--dcc-surface-alt);
+}
+
+.dnd-cc-step-icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-step-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.dnd-cc-step-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--dcc-text-muted);
+}
+
+/* Status is color-only - every step keeps its own real icon shape at all times, never
+   swapped for a generic checkmark/arrow (a first design pass tried that and it read as
+   confusing - "why does Review have a sword next to it"). "current" is a solid filled
+   accent button, same red as every other primary action in this palette; "done" tints
+   green; a done-but-incomplete step (real validation via `_isStepComplete`, e.g. Class
+   left with no class picked) tints gold as a genuine warning, not a decorative choice. */
+.dnd-cc-step.active {
+  background: var(--dcc-accent);
+  cursor: pointer;
+}
+.dnd-cc-step.active .dnd-cc-step-icon,
+.dnd-cc-step.active .dnd-cc-step-label {
+  color: var(--dcc-accent-contrast);
+}
+.dnd-cc-step.active .dnd-cc-step-label { font-weight: 700; }
+
+.dnd-cc-step.done {
+  cursor: pointer;
+}
+.dnd-cc-step.done .dnd-cc-step-icon,
+.dnd-cc-step.done .dnd-cc-step-label {
+  color: var(--dcc-done);
+}
+
+.dnd-cc-step.warn {
+  cursor: pointer;
+}
+.dnd-cc-step.warn .dnd-cc-step-icon,
+.dnd-cc-step.warn .dnd-cc-step-label {
+  color: var(--dcc-warn);
+}
+
+.dnd-cc-content {
+  grid-area: content;
+  min-height: 0; /* same fix as .dnd-cc-compendium-table - a 1fr grid row's item defaults to
+    a content-based minimum height too, not just flex items */
+  overflow-y: auto;
+  padding: 1.4rem 2rem;
+}
+
+.dnd-cc-step-intro {
+  font-family: var(--dcc-font-body);
+  color: var(--dcc-text-muted);
+  max-width: 62ch;
+  line-height: 1.5;
+  margin: 0 0 1.1rem;
+}
+
+.dnd-cc-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.4rem;
+  border-top: 1px solid var(--dcc-border);
+  background: var(--dcc-surface);
+}
+
+.dnd-cc-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 7px;
+  color: var(--dcc-text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.dnd-cc-footer button:hover:not(:disabled) {
+  border-color: var(--dcc-accent);
+  color: var(--dcc-accent);
+}
+
+.dnd-cc-footer button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dnd-cc-footer .dnd-cc-next {
+  background: var(--dcc-accent);
+  border-color: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
+}
+.dnd-cc-footer .dnd-cc-next:hover:not(:disabled) {
+  color: var(--dcc-accent-contrast);
+  filter: brightness(1.1);
+}
+.dnd-cc-footer .dnd-cc-next:disabled {
+  background: var(--dcc-surface-alt);
+  border-color: var(--dcc-border);
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-step-counter {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+
+/* ---------------- Shared small components ---------------- */
+
+.dnd-cc-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0.8rem 0 1.1rem;
+}
+.dnd-cc-divider::before, .dnd-cc-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--dcc-border);
+}
+.dnd-cc-divider span {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--dcc-text);
+  white-space: nowrap;
+}
+
+.dnd-cc-section-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dcc-warn);
+  margin: 1.3rem 0 0.6rem;
+}
+.dnd-cc-section-label:first-of-type { margin-top: 0; }
+
+.dnd-cc-empty-state, .dnd-cc-empty-state-inline {
+  font-family: var(--dcc-font-ui);
+  color: var(--dcc-text-muted);
+  font-style: italic;
+}
+
+.dnd-cc-pill-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.dnd-cc-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--dcc-border);
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* On top of a card's colored/gradient background (not the neutral dark surface these were
+   designed for elsewhere), the muted-gray pill reads poorly - switch to a translucent
+   white glass treatment that stays legible over any of the deterministic card colors. */
+.dnd-cc-card-content .dnd-cc-pill {
+  border-color: rgba(255,255,255,0.55);
+  color: #fff;
+  background: rgba(0,0,0,0.3);
+}
+
+.dnd-cc-seg-group {
+  display: flex;
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.dnd-cc-seg-group button {
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.85rem;
+  background: var(--dcc-surface);
+  color: var(--dcc-text-muted);
+  border: none;
+  border-right: 1px solid var(--dcc-border);
+  cursor: pointer;
+}
+.dnd-cc-seg-group button:last-child { border-right: none; }
+.dnd-cc-seg-group button.active { background: var(--dcc-surface-alt); color: var(--dcc-text); }
+
+.dnd-cc-filter-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dcc-text-muted);
+}
+
+/* ---------------- Party advisor + complexity filter (Class step) ---------------- */
+
+.dnd-cc-party-advisor {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.9rem;
+  margin: 0 0 1.2rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  color: var(--dcc-text);
+  width: fit-content;
+}
+.dnd-cc-party-advisor i { color: var(--dcc-warn); }
+
+.dnd-cc-complexity-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Ruleset cards (also reused visual language for method cards) ---------------- */
+
+.dnd-cc-ruleset-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.dnd-cc-ruleset-card {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border-radius: 9px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.dnd-cc-ruleset-card:hover { border-color: var(--dcc-accent); }
+.dnd-cc-ruleset-card.selected {
+  border-color: var(--dcc-accent);
+  background: var(--dcc-surface-alt);
+  box-shadow: 0 0 0 1px var(--dcc-accent);
+}
+.dnd-cc-ruleset-card h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: var(--dcc-text);
+}
+.dnd-cc-ruleset-card p {
+  margin: 0;
+  font-family: var(--dcc-font-ui);
+  color: var(--dcc-text-muted);
+  font-size: 0.78rem;
+}
+
+/* ---------------- Card grid: Class/Species/Background pick-from-a-list steps ---------------- */
+
+.dnd-cc-card-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.1rem;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+
+/*
+ * dnd5e's own class/species/background icon art is monochrome line art on a transparent
+ * background, so it reads as washed-out gray tiles if stretched full-bleed as a card
+ * background. Cards get a real, solid, deterministic color instead (hashCardColor in
+ * character-creator-app.mjs) with the icon sitting as a small badge on top.
+ */
+.dnd-cc-card {
+  position: relative;
+  min-height: 190px;
+  border-radius: 10px;
+  border: 1.5px solid var(--dcc-border);
+  color: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.dnd-cc-card:hover { border-color: var(--dcc-accent); }
+.dnd-cc-card.selected {
+  border-color: var(--dcc-accent);
+  box-shadow: 0 0 0 1px var(--dcc-accent), 0 8px 24px rgba(223, 0, 0, 0.25);
+}
+.dnd-cc-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.82) 100%);
+}
+.dnd-cc-card-icon {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.8rem;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
+.dnd-cc-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+.dnd-cc-card-edition {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.7rem;
+  z-index: 2;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.16rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.4);
+  text-transform: uppercase;
+}
+.dnd-cc-card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+  padding: 1rem;
+  padding-top: 2.6rem;
+  justify-content: flex-end;
+}
+.dnd-cc-card-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.dnd-cc-card-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1.5px solid var(--dcc-accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-card-select:hover { background: var(--dcc-accent); }
+.dnd-cc-card-selected-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(223,0,0,0.25);
+  border: 1.5px solid var(--dcc-accent);
+  color: #fff;
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dnd-cc-card-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.dnd-cc-card-actions .dnd-cc-card-select { flex: 1; }
+.dnd-cc-card-learn-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(255,255,255,0.4);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-card-learn-more:hover { border-color: #fff; }
+
+.dnd-cc-card-edition-custom { background: rgba(217,178,63,0.35); border-color: var(--dcc-warn); }
+
+.dnd-cc-custom-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 190px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--dcc-border-strong);
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  background: transparent;
+}
+.dnd-cc-custom-card:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+.dnd-cc-custom-card i { font-size: 1.4rem; }
+
+/* ---------------- In-shell overlay (Learn More / Add Custom) ---------------- */
+/* Never a floating popup window - an absolutely-positioned layer inside the wizard
+   itself, matching the rest of the app's "nothing pops out" design. */
+
+.dnd-cc-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dnd-cc-overlay[hidden] { display: none; }
+.dnd-cc-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  cursor: pointer;
+}
+.dnd-cc-overlay-panel {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 90%);
+  max-height: 80%;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1.5px solid var(--dcc-border-strong);
+  background: var(--dcc-surface);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+
+.dnd-cc-detail-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid var(--dcc-border);
+  color: #fff;
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(0,0,0,0.3));
+}
+.dnd-cc-detail-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.35);
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+}
+.dnd-cc-detail-icon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7)); }
+.dnd-cc-detail-title { display: flex; flex-direction: column; gap: 0.3rem; }
+.dnd-cc-detail-name { font-family: var(--dcc-font-display); font-weight: 700; font-size: 1.15rem; }
+.dnd-cc-detail-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.dnd-cc-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.1rem;
+}
+.dnd-cc-detail-features {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-body);
+}
+.dnd-cc-detail-open-compendium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--dcc-surface-alt);
+  border: 1.5px solid var(--dcc-border-strong);
+  color: var(--dcc-text);
+  border-radius: 6px;
+  padding: 0.55rem 0.8rem;
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-detail-open-compendium:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+.dnd-cc-lineage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dnd-cc-lineage-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 96px;
+  padding: 0.8rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--dcc-border);
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.dnd-cc-lineage-card:hover { border-color: var(--dcc-accent); }
+.dnd-cc-lineage-card .dnd-cc-card-icon {
+  position: static;
+  width: 32px;
+  height: 32px;
+}
+.dnd-cc-lineage-name {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+.dnd-cc-custom-form .dnd-cc-identity-name {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--dcc-border-strong);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+}
+
+/* ---------------- Current-pick summary (Species/Background) ---------------- */
+
+.dnd-cc-current-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+}
+.dnd-cc-current-pick-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 1px solid var(--dcc-border);
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+}
+.dnd-cc-current-pick-art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.dnd-cc-current-pick-info { display: flex; flex-direction: column; gap: 0.2rem; }
+.dnd-cc-current-pick-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-current-pick-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+/* ---------------- Class roster ---------------- */
+
+.dnd-cc-class-list {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.6rem;
+}
+
+.dnd-cc-class-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface);
+}
+
+.dnd-cc-class-row-art {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  border: 1px solid var(--dcc-border);
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+}
+.dnd-cc-class-row-art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+
+.dnd-cc-class-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dnd-cc-class-row-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.dnd-cc-class-row-level {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.78rem;
+  color: var(--dcc-text-muted);
+  flex-shrink: 0;
+}
+
+.dnd-cc-class-row-remove {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--dcc-danger);
+  color: var(--dcc-danger);
+  border-radius: 7px;
+  cursor: pointer;
+}
+.dnd-cc-class-row-remove:hover { background: var(--dcc-danger); color: #fff; }
+
+.dnd-cc-class-total {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--dcc-text-muted);
+  margin: 0 0 0.6rem;
+  text-align: right;
+}
+
+/* ---------------- Feats ---------------- */
+
+.dnd-cc-feat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dnd-cc-feat-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+}
+
+.dnd-cc-feat-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  border: 1px solid var(--dcc-border);
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+}
+.dnd-cc-feat-icon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+
+.dnd-cc-feat-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.dnd-cc-feat-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.dnd-cc-feat-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.dnd-cc-feat-swap-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dcc-warn);
+}
+
+.dnd-cc-feat-static-tag {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+
+/* ---------------- Skills / Abilities tables ---------------- */
+
+.dnd-cc-skills-table, .dnd-cc-ability-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 42rem;
+  font-family: var(--dcc-font-ui);
+}
+
+.dnd-cc-skills-table th, .dnd-cc-ability-table th {
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1.5px solid var(--dcc-border);
+}
+
+.dnd-cc-skills-table td, .dnd-cc-ability-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--dcc-border);
+  font-size: 0.88rem;
+}
+
+.dnd-cc-skills-table tr[data-ability], .dnd-cc-ability-table tr[data-ability] {
+  border-left: 3px solid transparent;
+}
+.dnd-cc-skills-table tr[data-ability="str"], .dnd-cc-ability-table tr[data-ability="str"] { border-left-color: var(--dcc-str); }
+.dnd-cc-skills-table tr[data-ability="dex"], .dnd-cc-ability-table tr[data-ability="dex"] { border-left-color: var(--dcc-dex); }
+.dnd-cc-skills-table tr[data-ability="con"], .dnd-cc-ability-table tr[data-ability="con"] { border-left-color: var(--dcc-con); }
+.dnd-cc-skills-table tr[data-ability="int"], .dnd-cc-ability-table tr[data-ability="int"] { border-left-color: var(--dcc-int); }
+.dnd-cc-skills-table tr[data-ability="wis"], .dnd-cc-ability-table tr[data-ability="wis"] { border-left-color: var(--dcc-wis); }
+.dnd-cc-skills-table tr[data-ability="cha"], .dnd-cc-ability-table tr[data-ability="cha"] { border-left-color: var(--dcc-cha); }
+
+.dnd-cc-skill-proficient td { color: var(--dcc-text); font-weight: 600; }
+
+.dnd-cc-prof-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.6px solid var(--dcc-text-muted);
+  background: transparent;
+}
+.dnd-cc-skills-table tr[data-ability="str"] .dnd-cc-prof-dot { border-color: var(--dcc-str); }
+.dnd-cc-skills-table tr[data-ability="dex"] .dnd-cc-prof-dot { border-color: var(--dcc-dex); }
+.dnd-cc-skills-table tr[data-ability="con"] .dnd-cc-prof-dot { border-color: var(--dcc-con); }
+.dnd-cc-skills-table tr[data-ability="int"] .dnd-cc-prof-dot { border-color: var(--dcc-int); }
+.dnd-cc-skills-table tr[data-ability="wis"] .dnd-cc-prof-dot { border-color: var(--dcc-wis); }
+.dnd-cc-skills-table tr[data-ability="cha"] .dnd-cc-prof-dot { border-color: var(--dcc-cha); }
+.dnd-cc-prof-dot.dnd-cc-prof-half { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+.dnd-cc-prof-dot.dnd-cc-prof-prof { background: currentColor; }
+.dnd-cc-prof-dot.dnd-cc-prof-expertise { background: currentColor; box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 3.5px currentColor; }
+.dnd-cc-skills-table tr[data-ability] .dnd-cc-prof-dot { color: inherit; border-color: currentColor; }
+
+/* ---------------- Abilities step: method cards + per-method controls ---------------- */
+
+.dnd-cc-ability-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0 1.2rem;
+}
+
+.dnd-cc-ability-method-card {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 9px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface);
+  cursor: pointer;
+}
+.dnd-cc-ability-method-card:hover { border-color: var(--dcc-accent); }
+.dnd-cc-ability-method-card.selected {
+  border-color: var(--dcc-accent);
+  background: var(--dcc-surface-alt);
+  box-shadow: 0 0 0 1px var(--dcc-accent);
+}
+.dnd-cc-ability-method-card h3 { margin: 0; font-size: 0.92rem; color: var(--dcc-text); }
+.dnd-cc-ability-method-card p { margin: 0; font-family: var(--dcc-font-ui); font-size: 0.76rem; color: var(--dcc-text-muted); }
+
+.dnd-cc-ability-body { margin-top: 0.5rem; }
+
+.dnd-cc-point-buy-remaining {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--dcc-text);
+  margin: 0 0 0.9rem;
+}
+.dnd-cc-point-buy-remaining::before {
+  content: "\f5cd";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  color: var(--dcc-warn);
+  margin-right: 0.4rem;
+}
+
+.dnd-cc-ability-roll-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 7px;
+  color: var(--dcc-text);
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  margin-bottom: 0.9rem;
+}
+.dnd-cc-ability-roll-button:hover { border-color: var(--dcc-accent); }
+.dnd-cc-ability-base-cell .dnd-cc-ability-roll-button { margin-bottom: 0; }
+
+.dnd-cc-ability-pool-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0;
+}
+.dnd-cc-ability-pool-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+.dnd-cc-ability-pool-chip.unclaimed { opacity: 0.6; border-style: dashed; }
+.dnd-cc-ability-pool-chip-value {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  color: var(--dcc-text);
+}
+.dnd-cc-ability-pool-chip-holder {
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--dcc-accent);
+}
+
+.dnd-cc-ability-pool-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dnd-cc-ability-reroll-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  color: var(--dcc-text);
+  cursor: pointer;
+  flex: none;
+}
+.dnd-cc-ability-reroll-button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+.dnd-cc-point-buy-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.dnd-cc-point-buy-control button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  color: var(--dcc-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.dnd-cc-point-buy-control button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+.dnd-cc-point-buy-value {
+  min-width: 1.4em;
+  text-align: center;
+  display: inline-block;
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+}
+
+.dnd-cc-ability-manual-input { width: 4em; text-align: center; }
+
+/* ---------------- Spells ---------------- */
+
+.dnd-cc-spell-group {
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+}
+.dnd-cc-spell-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.dnd-cc-spell-group-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--dcc-int);
+}
+.dnd-cc-spell-group-count {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.66rem;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--dcc-int);
+  color: var(--dcc-int);
+}
+.dnd-cc-spell-group-readonly {
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-spell-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.dnd-cc-spell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+}
+.dnd-cc-spell-chip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.dnd-cc-spell-chip-name { font-family: var(--dcc-font-ui); font-weight: 600; font-size: 0.82rem; }
+.dnd-cc-spell-chip-remove {
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--dcc-text-muted); cursor: pointer; padding: 0;
+}
+.dnd-cc-spell-chip-remove:hover { color: var(--dcc-danger); }
+.dnd-cc-spell-chip-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: 1.5px dashed var(--dcc-border);
+  border-radius: 8px;
+  color: var(--dcc-text-muted);
+  font-weight: 700;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.dnd-cc-spell-chip-add:hover { border-color: var(--dcc-int); color: var(--dcc-int); border-style: solid; }
+
+/* ---------------- Equipment ---------------- */
+
+.dnd-cc-equipment-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dnd-cc-equipment-source-card {
+  padding: 1rem 1.1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+}
+.dnd-cc-equipment-source-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.dnd-cc-equipment-source-name {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.dnd-cc-equipment-source-clear {
+  background: transparent;
+  border: none;
+  color: var(--dcc-text-muted);
+  font-weight: 700;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-equipment-source-clear:hover { color: var(--dcc-danger); }
+
+.dnd-cc-branch-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--dcc-text);
+  cursor: pointer;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+}
+.dnd-cc-branch-option:hover { background: var(--dcc-surface-alt); }
+.dnd-cc-branch-option.selected { border-color: var(--dcc-accent); background: var(--dcc-surface-alt); }
+.dnd-cc-branch-radio {
+  width: 15px; height: 15px; margin-top: 0.1rem;
+  border-radius: 50%;
+  border: 1.6px solid var(--dcc-text-muted);
+  flex-shrink: 0;
+  position: relative;
+}
+.dnd-cc-branch-option.selected .dnd-cc-branch-radio { border-color: var(--dcc-accent); }
+.dnd-cc-branch-option.selected .dnd-cc-branch-radio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--dcc-accent);
+}
+.dnd-cc-branch-label { flex: 1; line-height: 1.4; }
+
+.dnd-cc-equipment-pending {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0;
+  border-top: 1px dashed var(--dcc-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dnd-cc-equipment-pending-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+
+.dnd-cc-equipment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+  padding: 0.7rem 1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.84rem;
+}
+.dnd-cc-equipment-summary b { color: var(--dcc-warn); }
+
+.dnd-cc-item-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.dnd-cc-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.dnd-cc-item-chip img { width: 20px; height: 20px; border-radius: 4px; object-fit: cover; }
+.dnd-cc-item-chip-remove {
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--dcc-text-muted); cursor: pointer; padding: 0;
+}
+.dnd-cc-item-chip-remove:hover { color: var(--dcc-danger); }
+.dnd-cc-item-chip-price {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--dcc-warn);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(217,178,63,0.15);
+}
+
+.dnd-cc-add-item-hint {
+  margin: 0.4rem 0 0;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.74rem;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-add-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  background: transparent;
+  border: 1.5px dashed var(--dcc-border);
+  border-radius: 8px;
+  color: var(--dcc-text-muted);
+  font-weight: 700;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.dnd-cc-add-item-btn:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); border-style: solid; }
+
+/*
+ * Embedded Advancement UI - the real dnd5e AdvancementManager, rendered chromeless and
+ * relocated in here instead of floating as its own popup window (see
+ * _runEmbeddedAdvancement in character-creator-app.mjs). This makes it sit naturally
+ * inside our step area instead of looking like a dropped-in floating window's leftover
+ * chrome. Its form controls keep dnd5e's native behavior; see further down for the
+ * color reskin applied to them.
+ */
+.dnd-cc-advancement-host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dnd-cc-advancement-cancel {
+  align-self: flex-end;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 7px;
+  color: var(--dcc-text);
+  cursor: pointer;
+}
+.dnd-cc-advancement-cancel:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+.dnd-cc-advancement-body {
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  background: var(--dcc-surface);
+  padding: 1rem 1.2rem;
+}
+
+.dnd-cc-advancement-body .dnd5e2.advancement.manager {
+  width: 100%;
+  box-shadow: none;
+  background: none;
+}
+
+/*
+ * Reskin dnd5e's own embedded Advancement forms to match the module's palette. Done by
+ * re-pointing the real CSS custom properties dnd5e's own `.dnd5e2` stylesheet already
+ * reads, rather than fighting selector specificity rule-by-rule - dnd5e's markup and
+ * behavior (checkboxes, radios, nav) are untouched, only the color tokens they paint
+ * with change, scoped entirely to `.dnd-cc-advancement-body` so nothing leaks onto any
+ * other Foundry window (a real dnd5e character sheet, another app's own Advancement
+ * popup, etc.).
+ */
+.dnd-cc-advancement-body {
+  --dnd5e-color-blue-gray-1: var(--dcc-surface);
+  --dnd5e-color-blue-gray-2: var(--dcc-surface-alt);
+  --dnd5e-color-blue-gray-3: var(--dcc-border);
+  --dnd5e-color-blue-gray-4: var(--dcc-surface-alt);
+  --color-cool-5: var(--dcc-bg);
+  --color-cool-4: var(--dcc-surface);
+  --color-cool-3: var(--dcc-surface-alt);
+  --color-border: var(--dcc-border);
+  --color-fieldset-border: var(--dcc-border);
+  --dnd5e-border-dark: 1px solid var(--dcc-border);
+  --dnd5e-border-separator-heavy: 1px solid var(--dcc-border);
+  --dnd5e-border-separator-faint: 1px solid var(--dcc-border);
+  --dnd5e-border-dashed: 1px dashed var(--dcc-border);
+  --dnd5e-statblock-border: var(--dcc-border);
+  --filigree-border-color: var(--dcc-border);
+  --separated-list-item-border-color: var(--dcc-border);
+  --separated-list-item-background-color: var(--dcc-surface-alt);
+  --color-text-primary: var(--dcc-text);
+  --color-text-light-0: var(--dcc-text);
+  --color-text-light-1: var(--dcc-text);
+  --color-text-light-6: var(--dcc-text-muted);
+  --color-text-secondary: var(--dcc-text-muted);
+  --color-text-tertiary: var(--dcc-text-muted);
+  --dnd5e-color-gold: var(--dcc-warn);
+  --color-form-label: var(--dcc-warn);
+  --color-text-accent: var(--dcc-accent);
+  --color-text-hyperlink: var(--dcc-accent);
+  --item-control-active-color: var(--dcc-accent);
+  --item-control-hover-color: var(--dcc-accent);
+  --group-control-hover-border: var(--dcc-accent);
+  --table-row-color-highlight: rgba(223, 0, 0, 0.2);
+  --table-header-bg-color: var(--dcc-surface-alt);
+  --dnd5e-color-table-row-odd: var(--dcc-surface);
+  --dnd5e-color-table-row-even: var(--dcc-surface-alt);
+  --table-background-color: var(--dcc-surface);
+  color-scheme: dark;
+}
+
+.dnd-cc-advancement-body [data-application-part="header"] h3 {
+  font-family: var(--dcc-font-display);
+  color: var(--dcc-text);
+  border-bottom: 1px solid var(--dcc-border);
+  padding-bottom: 0.4rem;
+}
+
+.dnd-cc-advancement-body .items-section.card {
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+}
+
+.dnd-cc-advancement-body .item-list .item:hover {
+  background: rgba(223, 0, 0, 0.08);
+}
+
+.dnd-cc-advancement-body li.item:has(dnd5e-checkbox[checked]),
+.dnd-cc-advancement-body li.item:has(input[type="radio"]:checked) {
+  background: rgba(223, 0, 0, 0.16);
+  border-radius: 6px;
+}
+
+.dnd-cc-advancement-body dnd5e-checkbox {
+  accent-color: var(--dcc-accent);
+}
+
+.dnd-cc-advancement-body nav.flexrow button {
+  font-family: var(--dcc-font-ui);
+  border-radius: 6px;
+}
+.dnd-cc-advancement-body nav.flexrow button[data-action="next"],
+.dnd-cc-advancement-body nav.flexrow button[data-action="complete"] {
+  background: var(--dcc-accent);
+  border-color: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
+  font-weight: 700;
+}
+.dnd-cc-advancement-body nav.flexrow button[data-action="previous"],
+.dnd-cc-advancement-body nav.flexrow button[data-action="restart"] {
+  background: transparent;
+  border-color: var(--dcc-border);
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-advancement-body nav.flexrow button:hover {
+  border-color: var(--dcc-accent);
+}
+
+.dnd-cc-feat-subtype {
+  margin-left: 0.6rem;
+  opacity: 0.65;
+  font-size: 0.85em;
+}
+
+/* ---------------- Compendium Sources / House Rules (separate GM apps, same stylesheet) ---------------- */
+
+.dnd-cc-compendium-sources, .dnd-cc-house-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 1rem;
+  overflow: hidden;
+  font-family: var(--dcc-font-ui);
+}
+.dnd-cc-house-rules { overflow-y: auto; }
+
+/* A <table> as a direct flex item resists flex-shrink even with min-height:0 (confirmed
+   live - it kept computing to its full content height, 690px, inside a 558px-tall flex
+   parent, regardless of that fix) - tables carry their own strong intrinsic-size formatting
+   context that doesn't cooperate with the flex sizing algorithm the way a plain block does.
+   The reliable fix is a plain <div> wrapper that actually does the flex:1/shrink/scroll
+   work, with the table just living inside it and overflowing normally like any other tall
+   block content would. */
+.dnd-cc-compendium-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dnd-cc-compendium-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+}
+
+.dnd-cc-compendium-table th, .dnd-cc-compendium-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--dcc-border);
+  text-align: left;
+}
+.dnd-cc-compendium-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-warn);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1.5px solid var(--dcc-border-strong);
+}
+
+.dnd-cc-compendium-table tbody tr:hover { background: rgba(223, 0, 0, 0.06); }
+.dnd-cc-compendium-table tbody tr:has(.col-enabled input[type="checkbox"]:not(:checked)) { opacity: 0.55; }
+
+.dnd-cc-compendium-table .col-enabled { width: 2.5rem; text-align: center; }
+.dnd-cc-compendium-table .col-ruleset { width: 8rem; }
+.dnd-cc-compendium-table .col-name { font-weight: 600; color: var(--dcc-text); }
+.dnd-cc-compendium-table .col-source { color: var(--dcc-text-muted); font-size: 0.85em; }
+
+.dnd-cc-compendium-table input[type="checkbox"] { accent-color: var(--dcc-accent); width: 16px; height: 16px; cursor: pointer; }
+.dnd-cc-compendium-table select {
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 5px;
+  color: var(--dcc-text);
+  padding: 0.25rem 0.4rem;
+  font-family: var(--dcc-font-ui);
+}
+.dnd-cc-compendium-table select:hover { border-color: var(--dcc-accent); }
+
+.dnd-cc-compendium-sources-footer { display: flex; justify-content: flex-end; }
+
+.dnd-cc-save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  background: var(--dcc-accent);
+  border: 1.5px solid var(--dcc-accent);
+  border-radius: 8px;
+  color: var(--dcc-accent-contrast);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.dnd-cc-save-button:hover { filter: brightness(1.12); }
+
+.dnd-cc-house-rules-section {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+  background: var(--dcc-surface);
+  margin-bottom: 0.75rem;
+}
+.dnd-cc-house-rules-section h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--dcc-border);
+  padding-bottom: 0.35rem;
+}
+
+.dnd-cc-house-rules-hint {
+  color: var(--dcc-text-muted);
+  font-size: 0.85em;
+  margin: 0 0 0.5rem;
+}
+
+.dnd-cc-house-rules-checkgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.4rem 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dnd-cc-house-rules-checkgrid label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9em;
+  padding: 0.2rem 0.3rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.dnd-cc-house-rules-checkgrid label:hover { background: rgba(223, 0, 0, 0.08); }
+.dnd-cc-house-rules-checkgrid input[type="checkbox"] { accent-color: var(--dcc-accent); width: 15px; height: 15px; cursor: pointer; }
+
+.dnd-cc-house-rules-section input[type="number"] {
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  color: var(--dcc-text);
+  padding: 0.4rem 0.6rem;
+  font-family: var(--dcc-font-ui);
+  width: 6rem;
+}
+.dnd-cc-house-rules-section input[type="number"]:focus { border-color: var(--dcc-accent); outline: none; }
+
+.dnd-cc-house-rules-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+/* ---------------- About ---------------- */
+
+.dnd-cc-about-characteristics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.dnd-cc-about-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-about-field input, .dnd-cc-about-field select {
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.dnd-cc-about-personality {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.dnd-cc-about-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-about-textarea textarea {
+  resize: vertical;
+  font-family: var(--dcc-font-body);
+  font-style: italic;
+  font-size: 0.86rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.dnd-cc-language-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0 0 0.75rem;
+}
+
+.dnd-cc-language-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface);
+  font-size: 0.85em;
+}
+
+.dnd-cc-language-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-language-chip button:hover { color: var(--dcc-danger); }
+
+.dnd-cc-language-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dnd-cc-lifestyle-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+
+.dnd-cc-lifestyle-tier {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface);
+  cursor: pointer;
+}
+.dnd-cc-lifestyle-tier:hover { border-color: var(--dcc-accent); }
+.dnd-cc-lifestyle-tier.selected {
+  border-color: var(--dcc-accent);
+  background: var(--dcc-surface-alt);
+  box-shadow: 0 0 0 1px var(--dcc-accent);
+}
+.dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
+.dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
+
+.dnd-cc-step-about prose-mirror {
+  display: block;
+  min-height: 180px;
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  background: var(--dcc-surface);
+  font-family: var(--dcc-font-body);
+}
+
+/* ---------------- Review ---------------- */
+
+.dnd-cc-review-headline {
+  font-family: var(--dcc-font-ui);
+  color: var(--dcc-text-muted);
+  margin: 0 0 1.1rem;
+}
+.dnd-cc-review-headline strong {
+  font-family: var(--dcc-font-display);
+  color: var(--dcc-text);
+  font-size: 1.1rem;
+}
+
+.dnd-cc-stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 1.3rem;
+}
+.dnd-cc-stat-tile {
+  min-width: 0;
+  padding: 0.65rem 0.4rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 9px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.dnd-cc-stat-tile-value {
+  font-family: var(--dcc-font-display);
+  font-weight: 900;
+  font-size: 1.2rem;
+  word-break: break-word;
+}
+.dnd-cc-stat-tile-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+.dnd-cc-review-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.9rem 1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+}
+.dnd-cc-review-card h3 { font-size: 0.9rem; margin: 0 0 0.6rem; }
+.dnd-cc-review-card .dnd-cc-ability-table { max-width: none; }
+.dnd-cc-review-card .dnd-cc-ability-table td { font-size: 0.82rem; padding: 0.3rem 0.4rem; }
+
+.dnd-cc-review-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--dcc-border);
+}
+.dnd-cc-review-line:last-child { border-bottom: none; }
+.dnd-cc-review-line span:last-child { color: var(--dcc-text-muted); text-align: right; }
+
+.dnd-cc-review-taglist { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+@media (max-width: 1100px) {
+  .dnd-cc-review-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 760px) {
+  .dnd-cc-review-grid { grid-template-columns: 1fr; }
+  .dnd-cc-stat-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.dnd-cc-review-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dnd-cc-pending-review-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--dcc-warn);
+  background: rgba(217,178,63,0.12);
+  color: var(--dcc-warn);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.dnd-cc-export-pdf-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.3rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  color: var(--dcc-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.dnd-cc-export-pdf-button:hover { border-color: var(--dcc-accent); }
+
+.dnd-cc-finalize-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+  padding: 0.85rem 1.4rem;
+  font-family: var(--dcc-font-display);
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+  background: var(--dcc-accent);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+}
+.dnd-cc-finalize-button:hover:not(:disabled) { filter: brightness(1.1); }
+.dnd-cc-finalize-button:disabled {
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  cursor: default;
+}
+
+.dnd-cc-review-warning {
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--dcc-warn);
+  background: rgba(217, 178, 63, 0.12);
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.85rem;
+}
