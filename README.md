@@ -1,59 +1,59 @@
 # D&D Character Creator
 
-Модуль для Foundry VTT, який додає покроковий майстер створення персонажа для системи dnd5e. Підтримує обидва набори правил: 2014 (5e) і 2024 (5.5e).
+A Foundry VTT module that adds a step-by-step character creation wizard for the dnd5e system. It supports both rulesets: 2014 (5e) and 2024 (5.5e).
 
-Модуль не копіює текст із книг. Він читає раси, класи, передісторії, риси, заклинання та спорядження з компендіумів, які вже встановлені у вашому світі (системні пакети, офіційні модулі на кшталт Player's Handbook, і будь-який homebrew-контент).
+This module does not copy text from any book. It reads classes, species, backgrounds, feats, spells, and equipment from the compendiums already installed in your world (system packs, official modules like the Player's Handbook, and any homebrew content).
 
-## Вимоги
+## Requirements
 
-- Foundry VTT версії 13 або 14.
-- Система dnd5e версії 3.0 або новіше.
+- Foundry VTT version 13 or 14.
+- The dnd5e system, version 3.0 or newer.
 
-## Встановлення
+## Installation
 
-1. У Foundry відкрийте "Add-on Modules" і додайте модуль за посиланням на manifest, або скопіюйте цю папку у `Data/modules/`.
-2. Увімкніть модуль у налаштуваннях вашого світу.
-3. Відкрийте вкладку "Actors" (Дійові особи). Там з'явиться кнопка створення персонажа.
+1. In Foundry, open "Add-on Modules" and add the module using its manifest link, or copy this folder into `Data/modules/`.
+2. Enable the module in your world's settings.
+3. Open the "Actors" tab. A button to create a character will appear there.
 
-## Що вміє майстер
+## What the wizard does
 
-- Одинадцять кроків: Правила, Клас, Раса, Передісторія, Характеристики, Риси, Навички, Заклинання, Спорядження, Про персонажа, Огляд.
-- Вибір набору правил (2014, 2024 або обидва одразу) визначає, який контент пропонується.
-- Мультиклас: можна додати скільки завгодно класів і прибрати будь-який з них.
-- Раси, які в компендіумах розділені на кілька варіантів (наприклад Ельф: Дров, Високий, Лісовий), показуються однією карткою з вибором варіанту, а не окремими картками.
-- Чотири способи генерації характеристик: стандартний масив, купівля за очки, кидок кубиків (окремо для кожної характеристики, з можливістю обміну значеннями) і ручне введення.
-- Просування персонажа (вибір навичок, рис, підкласу тощо) відбувається прямо всередині вікна майстра, без окремих спливаючих вікон.
-- Крок Спорядження дозволяє обрати стартовий набір від класу чи передісторії, або купити власні речі за реальну ціну з реального гаманця персонажа. Купити те, на що не вистачає грошей, неможливо.
-- Кнопка "Детальніше" на картці класу чи раси показує характеристики та реальні риси, які дає цей вибір, з посиланням на компендіум.
-- Кнопка "Додати власне" дозволяє швидко створити заготовку homebrew-класу, раси чи передісторії, яку потім можна доопрацювати вручну.
-- Портрет і ім'я персонажа можна редагувати з будь-якого кроку.
-- Готового персонажа можна експортувати як PDF (для друку) або як запис у Журналі Foundry.
-- Кнопка "Почати заново" дозволяє видалити поточну чернетку персонажа і почати нову.
+- Eleven steps: Ruleset, Class, Species, Background, Abilities, Feats, Skills, Spells, Equipment, About, Review.
+- Choosing a ruleset (2014, 2024, or both) controls which content is offered.
+- Multiclassing: add as many classes as you want and remove any of them.
+- Species that are split into several variants in the compendiums (for example Elf: Drow, High, Wood) show up as one card with a variant picker, instead of separate cards.
+- Four ways to generate ability scores: standard array, point buy, dice roll (per ability, with the option to swap values), and manual entry.
+- Character advancement (skill picks, traits, subclass choices, and so on) happens right inside the wizard window, with no separate popups.
+- The Equipment step lets you pick a starting kit from your class or background, or buy your own gear using the character's real money. You cannot buy something you cannot afford.
+- The "Learn More" button on a class or species card shows its stats and real features, with a link to the compendium.
+- The "Add Custom" button quickly creates a placeholder for a homebrew class, species, or background, which you can then finish by hand.
+- The character's portrait and name can be edited from any step.
+- A finished character can be exported as a PDF (for printing) or as a Foundry Journal Entry.
+- The "Start Over" button lets you delete the current draft character and begin a new one.
 
-## Налаштування для гейм-мастера
+## Settings for the game master
 
-Усі налаштування доступні через меню модуля в налаштуваннях світу (Configure Settings).
+All settings are available through the module's menu in the world's Configure Settings screen.
 
-**Джерела компендіумів.** Список усіх встановлених пакетів з предметами. Гейм-мастер обирає, які пакети майстер може використовувати, і опційно позначає кожен як контент 2014, 2024 чи обидва.
+**Compendium Sources.** A list of every installed pack that contains items. The game master chooses which packs the wizard can use, and can optionally tag each one as 2014, 2024, or both.
 
-**Домашні правила.** Дозволяє обмежити:
-- які способи генерації характеристик доступні гравцям;
-- які вирівнювання (alignment) заборонені;
-- мінімальний рівень для вибору фітів;
-- які раси заборонені на столі.
+**House Rules.** Lets you restrict:
+- which ability score generation methods players can use;
+- which alignments are not allowed;
+- the minimum level needed to pick a feat;
+- which species are banned at the table.
 
-**Набір правил за замовчуванням.** Який набір правил (2014, 2024 чи обидва) пропонується новому персонажу спочатку.
+**Default Ruleset.** Which ruleset (2014, 2024, or both) a new character starts with.
 
-**Вимагати перевірку ГМ перед завершенням.** Якщо увімкнено, кнопка "Створити персонажа" у гравця не завершує створення одразу, а надсилає гейм-мастеру картку в чат із проханням затвердити персонажа. Гейм-мастер сам ніколи не підпадає під цю вимогу. Вимкнено за замовчуванням.
+**Require GM review before finalizing.** When turned on, a player's "Build Character" button does not finish the character right away. Instead it sends the game master a chat card asking for approval. The game master is never subject to this setting. It is off by default.
 
-## Налаштування для гравця
+## Settings for players
 
-Кнопка "Джерела" у верхній панелі майстра дозволяє гравцю особисто приховати будь-яке джерело контенту, яке ввімкнув гейм-мастер (наприклад, книгу, якої немає у гравця). Це впливає лише на власний перегляд гравця, а не на налаштування столу.
+The "Sources" button in the wizard's top bar lets a player personally hide any content source the game master has enabled (for example, a book the player does not own). This only affects that player's own view, not the table's settings.
 
-## Мова
+## Language
 
-Інтерфейс доступний англійською та українською.
+The interface is available in English and Ukrainian.
 
-## Ліцензія
+## License
 
-Буде визначена перед публічним релізом.
+Not decided yet. This will be set before a public release.
