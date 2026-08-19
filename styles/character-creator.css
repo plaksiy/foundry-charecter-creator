@@ -474,6 +474,10 @@
   border-radius: 6px;
   overflow: hidden;
 }
+/* Foundry's own core button styling (border-radius, box-shadow, focus outline) bleeds
+   through unless explicitly reset here - left alone, it clips against this group's own
+   overflow:hidden corner-rounding and reads as a broken/malformed border on whichever
+   segment currently has it (typically the active one). */
 .dnd-cc-seg-group button {
   font-family: var(--dcc-font-ui);
   font-weight: 600;
@@ -485,10 +489,18 @@
   color: var(--dcc-text-muted);
   border: none;
   border-right: 1px solid var(--dcc-border);
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
   cursor: pointer;
 }
 .dnd-cc-seg-group button:last-child { border-right: none; }
-.dnd-cc-seg-group button.active { background: var(--dcc-surface-alt); color: var(--dcc-text); }
+.dnd-cc-seg-group button:focus-visible { outline: 1px solid var(--dcc-accent); outline-offset: -1px; }
+.dnd-cc-seg-group button.active {
+  background: var(--dcc-accent);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
+}
 
 .dnd-cc-filter-label {
   font-family: var(--dcc-font-ui);
@@ -573,10 +585,30 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 1.1rem;
+}
+
+/* Wraps one or more labeled per-source card groups (see _groupBySource in
+   character-creator-app.mjs) - the scroll region lives here so switching from a flat
+   grid to grouped sections doesn't turn into several independently-scrolling boxes. */
+.dnd-cc-card-groups {
   max-height: 460px;
   overflow-y: auto;
   padding-right: 0.4rem;
 }
+.dnd-cc-card-group { margin-bottom: 1.4rem; }
+.dnd-cc-card-group:last-child { margin-bottom: 0; }
+.dnd-cc-card-group-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dcc-text-muted);
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--dcc-border);
+}
+.dnd-cc-card-grid-custom { margin-top: 1.4rem; }
 
 /*
  * dnd5e's own class/species/background icon art is monochrome line art on a transparent
@@ -780,8 +812,17 @@
   background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
 }
 .dnd-cc-detail-icon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7)); }
-.dnd-cc-detail-title { display: flex; flex-direction: column; gap: 0.3rem; }
+.dnd-cc-detail-title { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
 .dnd-cc-detail-name { font-family: var(--dcc-font-display); font-weight: 700; font-size: 1.15rem; }
+/* .dnd-cc-card-edition is normally absolutely positioned in a card's own top-right
+   corner - reused here for the same "edition/book" tag, but the detail header is a
+   plain flex row, not a card, so the absolute positioning would float the tag over the
+   close button instead of laying out next to the name. Put it back in flow. */
+.dnd-cc-detail-title .dnd-cc-card-edition {
+  position: static;
+  display: inline-block;
+  width: fit-content;
+}
 .dnd-cc-detail-close {
   margin-left: auto;
   background: transparent;
@@ -977,9 +1018,23 @@
   border: 1px solid var(--dcc-danger);
   color: var(--dcc-danger);
   border-radius: 7px;
+  box-shadow: none;
+  outline: none;
   cursor: pointer;
 }
 .dnd-cc-class-row-remove:hover { background: var(--dcc-danger); color: #fff; }
+
+.dnd-cc-class-row-level select {
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  box-shadow: none;
+  outline: none;
+  padding: 0.3rem 0.5rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.78rem;
+}
 
 .dnd-cc-class-total {
   font-family: var(--dcc-font-ui);
@@ -1579,12 +1634,38 @@
   color: var(--dcc-text);
   border-bottom: 1px solid var(--dcc-border);
   padding-bottom: 0.4rem;
+  font-size: 1.3rem;
 }
 
 .dnd-cc-advancement-body .items-section.card {
   background: var(--dcc-surface-alt);
   border: 1px solid var(--dcc-border);
   border-radius: 8px;
+}
+
+/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, since the
+   default sizing was cramped and hard to click precisely. */
+.dnd-cc-advancement-body { font-size: 1.05rem; }
+.dnd-cc-advancement-body .item-list .item {
+  min-height: 2.6rem;
+  padding: 0.4rem 0.5rem;
+}
+.dnd-cc-advancement-body .item-list .item .title { font-size: 1rem; }
+.dnd-cc-advancement-body dnd5e-icon,
+.dnd-cc-advancement-body .item-name img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.dnd-cc-advancement-body dnd5e-checkbox,
+.dnd-cc-advancement-body input[type="radio"] {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.dnd-cc-advancement-body select,
+.dnd-cc-advancement-body input[type="text"],
+.dnd-cc-advancement-body input[type="number"] {
+  font-size: 1rem;
+  min-height: 2.3rem;
 }
 
 .dnd-cc-advancement-body .item-list .item:hover {
@@ -1601,9 +1682,25 @@
   accent-color: var(--dcc-accent);
 }
 
+/* A chosen entry's own remove/trash control (e.g. unpicking a skill from a repeating
+   "choose N" select) - left at the default muted icon color it was easy to miss
+   entirely; red matches this app's convention for every other destructive action. */
+.dnd-cc-advancement-body .item-control:has(.fa-trash) {
+  color: var(--dcc-accent);
+  font-size: 1.1rem;
+}
+.dnd-cc-advancement-body .item-control:has(.fa-trash):hover {
+  color: #fff;
+  background: var(--dcc-accent);
+  border-radius: 4px;
+}
+
 .dnd-cc-advancement-body nav.flexrow button {
   font-family: var(--dcc-font-ui);
   border-radius: 6px;
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  min-height: 2.6rem;
 }
 .dnd-cc-advancement-body nav.flexrow button[data-action="next"],
 .dnd-cc-advancement-body nav.flexrow button[data-action="complete"] {
@@ -1620,6 +1717,26 @@
 }
 .dnd-cc-advancement-body nav.flexrow button:hover {
   border-color: var(--dcc-accent);
+}
+
+/* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
+   score with a readonly input and a lock icon, and a still-available one with a live
+   min!=max input. The two otherwise look visually identical (same box, same weight),
+   making it hard to tell at a glance which scores can actually still be raised. */
+.dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
+  opacity: 0.4;
+}
+.dnd-cc-advancement-body .ability-scores li:not(:has(input[readonly])) {
+  background: var(--dcc-surface-alt);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--dcc-accent);
+}
+.dnd-cc-advancement-body .ability-scores li:not(:has(input[readonly])) label {
+  color: var(--dcc-accent);
+  font-weight: 700;
+}
+.dnd-cc-advancement-body .ability-scores .delta .fa-lock {
+  color: var(--dcc-text-muted);
 }
 
 .dnd-cc-feat-subtype {

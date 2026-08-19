@@ -52,7 +52,30 @@ export const CLASS_COMPLEXITY = {
   Warlock: "average",
   Druid: "high",
   Sorcerer: "high",
-  Wizard: "high"
+  Wizard: "high",
+  Artificer: "high"
+};
+
+/**
+ * Thematic accent color per class, for the Class step's card grid and detail overlay -
+ * a curated judgment call (not rules text), matched by class item name. A class not
+ * listed here (homebrew, third-party) falls back to the deterministic name-hash color
+ * every other card type still uses (see hashCardColor in character-creator-app.mjs).
+ */
+export const CLASS_THEME_COLORS = {
+  Barbarian: "#8b1a1a",
+  Bard: "#c9427f",
+  Cleric: "#e8c84f",
+  Druid: "#4f7a3f",
+  Fighter: "#5c7185",
+  Monk: "#a67c52",
+  Paladin: "#d98a3f",
+  Ranger: "#1f4f38",
+  Rogue: "#2a2433",
+  Sorcerer: "#d9622f",
+  Warlock: "#5c2f7a",
+  Wizard: "#2f5fae",
+  Artificer: "#2f8f9e"
 };
 
 export const PARTY_ROLES = ["tank", "damage", "support", "healer"];

@@ -159,9 +159,14 @@ export async function getStepItems(stepType, rulesetVersions) {
   // Background steps) are plain world Items, not compendium entries - included here so
   // they show up in the same card grid using the exact same list/select/advancement
   // machinery as real compendium content, no separate bookkeeping needed. Untagged
-  // ruleset (null) so a 2014/2024 filter never hides homebrew.
+  // ruleset (null) so a 2014/2024 filter never hides homebrew. Gated on the module's own
+  // `homebrewStub` flag (set only by the "Add Custom" form) rather than sweeping every
+  // world Item of a matching type - the world Items directory can hold anything (a GM's
+  // in-progress draft, an unrelated import tool's leftover copy), and none of that should
+  // silently become a pickable option for every player just by existing there.
   for (const item of game.items) {
     if (!itemTypes.includes(item.type)) continue;
+    if (!item.getFlag(MODULE_ID, "homebrewStub")) continue;
     results.push({
       uuid: item.uuid,
       name: item.name,

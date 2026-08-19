@@ -3,6 +3,7 @@ import {
   ABILITY_METHODS,
   CLASS_COMPLEXITY,
   CLASS_ROLES,
+  CLASS_THEME_COLORS,
   COMPLEXITY_LEVELS,
   EQUIPMENT_ITEM_TYPES,
   LIFESTYLE_TIERS,
@@ -17,7 +18,9 @@ import {
   changeClassLevel,
   diffAbilities,
   hasItemOfType,
+  hasUnresolvedAdvancement,
   itemsAtRiskFromLevelDecrease,
+  itemsGrantedBy,
   removeItemWithAdvancement,
   snapshotAbilities,
   triggerAdvancement
@@ -54,6 +57,13 @@ function hashCardColor(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return CARD_COLOR_PALETTE[hash % CARD_COLOR_PALETTE.length];
+}
+
+/** Class cards use a curated thematic color (CLASS_THEME_COLORS) instead of the
+ *  deterministic hash every other card type uses, falling back to the hash for any
+ *  class the curated table doesn't cover (homebrew, third-party). */
+function classCardColor(name) {
+  return CLASS_THEME_COLORS[name] ?? hashCardColor(name);
 }
 
 /**
@@ -296,6 +306,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     return {
       [listKey]: list,
+      [`${listKey}Groups`]: this._groupBySource(list),
       [selectedNameKey]: selected?.name ?? null,
       [`${selectedNameKey.replace(/Name$/, "")}Img`]: selected?.img ?? null,
       [`${selectedNameKey.replace(/Name$/, "")}Color`]: selected ? hashCardColor(selected.name) : null
@@ -392,7 +403,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         id: item.id,
         name: item.name,
         img: item.img,
-        color: hashCardColor(item.name),
+        color: classCardColor(item.name),
         isOriginalClass: item.isOriginalClass,
         level: item.system.levels,
         levelOptions
@@ -409,7 +420,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         return !complexity || complexity === this.classComplexityFilter;
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((item) => ({ ...decorateCardPills(item), color: hashCardColor(item.name) }));
+      .map((item) => ({ ...decorateCardPills(item), color: classCardColor(item.name) }));
 
     const complexityOptions = ["all", ...COMPLEXITY_LEVELS].map((key) => ({
       key,
@@ -423,9 +434,47 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       hasClass: classes.length > 0,
       canAddClass: totalLevel < MAX_CLASS_LEVEL,
       addableClasses,
+      addableClassGroups: this._groupBySource(addableClasses),
       complexityOptions,
       ...this._preparePartyAdvisorContext()
     };
+  }
+
+  /**
+   * Group an already-decorated card list (Class step's addable grid) by its real
+   * content source - the human-readable book/pack label ("Player's Handbook",
+   * "Forge of the Artificer", "SRD 5.2") already carried on each card via
+   * getStepItems' `book` field - so the grid reads as labeled per-source sections
+   * instead of one flat, unsorted pile. World-item homebrew placeholders (no `book`)
+   * get their own bucket, always sorted last; anything else unlabeled falls into a
+   * generic "Other" bucket.
+   * @param {object[]} list
+   * @returns {{ label: string, entries: object[] }[]}
+   */
+  _groupBySource(list) {
+    const homebrewLabel = game.i18n.localize("DND-CC.Homebrew");
+    const otherLabel = game.i18n.localize("DND-CC.Source.Other");
+
+    const groups = new Map();
+    for (const card of list) {
+      const label = card.custom ? homebrewLabel : (card.book || otherLabel);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(card);
+    }
+
+    // The core rulebook (PHB) sorts first as the primary/default source, every other
+    // real book/module follows alphabetically, and "Other"/"Homebrew" always trail
+    // last (in that order) since neither names a specific real source.
+    const rank = (label) => {
+      if (label === homebrewLabel) return 3;
+      if (label === otherLabel) return 2;
+      if (/^PHB\b/i.test(label)) return 0;
+      return 1;
+    };
+
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+      .map(([label, entries]) => ({ label, entries }));
   }
 
   /**
@@ -1120,16 +1169,27 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const hasValue = base[key] !== null && base[key] !== undefined;
 
       const seen = {};
+      const isUnassigned = assignments[key] === undefined;
+      // A <select> with no `selected` option defaults to displaying its first entry
+      // regardless - without this placeholder, an untouched ability silently *looks*
+      // assigned (e.g. shows "15") while `base[key]` stays null underneath, so the step
+      // can never actually complete and there's no visible clue which ability is still
+      // unset. Only shown until the player actually picks something for this ability.
       const poolOptions = isPoolMethod
-        ? pool.map((value, index) => {
-            seen[value] = (seen[value] ?? 0) + 1;
-            return {
-              index,
-              value,
-              label: valueCounts[value] > 1 ? `${value} (#${seen[value]})` : `${value}`,
-              selected: assignments[key] === index
-            };
-          })
+        ? [
+            ...(isUnassigned
+              ? [{ index: "", value: null, label: game.i18n.localize("DND-CC.Abilities.ChoosePlaceholder"), selected: true }]
+              : []),
+            ...pool.map((value, index) => {
+              seen[value] = (seen[value] ?? 0) + 1;
+              return {
+                index,
+                value,
+                label: valueCounts[value] > 1 ? `${value} (#${seen[value]})` : `${value}`,
+                selected: assignments[key] === index
+              };
+            })
+          ]
         : [];
 
       return {
@@ -1247,11 +1307,29 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Whether the current step has what it needs to allow moving on. Steps without a
    * completion requirement yet (placeholders) are always considered complete.
+   *
+   * For Class/Species/Background, "the item exists" alone isn't enough - dnd5e's own
+   * AdvancementManager lets the player click past an unanswered Trait/ItemChoice/ASI
+   * pick ("Next" is never disabled for those), so a class could land with its Fighting
+   * Style or Skill Proficiencies never actually chosen and still read as "done."
+   * hasUnresolvedAdvancement checks the real per-advancement value dnd5e itself tracks,
+   * so the rail's warn state and the Review gate reflect what's actually still missing
+   * rather than just item presence.
    */
   _isStepComplete(stepId) {
-    if (stepId === "class") return hasItemOfType(this.draft.actor, "class");
-    if (stepId === "species") return hasItemOfType(this.draft.actor, "race");
-    if (stepId === "background") return hasItemOfType(this.draft.actor, "background");
+    if (stepId === "class") {
+      const classItems = this.draft.actor.items.filter((item) => item.type === "class");
+      if (!classItems.length) return false;
+      return classItems.every((item) => !hasUnresolvedAdvancement(item, item.system.levels));
+    }
+    if (stepId === "species") {
+      const item = this.draft.actor.items.find((item) => item.type === "race");
+      return !!item && !hasUnresolvedAdvancement(item);
+    }
+    if (stepId === "background") {
+      const item = this.draft.actor.items.find((item) => item.type === "background");
+      return !!item && !hasUnresolvedAdvancement(item);
+    }
     if (stepId === "abilities") return this.draft.isAbilityAssignmentComplete;
     return true;
   }
@@ -1801,7 +1879,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const wrapper = document.createElement("div");
     wrapper.className = "dnd-cc-detail-modal";
     wrapper.innerHTML = `
-      <div class="dnd-cc-detail-header" style="background-color:${esc(hashCardColor(item.name))}">
+      <div class="dnd-cc-detail-header" style="background-color:${esc(item.type === "class" ? classCardColor(item.name) : hashCardColor(item.name))}">
         <div class="dnd-cc-detail-icon"><img src="${esc(item.img)}" alt="" /></div>
         <div class="dnd-cc-detail-title">
           <span class="dnd-cc-detail-name">${esc(item.name)}</span>
@@ -1971,7 +2049,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     wrapper.querySelector("[data-custom-create]").addEventListener("click", async () => {
       const name = wrapper.querySelector("[data-custom-name]").value.trim();
       if (!name) return;
-      const created = await Item.create({ type: dnd5eType, name });
+      // Flagged so getStepItems' world-item sweep only ever offers items a player
+      // actually created through this form - an unrelated world Item (a GM's
+      // in-progress draft, an import tool's leftover copy) shouldn't silently become a
+      // pickable "homebrew" option for every player just by existing in the world.
+      const created = await Item.create({ type: dnd5eType, name, flags: { [MODULE_ID]: { homebrewStub: true } } });
       this._hideOverlay();
       this.render();
       created.sheet.render(true);
@@ -1991,6 +2073,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * whatever the old item's Advancement granted (other items, traits, scale values)
    * gets cleaned up too instead of left behind as orphans - a plain
    * deleteEmbeddedDocuments would leave granted items like a species's feats behind.
+   *
+   * The old item is removed *before* the new one is added - this is the only order
+   * that actually works: dnd5e itself rejects a second race/background item outright
+   * while one is already on the actor ("Only a single Species can be added to a Player
+   * Character", from dnd5e's own validation) - a race/background genuinely can't have
+   * both on the actor even briefly, unlike class, which is why this method doesn't
+   * share _addClass/_removeClass's add-then-remove pattern. The real risk this creates
+   * - cancelling the new item's flow after the old one is already gone, leaving neither
+   * - is handled by asking first (see _confirmItemReplace) rather than by reordering,
+   * since reordering isn't available here the way it was for _changeOriginFeat's feat
+   * swap.
    * @param {string} uuid
    * @param {string} dnd5eType
    */
@@ -1998,24 +2091,74 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const item = await fromUuid(uuid);
     if (!item) return;
 
+    const existing = this.draft.actor.items.find((i) => i.type === dnd5eType);
+    if (existing && existing.name === item.name) return;
+    if (existing) {
+      const confirmed = await this._confirmItemReplace(existing, item);
+      if (!confirmed) return;
+    }
+
+    let added = false;
     await this._runEmbeddedAdvancement(async (host) => {
-      const existing = this.draft.actor.items.find((i) => i.type === dnd5eType);
       if (existing) {
-        const before = snapshotAbilities(this.draft.actor);
+        const beforeRemove = snapshotAbilities(this.draft.actor);
         await removeItemWithAdvancement(this.draft.actor, existing.id, host);
-        await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
+        await this.draft.recordAbilityDelta(diffAbilities(beforeRemove, snapshotAbilities(this.draft.actor)));
       }
 
       const before = snapshotAbilities(this.draft.actor);
-      await triggerAdvancement(this.draft.actor, item.toObject(), host);
+      added = await triggerAdvancement(this.draft.actor, item.toObject(), host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
 
-    // A completed pick (not a cancelled one - hasItemOfType confirms the item actually
-    // landed on the actor) auto-advances to the next step, so the player doesn't have to
-    // click Next after every single-choice step just to keep moving forward.
-    if (hasItemOfType(this.draft.actor, dnd5eType)) this._goToStep(this.stepIndex + 1);
+    // Auto-advance only on a genuinely completed pick, not just "some item of this type
+    // exists" (which would also be true if the flow was cancelled and the old item was
+    // correctly left in place - that's not a reason to move forward).
+    if (added) this._goToStep(this.stepIndex + 1);
     else this.render();
+  }
+
+  /**
+   * Warn before replacing an already-picked Species/Background, listing exactly what
+   * it currently accounts for (itemsGrantedBy walks the same real
+   * `flags.dnd5e.advancementOrigin` records itemsAtRiskFromLevelDecrease already reads
+   * for Class) - so re-opening an already-completed step to look something up doesn't
+   * risk silently losing everything if a card gets clicked. Skipped entirely when the
+   * existing item granted nothing worth mentioning (nothing to lose).
+   * @param {Item} existing
+   * @param {Item} incoming
+   * @returns {Promise<boolean>}
+   */
+  async _confirmItemReplace(existing, incoming) {
+    const granted = itemsGrantedBy(this.draft.actor, existing.id);
+    if (!granted.length) return true;
+
+    const itemList = `<ul>${granted.map((granted_) => `<li>${granted_.name}</li>`).join("")}</ul>`;
+    return foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("DND-CC.ReplaceItem.Title") },
+      content: `<p>${game.i18n.format("DND-CC.ReplaceItem.Warning", { old: existing.name, incoming: incoming.name })}</p>${itemList}`
+    });
+  }
+
+  /**
+   * Poll for an item of `dnd5eType` other than `excludeId` to actually show up on the
+   * draft actor - see the comment in _selectItem/_changeOriginFeat for why this is
+   * needed (a real race between the Advancement completion hook and the new item's
+   * creation actually landing locally). 20 tries at 100ms is generous relative to how
+   * fast the item typically shows up - if it genuinely never arrives, giving up and
+   * leaving the old item in place (the caller's `if (newItem)` guard) is the safe
+   * failure mode.
+   * @param {string} dnd5eType
+   * @param {string} excludeId
+   * @returns {Promise<Item|undefined>}
+   */
+  async _waitForNewItem(dnd5eType, excludeId) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const found = this.draft.actor.items.find((i) => i.type === dnd5eType && i.id !== excludeId);
+      if (found) return found;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return this.draft.actor.items.find((i) => i.type === dnd5eType && i.id !== excludeId);
   }
 
   /**
@@ -2151,6 +2294,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Swap an origin-subtype feat (background's granted feat, or a species-granted
    * origin pick) for a different one the player chose from the Feats step.
+   *
+   * Adds the new feat first and only removes the old one once that flow actually
+   * completes, same reasoning as _selectItem above: a feat with its own nested choice
+   * (e.g. Magic Initiate's spellcasting-ability/cantrip picks) can be cancelled
+   * mid-flow via dnd5e's own "Stop Advancement" dialog, and removing the old feat first
+   * would leave the character with neither.
    * @param {string} oldItemId
    * @param {string} uuid
    */
@@ -2160,9 +2309,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     await this._runEmbeddedAdvancement(async (host) => {
       const before = snapshotAbilities(this.draft.actor);
-      await removeItemWithAdvancement(this.draft.actor, oldItemId, host);
-      await triggerAdvancement(this.draft.actor, item.toObject(), host);
+      const added = await triggerAdvancement(this.draft.actor, item.toObject(), host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
+
+      if (added) {
+        // Same race guarded against in _selectItem - wait for the new feat to actually
+        // be visible before reversing the old one.
+        const newItem = await this._waitForNewItem("feat", oldItemId);
+        if (newItem) {
+          const beforeRemove = snapshotAbilities(this.draft.actor);
+          await removeItemWithAdvancement(this.draft.actor, oldItemId, host);
+          await this.draft.recordAbilityDelta(diffAbilities(beforeRemove, snapshotAbilities(this.draft.actor)));
+        }
+      }
     });
 
     this.render();

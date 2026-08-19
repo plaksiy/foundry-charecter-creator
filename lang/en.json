@@ -12,6 +12,9 @@
     "LearnMore": "Learn More",
     "AddCustom": "Add Custom",
     "Homebrew": "Homebrew",
+    "Source": {
+      "Other": "Other"
+    },
     "Advancement": {
       "Cancel": "Cancel"
     },
@@ -32,6 +35,10 @@
       "ButtonTitle": "Discard this character and start a new one",
       "Title": "Discard This Character?",
       "Confirm": "This will permanently delete {name} and everything chosen so far. This can't be undone. A brand new, empty character will open right after."
+    },
+    "ReplaceItem": {
+      "Title": "Replace This Pick?",
+      "Warning": "Switching from {old} to {incoming} will remove {old} and everything it granted, including:"
     },
     "Detail": {
       "Features": "Features",
@@ -154,7 +161,8 @@
       "RollButton": "Roll",
       "RerollButton": "Reroll",
       "RollLogMessage": "{name} rolls {ability}",
-      "Incomplete": "Assign a value to every ability score before continuing."
+      "Incomplete": "Assign a value to every ability score before continuing.",
+      "ChoosePlaceholder": "Choose a value..."
     },
     "Ruleset": {
       "Title": "Choose a ruleset",
