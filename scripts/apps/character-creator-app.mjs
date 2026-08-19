@@ -318,8 +318,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * "Tiefling, Abyssal" / "Tiefling, Chthonic" / "Tiefling, Infernal") into one parent
    * card per base name, matching how a player actually thinks about picking a species
    * ("Elf, then which kind") rather than showing every lineage as an unrelated top-level
-   * card. Confirmed live this "Name, Lineage" naming is the real compendium convention
-   * dnd5e itself uses for pre-split species - not every species uses it (Dragonborn,
+   * card. This "Name, Lineage" naming is the real compendium convention dnd5e itself
+   * uses for pre-split species - not every species uses it (Dragonborn,
    * Human, etc. are single un-split items and pass through untouched here). A base name
    * with only one surviving member (e.g. house-rules banned the other two lineages)
    * isn't a real group, so it's put back as a normal standalone card instead.
@@ -2371,9 +2371,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data. Confirmed live
-    // building a Dwarf Fighter: HP showed 10/13 at Review, not 13/13. A brand new character
-    // should always start at full health regardless of pick order, so top it off here.
+    // afterward without current following, since current isn't derived data. A brand new
+    // character should always start at full health regardless of pick order, so top it
+    // off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }

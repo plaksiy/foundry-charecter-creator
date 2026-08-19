@@ -85,12 +85,11 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them. Confirmed live:
-   without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
-   48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
-   buttons) is excluded from the font-family override specifically - it broke the Font
-   Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
-   to the button element itself (not a child), and our font would otherwise clobber it. */
+   overflows the fixed box and visually overlaps whatever sits next to them.
+   `.header-control` (Foundry's native window titlebar buttons) is excluded from the
+   font-family override specifically - it breaks the Font Awesome icon glyph on
+   Close/Toggle Controls, which relies on its own icon font applying to the button
+   element itself (not a child), and our font would otherwise clobber it. */
 .application.dnd-cc button:not(.header-control) {
   font-family: var(--dcc-font-ui);
   height: auto;
