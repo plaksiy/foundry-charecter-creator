@@ -2,7 +2,7 @@
   "id": "foundryvtt-dnd-charecter-creator",
   "title": "D&D Character Creator",
   "description": "A beautiful, step-by-step character creation wizard for D&D 5e/5.5e, powered by your installed compendiums and homebrew content.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "compatibility": {
     "minimum": "13",
     "verified": "14"
