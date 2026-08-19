@@ -128,28 +128,29 @@ export function hasItemOfType(actor, type) {
 }
 
 /**
- * Whether `item` still has a real player choice left unanswered. dnd5e's own
+ * Every real player choice on `item` that's still unanswered. dnd5e's own
  * AdvancementManager deliberately never disables "Next"/"Complete" for an unanswered
- * Trait/ItemChoice/AbilityScoreImprovement pick (e.g. a Fighter's Fighting Style, a
- * Dragonborn's damage resistance, a class's Skill Proficiencies), so an item can land
- * on the actor with a genuine choice silently left empty. "The item exists" is
- * therefore not the same as "everything about it is actually chosen" - this checks the
- * real per-advancement `value` dnd5e itself tracks, the same data its own reversal
- * logic (itemsAtRiskFromLevelDecrease, below) already reads, rather than re-deriving
- * anything.
+ * Trait/ItemChoice/AbilityScoreImprovement/Subclass pick (e.g. a Fighter's Fighting
+ * Style, a Dragonborn's damage resistance, a class's Skill Proficiencies, a level-3
+ * subclass pick), so an item can land on the actor with a genuine choice silently left
+ * empty. "The item exists" is therefore not the same as "everything about it is
+ * actually chosen" - this reads the real per-advancement `value` dnd5e itself tracks,
+ * the same data its own reversal logic (itemsAtRiskFromLevelDecrease, below) already
+ * reads, rather than re-deriving anything.
  * @param {Item} item
  * @param {number} [level=Infinity] - the character's relevant level for this item (a
  *   class's own `system.levels`; left at Infinity for level-less items - species,
  *   background, feats - which only ever have level-1-equivalent choices)
- * @returns {boolean}
+ * @returns {string[]} the title of each advancement still missing a real choice
  */
-export function hasUnresolvedAdvancement(item, level = Infinity) {
+export function unresolvedAdvancementTitles(item, level = Infinity) {
+  const titles = [];
   for (const advancement of Object.values(item.advancement?.byId ?? {})) {
     if (typeof advancement.level === "number" && advancement.level > level) continue;
 
     if (advancement.type === "Trait") {
       const required = (advancement.configuration?.choices ?? []).reduce((sum, c) => sum + (c.count ?? 0), 0);
-      if (required > 0 && countEntries(advancement.value?.chosen) < required) return true;
+      if (required > 0 && countEntries(advancement.value?.chosen) < required) titles.push(advancement.title);
     }
 
     if (advancement.type === "ItemChoice") {
@@ -170,14 +171,29 @@ export function hasUnresolvedAdvancement(item, level = Infinity) {
       for (const entry of entryValues(advancement.value?.added)) {
         added += entry && typeof entry === "object" ? countEntries(entry) : 1;
       }
-      if (added < required) return true;
+      if (added < required) titles.push(advancement.title);
     }
 
     if (advancement.type === "AbilityScoreImprovement" && countEntries(advancement.value) === 0) {
-      return true;
+      titles.push(advancement.title);
+    }
+
+    if (advancement.type === "Subclass" && !advancement.value?.uuid) {
+      titles.push(advancement.title || "Subclass");
     }
   }
-  return false;
+  return titles;
+}
+
+/**
+ * Whether `item` has any real player choice still unanswered - see
+ * unresolvedAdvancementTitles for the full explanation and the exact data checked.
+ * @param {Item} item
+ * @param {number} [level=Infinity]
+ * @returns {boolean}
+ */
+export function hasUnresolvedAdvancement(item, level = Infinity) {
+  return unresolvedAdvancementTitles(item, level).length > 0;
 }
 
 /**

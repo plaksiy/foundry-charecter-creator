@@ -73,6 +73,9 @@
       "Intro": "Choose a class to see its features, proficiencies, and choices. You can add more than one class to multiclass, and remove any of them.",
       "NoneAvailable": "No classes are available for the selected ruleset and enabled compendiums.",
       "Level": "Level",
+      "Review": "Redo This Class's Choices",
+      "ReviewTitle": "Redo This Class's Choices?",
+      "ReviewWarning": "This will redo every choice for {name} from level 1 up to level {level}, including ones already made - useful if something was left unanswered earlier. Anything already chosen correctly will need to be picked again.",
       "Remove": "Remove",
       "TotalLevel": "Character Level: {total}",
       "OriginalClass": "Original Class",
@@ -83,7 +86,8 @@
       "RemoveWarning": "Removing {name} will remove everything it granted, including the following:",
       "LevelDecreaseTitle": "Lower This Class's Level?",
       "LevelDecreaseWarning": "Lowering to level {level} will remove the following, granted at levels above it:",
-      "LevelDecreaseAbilityWarning": "An Ability Score Improvement from one of those levels will also be undone."
+      "LevelDecreaseAbilityWarning": "An Ability Score Improvement from one of those levels will also be undone.",
+      "MissingChoices": "Still needs: {list}"
     },
     "Feats": {
       "Intro": "Feats granted by your class, species, or background show up here. If a source grants a specific origin feat, you can swap it for a different one.",
@@ -126,6 +130,7 @@
       "Weight": "Weight",
       "AddItem": "Add Item",
       "AddItemHint": "Priced items are bought with your real currency ({available} available); unpriced items are still free to add.",
+      "BudgetHint": "Currency only comes from your class/background starting kit or the \"take gold instead\" option - there's no other source at creation, so a first-level character can't overspend on gear no matter what's added here.",
       "CannotAfford": "You can't afford {item} ({price}) - you only have {available}.",
       "Remove": "Remove",
       "NoneYet": "No equipment yet. Pick a starting kit above, or add your own items."

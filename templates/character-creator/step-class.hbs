@@ -14,7 +14,10 @@
     <li class="dnd-cc-class-row">
       <div class="dnd-cc-class-row-art" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
       <div class="dnd-cc-class-row-info">
-        <span class="dnd-cc-class-row-name">{{this.name}}</span>
+        <span class="dnd-cc-class-row-name">
+          {{this.name}}
+          {{#if this.missingHint}}<i class="fa-solid fa-circle-info dnd-cc-missing-hint" title="{{this.missingHint}}"></i>{{/if}}
+        </span>
         <div class="dnd-cc-pill-row">
           {{#if this.isOriginalClass}}<span class="dnd-cc-pill" style="border-color:{{this.color}};color:{{this.color}}">{{localize "DND-CC.Class.OriginalClass"}}</span>{{/if}}
           {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../color}};color:{{../color}}">{{this}}</span>{{/each}}
@@ -28,6 +31,9 @@
           {{/each}}
         </select>
       </label>
+      <button type="button" class="dnd-cc-class-row-review" data-review-class="{{this.id}}" aria-label="{{localize 'DND-CC.Class.Review'}}" title="{{localize 'DND-CC.Class.Review'}}">
+        <i class="fa-solid fa-pen"></i>
+      </button>
       <button type="button" class="dnd-cc-class-row-remove" data-remove-class="{{this.id}}" aria-label="{{localize 'DND-CC.Class.Remove'}}" title="{{localize 'DND-CC.Class.Remove'}}">
         <i class="fa-solid fa-trash"></i>
       </button>

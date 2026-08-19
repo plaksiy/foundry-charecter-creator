@@ -89,11 +89,22 @@
    `.header-control` (Foundry's native window titlebar buttons) is excluded from the
    font-family override specifically - it breaks the Font Awesome icon glyph on
    Close/Toggle Controls, which relies on its own icon font applying to the button
-   element itself (not a child), and our font would otherwise clobber it. */
+   element itself (not a child), and our font would otherwise clobber it.
+   Foundry wraps every module's stylesheet into an unlayered-vs-layered CSS cascade:
+   core Foundry CSS is unlayered while all module CSS (this file included) is placed
+   into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
+   spec, an unlayered normal declaration always wins over a layered one regardless of
+   selector specificity, which is why a plain (non-!important) override here loses to
+   core's own button sizing despite being more specific. `!important` on a layered
+   declaration outranks a normal unlayered one, which is the correct, spec-sanctioned
+   way to override core chrome from here - not a hack. Every button/select override in
+   this file that fights Foundry's own default sizing needs `!important` for the same
+   reason, not just this shared base rule. */
 .application.dnd-cc button:not(.header-control) {
   font-family: var(--dcc-font-ui);
-  height: auto;
-  min-height: 0;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: normal !important;
 }
 
 .dnd-cc-open-button {
@@ -477,20 +488,21 @@
    through unless explicitly reset here - left alone, it clips against this group's own
    overflow:hidden corner-rounding and reads as a broken/malformed border on whichever
    segment currently has it (typically the active one). */
-.dnd-cc-seg-group button {
+.application.dnd-cc .dnd-cc-seg-group button {
   font-family: var(--dcc-font-ui);
   font-weight: 600;
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  padding: 0.4rem 0.85rem;
+  padding: 0.5rem 0.85rem !important;
+  height: auto !important;
   background: var(--dcc-surface);
   color: var(--dcc-text-muted);
-  border: none;
+  border: none !important;
   border-right: 1px solid var(--dcc-border);
-  border-radius: 0;
-  box-shadow: none;
-  outline: none;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
   cursor: pointer;
 }
 .dnd-cc-seg-group button:last-child { border-right: none; }
@@ -994,6 +1006,14 @@
   font-family: var(--dcc-font-display);
   font-weight: 700;
   font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dnd-cc-missing-hint {
+  color: var(--dcc-warn);
+  font-size: 0.85rem;
+  cursor: help;
 }
 
 .dnd-cc-class-row-level {
@@ -1006,31 +1026,55 @@
   flex-shrink: 0;
 }
 
-.dnd-cc-class-row-remove {
-  width: 32px;
-  height: 32px;
+.application.dnd-cc button.dnd-cc-class-row-review {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px;
+  padding: 0 !important;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid var(--dcc-danger);
-  color: var(--dcc-danger);
-  border-radius: 7px;
-  box-shadow: none;
-  outline: none;
+  border: none !important;
+  color: var(--dcc-text-muted);
+  font-size: 1rem;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  outline: none !important;
   cursor: pointer;
 }
-.dnd-cc-class-row-remove:hover { background: var(--dcc-danger); color: #fff; }
+.application.dnd-cc button.dnd-cc-class-row-review:hover { background: var(--dcc-surface-alt); color: var(--dcc-accent); }
+
+.application.dnd-cc button.dnd-cc-class-row-remove {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px;
+  padding: 0 !important;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none !important;
+  color: var(--dcc-danger);
+  font-size: 1.05rem;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-class-row-remove:hover { background: var(--dcc-danger); color: #fff; }
 
 .dnd-cc-class-row-level select {
   background: var(--dcc-surface-alt);
   color: var(--dcc-text);
   border: 1px solid var(--dcc-border);
   border-radius: 6px;
-  box-shadow: none;
-  outline: none;
-  padding: 0.3rem 0.5rem;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0.3rem 0.5rem !important;
+  height: auto !important;
   font-family: var(--dcc-font-ui);
   font-size: 0.78rem;
 }
@@ -1490,6 +1534,13 @@
   font-size: 0.84rem;
 }
 .dnd-cc-equipment-summary b { color: var(--dcc-warn); }
+
+.dnd-cc-equipment-budget-hint {
+  margin: -0.4rem 0 1rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.74rem;
+  color: var(--dcc-text-muted);
+}
 
 .dnd-cc-item-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .dnd-cc-item-chip {

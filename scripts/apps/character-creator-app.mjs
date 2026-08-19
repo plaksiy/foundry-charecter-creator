@@ -23,7 +23,8 @@ import {
   itemsGrantedBy,
   removeItemWithAdvancement,
   snapshotAbilities,
-  triggerAdvancement
+  triggerAdvancement,
+  unresolvedAdvancementTitles
 } from "../models/choice-queue.mjs";
 import { getStepItems, listPlayerVisiblePacks, setPlayerSourceVisibility } from "../services/compendium-sources.mjs";
 import { formatGp, itemPriceInGp, redenominateGp, totalGpEquivalent } from "../services/currency.mjs";
@@ -192,17 +193,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const currentStep = STEP_DEFINITIONS[this.stepIndex];
     const stepContext = await this._prepareStepContext(currentStep.id);
 
+    // Every non-active step's rail state reflects the actor's real current data
+    // (`_isStepComplete`) rather than step-visitation order. Since navigation between
+    // steps is unrestricted, "was this index already passed" isn't meaningful, but
+    // "does Class/Species/Background/Abilities actually have what it needs right now"
+    // always is, for a step ahead of or behind the current position alike.
     const steps = STEP_DEFINITIONS.map((step, index) => ({
       id: step.id,
       label: game.i18n.localize(step.label),
       icon: step.icon,
       index: index + 1,
       active: index === this.stepIndex,
-      done: index < this.stepIndex,
-      // Only meaningful once a step has actually been passed - a done step that isn't
-      // complete (e.g. Class skipped past with no class picked yet) gets flagged so the
-      // rail can warn about it instead of just showing a plain checkmark.
-      complete: index < this.stepIndex ? this._isStepComplete(step.id) : true
+      done: index !== this.stepIndex,
+      complete: this._isStepComplete(step.id)
     }));
 
     return {
@@ -395,6 +398,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       for (let value = 1; value <= maxForThisClass; value++) {
         levelOptions.push({ value, selected: value === item.system.levels });
       }
+      const missing = unresolvedAdvancementTitles(item, item.system.levels);
       return {
         ...decorateCardPills({
           hitDie: item.system.hd?.denomination ?? null,
@@ -406,7 +410,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         color: classCardColor(item.name),
         isOriginalClass: item.isOriginalClass,
         level: item.system.levels,
-        levelOptions
+        levelOptions,
+        missingChoices: missing,
+        missingHint: missing.length
+          ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") })
+          : null
       };
     });
 
@@ -1578,6 +1586,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    root.querySelectorAll("[data-review-class]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await this._reviewClass(el.dataset.reviewClass);
+      });
+    });
+
     root.querySelectorAll("[data-class-level]").forEach((el) => {
       el.addEventListener("change", async (event) => {
         await this._setClassLevel(el.dataset.classLevel, Number(event.currentTarget.value));
@@ -1728,8 +1742,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelectorAll("[data-step]").forEach((el) => {
       el.addEventListener("click", () => {
+        // Any step is reachable directly from the rail, not just ones already passed -
+        // jumping around never touches any data on its own (only an in-step action like
+        // picking an item does), so there's nothing to protect by restricting movement.
         const index = STEP_DEFINITIONS.findIndex((step) => step.id === el.dataset.step);
-        if (index <= this.stepIndex) this._goToStep(index);
+        this._goToStep(index);
       });
     });
 
@@ -2288,6 +2305,57 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /** Handle a class row's level selector changing on the Class step. */
   async _setClassLevel(classItemId, level) {
     await this._applyClassLevel(classItemId, level);
+    this.render();
+  }
+
+  /**
+   * Redo an already-added class's own Advancement from level 1 back up to its current
+   * level, so a choice left unanswered earlier (surfaced by the missing-choices hint
+   * next to its name) has a real way to get resolved instead of only being flagged.
+   * dnd5e has an API that looks purpose-built for exactly this,
+   * `AdvancementManager.forModifyChoices`, but it never actually populates its own
+   * `.element` the way `forNewItem`/`forDeletedItem`/`forLevelChange` do, so embedding
+   * it the same way just produces an empty host. Removing and re-adding the class
+   * (reusing the same primitives every other swap in this app already relies on) redoes
+   * every choice from scratch rather than only the missing one, which is more
+   * disruptive than a true "resume where I left off" would be, but it's a real, working
+   * path instead of a broken one.
+   * @param {string} classItemId
+   */
+  async _reviewClass(classItemId) {
+    const classItem = this.draft.actor.items.get(classItemId);
+    if (!classItem) return;
+
+    const level = classItem.system.levels;
+    const itemData = classItem.toObject();
+    delete itemData._id;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("DND-CC.Class.ReviewTitle") },
+      content: `<p>${game.i18n.format("DND-CC.Class.ReviewWarning", { name: classItem.name, level })}</p>`
+    });
+    if (!confirmed) return;
+
+    const priorClassIds = new Set(this.draft.actor.items.filter((i) => i.type === "class").map((i) => i.id));
+
+    await this._runEmbeddedAdvancement(async (host) => {
+      const beforeRemove = snapshotAbilities(this.draft.actor);
+      await removeItemWithAdvancement(this.draft.actor, classItemId, host);
+      await this.draft.recordAbilityDelta(diffAbilities(beforeRemove, snapshotAbilities(this.draft.actor)));
+
+      const beforeAdd = snapshotAbilities(this.draft.actor);
+      const added = await triggerAdvancement(this.draft.actor, itemData, host);
+      await this.draft.recordAbilityDelta(diffAbilities(beforeAdd, snapshotAbilities(this.draft.actor)));
+      if (!added || level <= 1) return;
+
+      const newClassItem = this.draft.actor.items.find((i) => i.type === "class" && !priorClassIds.has(i.id));
+      if (!newClassItem) return;
+
+      const beforeLevel = snapshotAbilities(this.draft.actor);
+      await changeClassLevel(this.draft.actor, newClassItem.id, level - 1, host);
+      await this.draft.recordAbilityDelta(diffAbilities(beforeLevel, snapshotAbilities(this.draft.actor)));
+    });
+
     this.render();
   }
 
