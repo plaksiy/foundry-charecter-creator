@@ -14,6 +14,7 @@ This module does not copy text from any book. It reads classes, species, backgro
 1. In Foundry, open "Add-on Modules" and add the module using its manifest link, or copy this folder into `Data/modules/`.
 2. Enable the module in your world's settings.
 3. Open the "Actors" tab. A button to create a character will appear there.
+4. The wizard creates a real Actor for the draft character, so players need the "Create New Actors" permission. By default Foundry only grants this to the game master. Go to **Configure Permissions** and enable "Create New Actors" for the Player role (or for individual players) so they can use the wizard themselves.
 
 ## What the wizard does
 

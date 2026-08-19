@@ -280,7 +280,7 @@
   gap: 0.65rem;
   padding: 0.5rem 0.6rem;
   border-radius: 7px;
-  cursor: default;
+  cursor: pointer;
 }
 
 .dnd-cc-step:not(.active):hover {
@@ -355,6 +355,35 @@
   max-width: 62ch;
   line-height: 1.5;
   margin: 0 0 1.1rem;
+}
+
+/* Shown on a step body while its action's actor update(s) and re-render are in
+   flight - see _withBusy in character-creator-app.mjs. Dims the content and disables
+   interaction without hiding it outright, so the control the player just used stays
+   visible under the spinner instead of the step appearing to blank out. */
+.dnd-cc-step-body.dnd-cc-busy {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.dnd-cc-step-body.dnd-cc-busy::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: -1.25rem 0 0 -1.25rem;
+  border-radius: 50%;
+  border: 3px solid var(--dcc-border);
+  border-top-color: var(--dcc-accent);
+  z-index: 2;
+  animation: dnd-cc-spin 0.7s linear infinite;
+}
+
+@keyframes dnd-cc-spin {
+  to { transform: rotate(360deg); }
 }
 
 .dnd-cc-footer {
@@ -1303,16 +1332,26 @@
   font-size: 0.78rem;
 }
 .dnd-cc-ability-pool-chip.unclaimed { opacity: 0.6; border-style: dashed; }
+.dnd-cc-ability-pool-chip:not(.unclaimed) {
+  background: var(--dcc-accent);
+  border-color: var(--dcc-accent);
+}
 .dnd-cc-ability-pool-chip-value {
   font-family: var(--dcc-font-display);
   font-weight: 700;
   color: var(--dcc-text);
+}
+.dnd-cc-ability-pool-chip:not(.unclaimed) .dnd-cc-ability-pool-chip-value {
+  color: var(--dcc-accent-contrast);
 }
 .dnd-cc-ability-pool-chip-holder {
   font-weight: 700;
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   color: var(--dcc-accent);
+}
+.dnd-cc-ability-pool-chip:not(.unclaimed) .dnd-cc-ability-pool-chip-holder {
+  color: var(--dcc-accent-contrast);
 }
 
 .dnd-cc-ability-pool-control {

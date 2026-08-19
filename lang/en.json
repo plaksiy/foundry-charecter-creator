@@ -69,6 +69,12 @@
       "About": "About",
       "Review": "Review"
     },
+    "Rail": {
+      "MissingClass": "No class picked yet",
+      "MissingSpecies": "No species picked yet",
+      "MissingBackground": "No background picked yet",
+      "MissingAbilities": "Ability scores not assigned yet"
+    },
     "Class": {
       "Intro": "Choose a class to see its features, proficiencies, and choices. You can add more than one class to multiclass, and remove any of them.",
       "NoneAvailable": "No classes are available for the selected ruleset and enabled compendiums.",

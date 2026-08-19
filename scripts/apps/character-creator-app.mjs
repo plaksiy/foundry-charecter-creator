@@ -177,6 +177,14 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   constructor(options = {}) {
     super(options);
     this.stepIndex = 0;
+    /**
+     * Which step ids have actually been opened at least once. Navigation between steps
+     * is unrestricted, so a step's rail coloring can't just mean "already passed" -
+     * instead it only turns done/warn once the player has genuinely visited it, so an
+     * untouched step doesn't read as broken before anyone's looked at it.
+     * @type {Set<string>}
+     */
+    this.visitedSteps = new Set([STEP_DEFINITIONS[0].id]);
     /** @type {CharacterDraft|null} set lazily in _prepareContext, since Actor.create() is async */
     this.draft = null;
     /**
@@ -193,20 +201,29 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const currentStep = STEP_DEFINITIONS[this.stepIndex];
     const stepContext = await this._prepareStepContext(currentStep.id);
 
-    // Every non-active step's rail state reflects the actor's real current data
-    // (`_isStepComplete`) rather than step-visitation order. Since navigation between
-    // steps is unrestricted, "was this index already passed" isn't meaningful, but
-    // "does Class/Species/Background/Abilities actually have what it needs right now"
-    // always is, for a step ahead of or behind the current position alike.
-    const steps = STEP_DEFINITIONS.map((step, index) => ({
-      id: step.id,
-      label: game.i18n.localize(step.label),
-      icon: step.icon,
-      index: index + 1,
-      active: index === this.stepIndex,
-      done: index !== this.stepIndex,
-      complete: this._isStepComplete(step.id)
-    }));
+    // A step only shows as done/warn (colored) once the player has actually opened it at
+    // least once (`visitedSteps`) - flagging a step nobody has looked at yet as a warning
+    // reads as broken, not helpful. Once visited, the color reflects the actor's real
+    // current data (`_isStepComplete`), not whether it's still the current step or how it
+    // was reached - navigation between steps is unrestricted, so "was this the most
+    // recently visited one" isn't meaningful, but "does Class/Species/Background/
+    // Abilities actually have what it needs" always is.
+    const steps = STEP_DEFINITIONS.map((step, index) => {
+      const visited = index !== this.stepIndex && this.visitedSteps.has(step.id);
+      const complete = this._isStepComplete(step.id);
+      return {
+        id: step.id,
+        label: game.i18n.localize(step.label),
+        icon: step.icon,
+        index: index + 1,
+        active: index === this.stepIndex,
+        done: visited,
+        complete,
+        // Only worth showing once the step has actually been visited and found
+        // wanting - matches the done/warn coloring above, for the same reason.
+        missingHint: visited && !complete ? this._stepMissingHint(step.id) : ""
+      };
+    });
 
     return {
       steps,
@@ -361,7 +378,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         book: sortedMembers[0].book,
         custom: false,
         selected: !!selectedMember,
-        selectedLineageLabel: selectedMember?.lineageLabel ?? null
+        selectedLineageLabel: selectedMember?.lineageLabel ?? null,
+        // A lineage group has no single item of its own to describe - "Learn More" shows
+        // whichever lineage is currently selected, or the first one alphabetically as a
+        // representative starting point otherwise.
+        learnMoreUuid: (selectedMember ?? sortedMembers[0]).uuid
       });
     }
 
@@ -1343,6 +1364,43 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
+   * What's actually still missing for a required step, for the rail's own hover-info
+   * icon - the same information the Class step's per-row hint already shows (see
+   * missingHint in _prepareClassesContext), surfaced one level up so it's visible
+   * without opening that step first. Empty when the step is complete or isn't one of
+   * the required ones.
+   * @param {string} stepId
+   * @returns {string} localized hint text, or "" if nothing to show
+   */
+  _stepMissingHint(stepId) {
+    if (stepId === "class") {
+      const classItems = this.draft.actor.items.filter((item) => item.type === "class");
+      if (!classItems.length) return game.i18n.localize("DND-CC.Rail.MissingClass");
+      const missing = classItems.flatMap((item) => {
+        const titles = unresolvedAdvancementTitles(item, item.system.levels);
+        return titles.length && classItems.length > 1 ? [`${item.name}: ${titles.join(", ")}`] : titles;
+      });
+      return missing.length ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") }) : "";
+    }
+    if (stepId === "species") {
+      const item = this.draft.actor.items.find((i) => i.type === "race");
+      if (!item) return game.i18n.localize("DND-CC.Rail.MissingSpecies");
+      const missing = unresolvedAdvancementTitles(item);
+      return missing.length ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") }) : "";
+    }
+    if (stepId === "background") {
+      const item = this.draft.actor.items.find((i) => i.type === "background");
+      if (!item) return game.i18n.localize("DND-CC.Rail.MissingBackground");
+      const missing = unresolvedAdvancementTitles(item);
+      return missing.length ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") }) : "";
+    }
+    if (stepId === "abilities" && !this.draft.isAbilityAssignmentComplete) {
+      return game.i18n.localize("DND-CC.Rail.MissingAbilities");
+    }
+    return "";
+  }
+
+  /**
    * Review step context: a read-only summary of every choice made so far, pulling from
    * the same context builders every other step already uses (abilities, skills, feats,
    * spells) rather than re-deriving any of it, plus the handful of top-line stats
@@ -1501,6 +1559,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     await this.draft.discard();
     this.draft = await this._resolveDraft();
     this.stepIndex = 0;
+    this.visitedSteps = new Set([STEP_DEFINITIONS[0].id]);
     this.render();
   }
 
@@ -1515,6 +1574,29 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     return CharacterDraft.create({
       ruleset: game.settings.get(MODULE_ID, "defaultRuleset")
     });
+  }
+
+  /**
+   * Run an async action (typically an actor update followed by a re-render) with a
+   * visible busy state on the current step's body, instead of leaving the control that
+   * triggered it with no feedback until the update round-trip and re-render both finish
+   * - the Abilities step's Point Buy controls in particular can involve two sequential
+   * actor updates per click (the flag write, then the derived-score sync), which is
+   * enough of a gap on a loaded world to read as the wizard doing nothing. The class is
+   * applied to the step body specifically (not the whole wizard window) so the
+   * persistent identity bar and rail stay interactive throughout.
+   * @param {() => Promise<void>} action
+   */
+  async _withBusy(action) {
+    const body = this.element.querySelector(".dnd-cc-step-body");
+    body?.classList.add("dnd-cc-busy");
+    try {
+      await action();
+    } finally {
+      // A finished action almost always re-renders, replacing this exact node - but
+      // guard the removal anyway in case the action threw before ever calling render().
+      body?.classList.remove("dnd-cc-busy");
+    }
   }
 
   _onRender(context, options) {
@@ -1619,39 +1701,49 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelectorAll("[data-ability-method]").forEach((el) => {
       el.addEventListener("click", async () => {
-        await this.draft.setAbilityMethod(el.dataset.abilityMethod);
-        this.render();
+        await this._withBusy(async () => {
+          await this.draft.setAbilityMethod(el.dataset.abilityMethod);
+          await this.render();
+        });
       });
     });
 
     root.querySelectorAll("[data-ability-adjust]").forEach((el) => {
       el.addEventListener("click", async () => {
-        const [key, direction] = el.dataset.abilityAdjust.split(":");
-        await this.draft.adjustPointBuy(key, Number(direction));
-        this.render();
+        await this._withBusy(async () => {
+          const [key, direction] = el.dataset.abilityAdjust.split(":");
+          await this.draft.adjustPointBuy(key, Number(direction));
+          await this.render();
+        });
       });
     });
 
     root.querySelectorAll("[data-ability-manual]").forEach((el) => {
       el.addEventListener("change", async () => {
-        const value = el.value === "" ? null : Number(el.value);
-        await this.draft.setAbilityBaseScore(el.dataset.abilityManual, value);
-        this.render();
+        await this._withBusy(async () => {
+          const value = el.value === "" ? null : Number(el.value);
+          await this.draft.setAbilityBaseScore(el.dataset.abilityManual, value);
+          await this.render();
+        });
       });
     });
 
     root.querySelectorAll("[data-ability-pool]").forEach((el) => {
       el.addEventListener("change", async () => {
         if (el.value === "") return;
-        await this.draft.assignAbilityPoolValue(el.dataset.abilityPool, Number(el.value));
-        this.render();
+        await this._withBusy(async () => {
+          await this.draft.assignAbilityPoolValue(el.dataset.abilityPool, Number(el.value));
+          await this.render();
+        });
       });
     });
 
     root.querySelectorAll("[data-ability-roll]").forEach((el) => {
       el.addEventListener("click", async () => {
-        await this.draft.rollAbility(el.dataset.abilityRoll);
-        this.render();
+        await this._withBusy(async () => {
+          await this.draft.rollAbility(el.dataset.abilityRoll);
+          await this.render();
+        });
       });
     });
 
@@ -2158,24 +2250,52 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
-   * Poll for an item of `dnd5eType` other than `excludeId` to actually show up on the
-   * draft actor - see the comment in _selectItem/_changeOriginFeat for why this is
-   * needed (a real race between the Advancement completion hook and the new item's
-   * creation actually landing locally). 20 tries at 100ms is generous relative to how
-   * fast the item typically shows up - if it genuinely never arrives, giving up and
-   * leaving the old item in place (the caller's `if (newItem)` guard) is the safe
-   * failure mode.
+   * Poll for an item of `dnd5eType` not among `excludeIds` to actually show up on the
+   * draft actor - a real race between the Advancement completion hook and the new
+   * item's creation actually landing locally: the hook this app's `triggerAdvancement`
+   * waits on can fire a moment before `actor.items` locally reflects the new document,
+   * so code that looks the new item up right afterward can find nothing (or, if it then
+   * acts on that missing/stale state, silently skip work that should have happened). 20
+   * tries at 100ms is generous relative to how fast the item typically shows up - if it
+   * genuinely never arrives, the caller's own not-found handling (skip the follow-up
+   * step, leave the old item in place, etc.) is the safe failure mode.
    * @param {string} dnd5eType
-   * @param {string} excludeId
+   * @param {string|Set<string>} excludeIds - a single id, or a set of ids, to exclude
    * @returns {Promise<Item|undefined>}
    */
-  async _waitForNewItem(dnd5eType, excludeId) {
+  async _waitForNewItem(dnd5eType, excludeIds) {
+    const isExcluded = excludeIds instanceof Set ? (id) => excludeIds.has(id) : (id) => id === excludeIds;
+    const find = () => this.draft.actor.items.find((i) => i.type === dnd5eType && !isExcluded(i.id));
     for (let attempt = 0; attempt < 20; attempt++) {
-      const found = this.draft.actor.items.find((i) => i.type === dnd5eType && i.id !== excludeId);
+      const found = find();
       if (found) return found;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    return this.draft.actor.items.find((i) => i.type === dnd5eType && i.id !== excludeId);
+    return find();
+  }
+
+  /**
+   * Wait for a just-removed class item to actually finish being removed, including the
+   * actor's own reactive follow-up. Deleting a class item doesn't just delete the item -
+   * Actor5e reacts to the deletion by re-picking `system.details.originalClass` (the
+   * highest-level remaining class, or none) via its own separate `actor.update()` call,
+   * not bundled into the same transaction as the deletion itself. `removeItemWithAdvancement`
+   * only waits for the deletion's own advancement flow to finish, not for that follow-up
+   * update - starting a new item's advancement flow before it lands clones an actor whose
+   * `originalClass` still points at the just-deleted item, which makes dnd5e treat the new
+   * item as a genuine second class (multiclass) instead of the character's first, granting
+   * the reduced multiclass proficiency set and skipping choices multiclassing doesn't grant
+   * (e.g. Skill Proficiencies) even though the actor has no other class at all.
+   * @param {string} removedClassId
+   * @returns {Promise<void>}
+   */
+  async _waitForClassRemoval(removedClassId) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const stillPresent = this.draft.actor.items.has(removedClassId);
+      const staleOriginalClass = this.draft.actor.system.details.originalClass === removedClassId;
+      if (!stillPresent && !staleOriginalClass) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   /**
@@ -2320,6 +2440,31 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * every choice from scratch rather than only the missing one, which is more
    * disruptive than a true "resume where I left off" would be, but it's a real, working
    * path instead of a broken one.
+   *
+   * The re-add uses a blanked copy of the class's own data, not the original resolved
+   * one - dnd5e's Advancement flow skips prompting for a choice whose value is already
+   * populated, so reusing the original data verbatim would silently carry every old
+   * pick forward instead of actually re-asking. `system.advancement` on plain item data
+   * is a plain object keyed by advancement id, not an array.
+   *
+   * The original class is removed before the blank copy is added, never the other way
+   * around: dnd5e grants a reduced multiclass proficiency set (for example a Barbarian
+   * gets only Shields rather than the full Light/Medium/Shields list) to a class added
+   * while another item sharing its identifier is already on the actor - correct for a
+   * genuine second class, but also triggered by an add-then-remove redo, since the
+   * blank copy would briefly coexist with the original. Removing first avoids the actor
+   * ever holding two copies of the same class at once - see _waitForClassRemoval, which
+   * also waits out Actor5e's own follow-up update to `system.details.originalClass`
+   * after the removal, since that can lag behind the item deletion itself and cause the
+   * same misclassification. The trade-off is the cancellation risk this design would
+   * otherwise reintroduce: if the new copy's own flow is cancelled, the original is
+   * restored from its intact data through a real advancement pass rather than a plain
+   * recreate, since a Trait/ItemGrant advancement's resolved value only lands on the
+   * actor's real derived traits (armor/weapon proficiencies, etc.) as a side effect of
+   * a manager flow actually running - recreating the item directly leaves those derived
+   * traits empty even though its own stored advancement values look complete. This
+   * restore pass is still much lighter than the original redo, since every step already
+   * shows its previous answer and only needs to be clicked through.
    * @param {string} classItemId
    */
   async _reviewClass(classItemId) {
@@ -2327,8 +2472,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (!classItem) return;
 
     const level = classItem.system.levels;
-    const itemData = classItem.toObject();
-    delete itemData._id;
+    const originalItemData = classItem.toObject();
+    delete originalItemData._id;
+    const blankItemData = foundry.utils.deepClone(originalItemData);
+    for (const advancement of Object.values(blankItemData.system.advancement ?? {})) {
+      advancement.value = {};
+    }
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("DND-CC.Class.ReviewTitle") },
@@ -2342,18 +2491,36 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const beforeRemove = snapshotAbilities(this.draft.actor);
       await removeItemWithAdvancement(this.draft.actor, classItemId, host);
       await this.draft.recordAbilityDelta(diffAbilities(beforeRemove, snapshotAbilities(this.draft.actor)));
+      await this._waitForClassRemoval(classItemId);
 
       const beforeAdd = snapshotAbilities(this.draft.actor);
-      const added = await triggerAdvancement(this.draft.actor, itemData, host);
+      const added = await triggerAdvancement(this.draft.actor, blankItemData, host);
       await this.draft.recordAbilityDelta(diffAbilities(beforeAdd, snapshotAbilities(this.draft.actor)));
-      if (!added || level <= 1) return;
 
-      const newClassItem = this.draft.actor.items.find((i) => i.type === "class" && !priorClassIds.has(i.id));
+      if (!added) {
+        // Cancelled before even finishing level 1 - restore what was there instead of
+        // leaving the actor with no class at all.
+        const beforeRestore = snapshotAbilities(this.draft.actor);
+        await triggerAdvancement(this.draft.actor, originalItemData, host);
+        await this.draft.recordAbilityDelta(diffAbilities(beforeRestore, snapshotAbilities(this.draft.actor)));
+        return;
+      }
+
+      if (level <= 1) return;
+
+      // Same race _selectItem/_changeOriginFeat guard against: looking this up right
+      // after triggerAdvancement resolves can miss the item entirely.
+      const newClassItem = await this._waitForNewItem("class", priorClassIds);
       if (!newClassItem) return;
 
       const beforeLevel = snapshotAbilities(this.draft.actor);
       await changeClassLevel(this.draft.actor, newClassItem.id, level - 1, host);
       await this.draft.recordAbilityDelta(diffAbilities(beforeLevel, snapshotAbilities(this.draft.actor)));
+      // If the re-level itself gets cancelled partway, the new class is simply left at
+      // whatever level it reached rather than trying to restore the original on top of
+      // an already-partially-leveled copy - a valid class at the wrong level is a safer
+      // state than juggling two reversals in a row, and the level dropdown can always
+      // finish the job afterward.
     });
 
     this.render();
@@ -2398,7 +2565,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   _goToStep(index) {
     if (index < 0 || index >= STEP_DEFINITIONS.length) return;
     this.stepIndex = index;
-    this.render();
+    this.visitedSteps.add(STEP_DEFINITIONS[index].id);
+    // Every caller (rail clicks, Back/Next, the various "pick it, keep moving"
+    // auto-advances) goes through here, so wrapping this one spot covers all of them -
+    // switching steps re-renders the whole wizard shell, not just the destination
+    // step's own content, and on a heavier world that round-trip is worth showing
+    // feedback for rather than leaving the old step looking unresponsive.
+    this._withBusy(() => this.render());
   }
 
   /**

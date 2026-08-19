@@ -40,9 +40,14 @@
             {{#if this.selected}}
             <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Lineage.SelectedRibbon" lineage=this.selectedLineageLabel}}</div>
             {{else}}
-            <button type="button" class="dnd-cc-card-select" data-choose-lineage="{{this.name}}">
-              {{localize "DND-CC.Lineage.ChooseButton"}} <i class="fa-solid fa-arrow-right"></i>
-            </button>
+            <div class="dnd-cc-card-actions">
+              <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.learnMoreUuid}}">
+                {{localize "DND-CC.LearnMore"}}
+              </button>
+              <button type="button" class="dnd-cc-card-select" data-choose-lineage="{{this.name}}">
+                {{localize "DND-CC.Lineage.ChooseButton"}} <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
             {{/if}}
             {{else}}
             {{#if this.pills.length}}
