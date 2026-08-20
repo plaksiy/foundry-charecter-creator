@@ -35,7 +35,7 @@
             <span class="dnd-cc-card-name">{{this.name}}</span>
             {{#if this.isLineageGroup}}
             <div class="dnd-cc-pill-row">
-              <span class="dnd-cc-pill">{{localize "DND-CC.Lineage.Count" count=this.lineageCount}}</span>
+              <span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Lineage.Count" count=this.lineageCount}}</span>
             </div>
             {{#if this.selected}}
             <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Lineage.SelectedRibbon" lineage=this.selectedLineageLabel}}</div>
@@ -52,7 +52,7 @@
             {{else}}
             {{#if this.pills.length}}
             <div class="dnd-cc-pill-row">
-              {{#each this.pills}}<span class="dnd-cc-pill">{{this}}</span>{{/each}}
+              {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
             </div>
             {{/if}}
             {{#if this.selected}}

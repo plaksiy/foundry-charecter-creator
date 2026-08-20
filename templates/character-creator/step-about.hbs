@@ -26,13 +26,22 @@
     {{#each personality}}
     <label class="dnd-cc-about-textarea">
       <span>{{this.label}}</span>
-      <textarea data-about-field="{{this.key}}" rows="3">{{this.value}}</textarea>
+      <textarea data-about-field="{{this.key}}" rows="2">{{this.value}}</textarea>
     </label>
     {{/each}}
   </div>
 
   <div class="dnd-cc-section-label">{{localize "DND-CC.About.Languages"}}</div>
   <div class="dnd-cc-about-languages">
+    <div class="dnd-cc-language-controls">
+      <select data-language-add>
+        <option value="">{{localize "DND-CC.About.AddLanguage"}}</option>
+        {{#each addableLanguageOptions}}
+        <option value="{{this.key}}">{{this.label}}</option>
+        {{/each}}
+      </select>
+      <input type="text" data-language-custom value="{{languagesCustom}}" placeholder="{{localize 'DND-CC.About.CustomLanguages'}}" />
+    </div>
     <div class="dnd-cc-language-chips">
       {{#each languages}}
       <span class="dnd-cc-language-chip">
@@ -43,18 +52,6 @@
       {{#unless languages.length}}
       <span class="dnd-cc-empty-state-inline">{{localize "DND-CC.About.NoLanguages"}}</span>
       {{/unless}}
-    </div>
-    <div class="dnd-cc-language-controls">
-      <select data-language-add>
-        <option value="">{{localize "DND-CC.About.AddLanguage"}}</option>
-        {{#each addableLanguageOptions}}
-        <option value="{{this.key}}">{{this.label}}</option>
-        {{/each}}
-      </select>
-      <label class="dnd-cc-about-field">
-        <span>{{localize "DND-CC.About.CustomLanguages"}}</span>
-        <input type="text" data-language-custom value="{{languagesCustom}}" />
-      </label>
     </div>
   </div>
 

@@ -1,6 +1,7 @@
 import { CharacterCreatorApp } from "./apps/character-creator-app.mjs";
 import { CompendiumSourcesConfig } from "./apps/compendium-sources-config.mjs";
 import { HouseRulesConfig } from "./apps/house-rules-config.mjs";
+import { GmProgressDashboard } from "./apps/gm-progress-dashboard.mjs";
 import { CharacterDraft } from "./models/character-draft.mjs";
 import { MODULE_ID } from "./constants.mjs";
 
@@ -37,6 +38,25 @@ Hooks.once("init", () => {
     config: false,
     type: Object,
     default: {}
+  });
+
+  // Accessibility controls, managed live from the wizard's own header (see
+  // _prepareAccessibilityContext/the data-font-scale and data-toggle-imagery handlers in
+  // character-creator-app.mjs), not config:true settings-menu entries - both are viewing
+  // preferences a player adjusts in the moment, not a one-time world/client configuration
+  // choice buried in a settings screen they'd have to know to go find.
+  game.settings.register(MODULE_ID, "fontScale", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "1"
+  });
+
+  game.settings.register(MODULE_ID, "reduceImagery", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
   });
 
   game.settings.registerMenu(MODULE_ID, "compendiumSourcesMenu", {
@@ -90,7 +110,8 @@ Hooks.once("init", () => {
     `modules/${MODULE_ID}/templates/character-creator/journal-export.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-placeholder.hbs`,
     `modules/${MODULE_ID}/templates/compendium-sources/shell.hbs`,
-    `modules/${MODULE_ID}/templates/house-rules/shell.hbs`
+    `modules/${MODULE_ID}/templates/house-rules/shell.hbs`,
+    `modules/${MODULE_ID}/templates/gm-progress/shell.hbs`
   ]);
 });
 
@@ -112,12 +133,58 @@ Hooks.on("renderActorDirectory", (_app, html) => {
   header.appendChild(button);
 });
 
+// GM Progress Dashboard entry point - a GM-only button next to "Create Character" so
+// it's discoverable at the exact moment it's useful (session zero, watching the
+// Actor Directory fill up with drafts) rather than buried in Module Settings.
+Hooks.on("renderActorDirectory", (_app, html) => {
+  if (!game.user.isGM) return;
+
+  const root = html instanceof HTMLElement ? html : html[0];
+  const header = root.querySelector(".directory-header .action-buttons") ?? root.querySelector(".directory-header");
+  if (!header || header.querySelector(".dnd-cc-progress-button")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.classList.add("dnd-cc-open-button", "dnd-cc-progress-button");
+  button.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> ${game.i18n.localize("DND-CC.GmProgress.ButtonLabel")}`;
+  button.addEventListener("click", () => new GmProgressDashboard().render(true));
+
+  header.appendChild(button);
+});
+
 Hooks.on("renderActorDirectory", (_app, html) => {
   const root = html instanceof HTMLElement ? html : html[0];
   for (const actor of game.actors) {
     if (!CharacterDraft.isDraft(actor)) continue;
     root.querySelector(`.directory-item[data-entry-id="${actor.id}"]`)?.classList.add("dnd-cc-draft-hidden");
   }
+});
+
+// "Level Up" - reopens the wizard on an already-finished character instead of a fresh
+// draft (see the `levelUp`/`_levelUpActor` handling in character-creator-app.mjs), so a
+// player can add class levels (and resolve whatever that unlocks - ASI, subclass, new
+// spells) through the same embedded-Advancement UI used at creation, instead of dnd5e's
+// native popups. Only offered on a real PC's own sheet (never a draft mid-creation - that
+// already has its own wizard open) and only to whoever actually owns the actor. Injected
+// as a plain button styled like a native header-control (matching the existing
+// copyUuid/toggleControls buttons already in this header) rather than going through
+// ApplicationV2's own header-controls option, since that's a static per-class option list
+// on dnd5e's own sheet class, not something a hook can append to.
+Hooks.on("renderCharacterActorSheet", (app, _html) => {
+  const actor = app.actor;
+  if (!actor?.isOwner || CharacterDraft.isDraft(actor)) return;
+
+  const header = app.element.querySelector(".window-header");
+  if (!header || header.querySelector(".dnd-cc-levelup-header-button")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.classList.add("header-control", "icon", "fa-solid", "fa-angles-up", "dnd-cc-levelup-header-button");
+  button.dataset.tooltip = game.i18n.localize("DND-CC.LevelUp.SheetButtonTitle");
+  button.setAttribute("aria-label", game.i18n.localize("DND-CC.LevelUp.SheetButtonLabel"));
+  button.addEventListener("click", () => new CharacterCreatorApp({ actor }).render(true));
+
+  header.insertBefore(button, header.querySelector('[data-action="close"]'));
 });
 
 // GM co-review gate (see `requireGmReview` setting): a player's "Build Character" whispers

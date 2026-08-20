@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.mjs";
-import { RULESET_TAG_CHOICES, listConfigurablePacks } from "../services/compendium-sources.mjs";
+import { PACK_CATEGORIES, RULESET_TAG_CHOICES, listConfigurablePacks } from "../services/compendium-sources.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -35,8 +35,14 @@ export class CompendiumSourcesConfig extends HandlebarsApplicationMixin(Applicat
       RULESET_TAG_CHOICES.map((value) => [value, game.i18n.localize(`DND-CC.CompendiumSources.Ruleset.${value}`)])
     );
 
-    const packs = listConfigurablePacks().map((pack) => ({
+    // `index` is a stable position in the flat list, carried through into each grouped
+    // section below and used for the form field names ("packs.{index}.id" etc.) instead
+    // of Handlebars' own `@index` - that resets to 0 within each group's own {{#each}},
+    // which would collide two different packs onto the same "packs.0.*" field names the
+    // moment there's more than one category.
+    const packs = listConfigurablePacks().map((pack, index) => ({
       ...pack,
+      index,
       rulesetOptions: RULESET_TAG_CHOICES.map((value) => ({
         value,
         label: rulesetLabels[value],
@@ -44,7 +50,16 @@ export class CompendiumSourcesConfig extends HandlebarsApplicationMixin(Applicat
       }))
     }));
 
-    return { packs };
+    // Grouped Core Rules / Expanded Rules / Homebrew / Legacy sections instead of one
+    // flat table, in that fixed display order regardless of how many packs land in
+    // each - an empty category is simply omitted rather than shown as an empty section.
+    const categoryGroups = PACK_CATEGORIES.map((category) => ({
+      category,
+      label: game.i18n.localize(`DND-CC.CompendiumSources.Category.${category}`),
+      packs: packs.filter((pack) => pack.category === category)
+    })).filter((group) => group.packs.length);
+
+    return { packs, categoryGroups };
   }
 
   static async onSubmit(_event, _form, formData) {

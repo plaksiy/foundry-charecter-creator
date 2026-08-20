@@ -16,4 +16,23 @@
       <p>{{localize "DND-CC.Ruleset.BothHint"}}</p>
     </button>
   </div>
+
+  <div class="dnd-cc-ruleset-advisor">
+    <h3>{{localize "DND-CC.Ruleset.Advisor.Title"}}</h3>
+    <p class="dnd-cc-step-intro">{{localize "DND-CC.Ruleset.Advisor.Intro"}}</p>
+    <div class="dnd-cc-advisor-table">
+      <div class="dnd-cc-advisor-row dnd-cc-advisor-header">
+        <span></span>
+        <span class="{{#if (eq advisorHighlight "2014")}}dnd-cc-advisor-active{{/if}}">{{localize "DND-CC.Ruleset.Advisor.Column2014"}}</span>
+        <span class="{{#if (eq advisorHighlight "2024")}}dnd-cc-advisor-active{{/if}}">{{localize "DND-CC.Ruleset.Advisor.Column2024"}}</span>
+      </div>
+      {{#each advisorRows}}
+        <div class="dnd-cc-advisor-row">
+          <span class="dnd-cc-advisor-label">{{this.label}}</span>
+          <span class="{{#if (eq ../advisorHighlight "2014")}}dnd-cc-advisor-active{{/if}}">{{{this.value2014}}}</span>
+          <span class="{{#if (eq ../advisorHighlight "2024")}}dnd-cc-advisor-active{{/if}}">{{{this.value2024}}}</span>
+        </div>
+      {{/each}}
+    </div>
+  </div>
 </div>

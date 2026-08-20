@@ -1,0 +1,55 @@
+<div class="dnd-cc-gm-progress">
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.Intro"}}</p>
+
+  {{#if hasRows}}
+  <div class="dnd-cc-compendium-table-scroll">
+    <table class="dnd-cc-compendium-table dnd-cc-gm-progress-table">
+      <thead>
+        <tr>
+          <th>{{localize "DND-CC.GmProgress.Column.Player"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Character"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Step"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Status"}}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each rows}}
+        <tr>
+          <td>{{this.ownerName}}</td>
+          <td class="col-name">{{this.name}}</td>
+          <td>{{this.currentStepLabel}}</td>
+          <td>
+            {{#if this.abandoned}}
+            <span class="dnd-cc-gm-progress-status stuck"><i class="fa-solid fa-ghost"></i> {{localize "DND-CC.GmProgress.Abandoned"}}</span>
+            {{else if this.ready}}
+            <span class="dnd-cc-gm-progress-status ready"><i class="fa-solid fa-circle-check"></i> {{localize "DND-CC.GmProgress.Ready"}}</span>
+            {{else}}
+            <span class="dnd-cc-gm-progress-status stuck" title="{{this.missingText}}"><i class="fa-solid fa-triangle-exclamation"></i> {{this.missingText}}</span>
+            {{/if}}
+          </td>
+          <td>
+            {{#unless this.abandoned}}
+            <button type="button" class="dnd-cc-gm-progress-open" data-open-draft="{{this.id}}">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> {{localize "DND-CC.GmProgress.Open"}}
+            </button>
+            {{/unless}}
+            <button type="button" class="dnd-cc-gm-progress-open dnd-cc-gm-progress-delete" data-delete-draft="{{this.id}}">
+              <i class="fa-solid fa-trash"></i> {{localize "DND-CC.GmProgress.Delete"}}
+            </button>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.NoDrafts"}}</p>
+  {{/if}}
+
+  <footer class="dnd-cc-compendium-sources-footer">
+    <button type="button" class="dnd-cc-save-button" data-refresh>
+      <i class="fa-solid fa-rotate"></i> {{localize "DND-CC.GmProgress.Refresh"}}
+    </button>
+  </footer>
+</div>

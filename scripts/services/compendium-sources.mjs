@@ -212,10 +212,29 @@ function deduplicateByNameAndRuleset(items) {
   return Array.from(bestByKey.values());
 }
 
+export const PACK_CATEGORIES = ["core", "expanded", "homebrew", "legacy"];
+
+/**
+ * Which of the 4 GM-facing groups a pack belongs to, purely from Foundry's own package
+ * metadata plus one dnd5e naming convention: 2024 system packs are suffixed "24"
+ * (`classes24`, `origins24`, ...), 2014 ones aren't. `packageType` already tells
+ * world/module apart natively, and the "24" suffix is a stable convention this
+ * codebase already relies on elsewhere (getStepItems' ruleset resolution).
+ * @param {CompendiumCollection} pack
+ * @returns {"core"|"expanded"|"homebrew"|"legacy"}
+ */
+function categorizePack(pack) {
+  const type = pack.metadata.packageType;
+  if (type === "world") return "homebrew";
+  if (type !== "system") return "expanded";
+  return pack.collection.endsWith("24") ? "core" : "legacy";
+}
+
 /**
  * List every Item compendium pack with its current enabled/ruleset config, for the
- * GM-facing settings screen.
- * @returns {{ id: string, label: string, source: string, enabled: boolean, ruleset: string }[]}
+ * GM-facing settings screen. Includes `category` (see categorizePack) so the screen can
+ * group Core Rules / Expanded Rules / Homebrew / Legacy instead of one flat list.
+ * @returns {{ id: string, label: string, source: string, enabled: boolean, ruleset: string, category: string }[]}
  */
 export function listConfigurablePacks() {
   const config = getPackConfig();
@@ -229,7 +248,8 @@ export function listConfigurablePacks() {
         label: pack.title,
         source: pack.metadata.packageName ?? pack.metadata.packageType ?? "",
         enabled: entry.enabled ?? true,
-        ruleset: entry.ruleset ?? "auto"
+        ruleset: entry.ruleset ?? "auto",
+        category: categorizePack(pack)
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));

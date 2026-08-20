@@ -8,6 +8,7 @@
  */
 
 import { ABILITY_KEYS } from "../constants.mjs";
+import { CharacterDraft } from "./character-draft.mjs";
 
 /**
  * Read the actor's current ability score values, for diffing around an advancement
@@ -128,15 +129,15 @@ export function hasItemOfType(actor, type) {
 }
 
 /**
- * Every real player choice on `item` that's still unanswered. dnd5e's own
- * AdvancementManager deliberately never disables "Next"/"Complete" for an unanswered
- * Trait/ItemChoice/AbilityScoreImprovement/Subclass pick (e.g. a Fighter's Fighting
- * Style, a Dragonborn's damage resistance, a class's Skill Proficiencies, a level-3
- * subclass pick), so an item can land on the actor with a genuine choice silently left
- * empty. "The item exists" is therefore not the same as "everything about it is
- * actually chosen" - this reads the real per-advancement `value` dnd5e itself tracks,
- * the same data its own reversal logic (itemsAtRiskFromLevelDecrease, below) already
- * reads, rather than re-deriving anything.
+ * Every real player choice on `item` that's still unanswered - dnd5e's own
+ * AdvancementManager deliberately never disables "Next"/"Complete" for an
+ * unanswered Trait/ItemChoice/AbilityScoreImprovement/Subclass pick (e.g. a Fighter's
+ * Fighting Style, a Dragonborn's damage resistance, a class's Skill Proficiencies, a
+ * level-3 subclass pick), so an item can land on the actor with a genuine choice
+ * silently left empty. "The item exists" is therefore not the same as "everything
+ * about it is actually chosen" - this reads the real per-advancement `value` dnd5e
+ * itself tracks, the same data its own reversal logic (itemsAtRiskFromLevelDecrease,
+ * above) already reads, rather than re-deriving anything.
  * @param {Item} item
  * @param {number} [level=Infinity] - the character's relevant level for this item (a
  *   class's own `system.levels`; left at Infinity for level-less items - species,
@@ -147,6 +148,20 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
   const titles = [];
   for (const advancement of Object.values(item.advancement?.byId ?? {})) {
     if (typeof advancement.level === "number" && advancement.level > level) continue;
+
+    // A class can carry two versions of the same grant - one restricted to when it's
+    // the actor's original class, one to when it isn't (e.g. Bard's real 2024 data:
+    // 3 skills + 3 tools as an original class, only 1 skill + 1 tool as a multiclass
+    // pick, matching the real multiclassing proficiency table) - dnd5e's own
+    // AdvancementManager already filters its step list by this exact getter
+    // (`AdvancementManager.flowsForLevel`), so a "secondary" grant on an original-class
+    // item (or vice versa) never gets a step to answer in the first place. Skipping it
+    // here too, instead of just here-locally reading `configuration.choices`, is what
+    // stops a genuinely inapplicable grant from being reported as a missed choice - an
+    // original-class Bard's "secondary" 1-skill/1-tool grants never appear as steps
+    // during a normal add, yet still carry an empty `value` forever since nothing ever
+    // resolves them.
+    if (!advancement.appliesToClass) continue;
 
     if (advancement.type === "Trait") {
       const required = (advancement.configuration?.choices ?? []).reduce((sum, c) => sum + (c.count ?? 0), 0);
@@ -160,13 +175,13 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
         .reduce((sum, [, c]) => sum + c.count, 0);
       if (required === 0) continue;
 
-      // `value.added` shows up in two different shapes depending on whether the
-      // advancement can apply at more than one level: a flat {itemId: uuid} map when
-      // there's only ever one choice tier (e.g. a Fighting Style), or a level-keyed
-      // {level: {itemId: uuid}} map when it repeats (e.g. Metamagic). Counting values
-      // that are themselves objects as nested per-level entries, and anything else as
-      // one flat entry, covers both without needing to know in advance which shape a
-      // given advancement uses.
+      // `value.added` shows up two different shapes in the wild depending on whether
+      // the advancement can apply at more than one level: a flat {itemId: uuid} map
+      // when there's only ever one choice tier (e.g. a Fighting Style), or a
+      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
+      // Counting values that are themselves objects as nested per-level entries, and
+      // anything else as one flat entry, covers both without needing to know in
+      // advance which shape a given advancement uses.
       let added = 0;
       for (const entry of entryValues(advancement.value?.added)) {
         added += entry && typeof entry === "object" ? countEntries(entry) : 1;
@@ -197,12 +212,45 @@ export function hasUnresolvedAdvancement(item, level = Infinity) {
 }
 
 /**
- * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds. These
- * show up as a real `Set` for some Trait configurations (e.g. a Weapon Mastery pick), a
- * plain object for others, and occasionally a `Map`. A naive `.length` check silently
- * reads `undefined` (treated as empty) on anything but a real array, which would
- * misreport a genuinely-completed choice as unresolved. Handles all three shapes so the
- * count is right regardless of which one a given advancement happens to use.
+ * Whether a given wizard step is genuinely complete for an actor - the real check
+ * REQUIRED_STEPS gating uses, extracted here (rather than kept as a CharacterCreatorApp
+ * method) so it works from anywhere that only has an actor, not a live wizard instance:
+ * the GM Progress Dashboard reads this for every player's draft at once, none of which
+ * have an open CharacterCreatorApp to call a method on.
+ * @param {Actor} actor
+ * @param {string} stepId
+ * @returns {boolean}
+ */
+export function isStepComplete(actor, stepId) {
+  if (stepId === "class") {
+    const classItems = actor.items.filter((item) => item.type === "class");
+    if (!classItems.length) return false;
+    return classItems.every((item) => !hasUnresolvedAdvancement(item, item.system.levels));
+  }
+  if (stepId === "species") {
+    const item = actor.items.find((item) => item.type === "race");
+    return !!item && !hasUnresolvedAdvancement(item);
+  }
+  if (stepId === "background") {
+    const item = actor.items.find((item) => item.type === "background");
+    return !!item && !hasUnresolvedAdvancement(item);
+  }
+  if (stepId === "abilities") return new CharacterDraft(actor).isAbilityAssignmentComplete;
+  if (stepId === "feats") {
+    const featItems = actor.items.filter((item) => item.system.type?.value === "feat");
+    return featItems.every((item) => !hasUnresolvedAdvancement(item));
+  }
+  return true;
+}
+
+/**
+ * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds - these
+ * show up as a real `Set` for some Trait configurations (e.g. a Weapon Mastery pick),
+ * a plain object for others, and occasionally a `Map`. A naive `.length` check silently
+ * reads `undefined` (=> treated as empty) on anything but a real array, which would
+ * misreport a genuinely-completed Set-backed choice as unresolved. Handles all three
+ * shapes so the count is right regardless of which one a given advancement happens to
+ * use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
  */
@@ -246,6 +294,21 @@ function entryValues(value) {
  * @param {number} newLevel
  * @returns {{ items: Item[], losesAbilityImprovement: boolean }}
  */
+/**
+ * Every item on `actor` that traces back to `sourceItemId` via dnd5e's own
+ * `flags.dnd5e.advancementOrigin` - i.e. everything that item's Advancement granted,
+ * directly or through a cascade (a background's Origin Feat, that feat's own granted
+ * spells, etc.). Used to warn before replacing a level-less item (Species, Background)
+ * that has no "decrease to a lower level" concept the way a class does - the only
+ * question is "what does this item currently account for," not "at what level."
+ * @param {Actor} actor
+ * @param {string} sourceItemId
+ * @returns {Item[]}
+ */
+export function itemsGrantedBy(actor, sourceItemId) {
+  return actor.items.filter((item) => item.flags?.dnd5e?.advancementOrigin?.startsWith(`${sourceItemId}.`));
+}
+
 export function itemsAtRiskFromLevelDecrease(actor, classItem, newLevel) {
   const sources = [classItem, classItem.subclass].filter(Boolean);
   const currentLevel = classItem.system.levels;
@@ -277,21 +340,6 @@ export function itemsAtRiskFromLevelDecrease(actor, classItem, newLevel) {
   });
 
   return { items, losesAbilityImprovement };
-}
-
-/**
- * Every item on `actor` that traces back to `sourceItemId` via dnd5e's own
- * `flags.dnd5e.advancementOrigin` - i.e. everything that item's Advancement granted,
- * directly or through a cascade (a background's Origin Feat, that feat's own granted
- * spells, etc.). Used to warn before replacing a level-less item (Species, Background)
- * that has no "decrease to a lower level" concept the way a class does - the only
- * question is "what does this item currently account for," not "at what level."
- * @param {Actor} actor
- * @param {string} sourceItemId
- * @returns {Item[]}
- */
-export function itemsGrantedBy(actor, sourceItemId) {
-  return actor.items.filter((item) => item.flags?.dnd5e?.advancementOrigin?.startsWith(`${sourceItemId}.`));
 }
 
 /**

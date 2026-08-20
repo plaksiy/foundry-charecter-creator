@@ -11,6 +11,8 @@ const EQUIPMENT_CHOICE_FLAG = "equipmentChoice";
 const EQUIPMENT_CURRENCY_FLAG = "equipmentCurrencyGranted";
 const LIFESTYLE_FLAG = "lifestyle";
 const PENDING_REVIEW_FLAG = "pendingReview";
+const CURRENT_STEP_FLAG = "currentStep";
+const ABANDONED_FLAG = "abandoned";
 
 /**
  * Wraps the in-progress character as a real, persisted Foundry Actor.
@@ -46,7 +48,9 @@ export class CharacterDraft {
    * @returns {CharacterDraft|null}
    */
   static findExisting() {
-    const actor = game.actors.find((a) => a.isOwner && a.getFlag(MODULE_ID, DRAFT_FLAG));
+    const actor = game.actors.find(
+      (a) => a.isOwner && a.getFlag(MODULE_ID, DRAFT_FLAG) && !a.getFlag(MODULE_ID, ABANDONED_FLAG)
+    );
     return actor ? new CharacterDraft(actor) : null;
   }
 
@@ -330,9 +334,86 @@ export class CharacterDraft {
     await this.actor.setFlag(MODULE_ID, LIFESTYLE_FLAG, key);
   }
 
-  /** Discard the draft entirely (e.g. the player cancels character creation). */
+  /**
+   * For a character with no ruleset choice recorded (never built through this wizard,
+   * so it never visited the Ruleset step), default to "both" rather than leaving it
+   * null - null resolves to an empty rulesetVersions array, which getStepItems reads as
+   * "match nothing," so the Class/Species/Background grids would silently show zero
+   * cards until someone happened to visit Ruleset and pick one. "Both" is the safer
+   * default for a character that already exists outside this wizard's normal flow: show
+   * everything rather than guess a specific edition. A no-op if a ruleset is already set.
+   */
+  async ensureRuleset() {
+    if (this.ruleset) return;
+    await this.setRuleset("both");
+  }
+
+  /**
+   * For a character not built through this wizard (or otherwise missing the base/bonus
+   * ability tracking - see the "Ability scores" section above), snapshot its current
+   * ability scores as the base with zero bonus so future recordAbilityDelta calls (e.g.
+   * an Ability Score Improvement picked while leveling up) compute correctly instead of
+   * silently no-oping - _syncAbilityScores skips any key whose base is still null. A
+   * no-op if abilityMethod is already set, so this is safe to call unconditionally
+   * whenever the Level Up flow opens on an existing actor.
+   */
+  async ensureAbilityBaseline() {
+    if (this.abilityMethod) return;
+    const base = Object.fromEntries(
+      ABILITY_KEYS.map((key) => [key, this.actor.system.abilities[key].value])
+    );
+    await this.actor.setFlag(MODULE_ID, ABILITY_METHOD_FLAG, "manual");
+    await this.actor.setFlag(MODULE_ID, ABILITY_BASE_FLAG, base);
+    await this.actor.setFlag(MODULE_ID, ABILITY_BONUS_FLAG, Object.fromEntries(ABILITY_KEYS.map((key) => [key, 0])));
+  }
+
+  // --- Current step tracking -----------------------------------------------
+  //
+  // Which step id the wizard last showed for this actor. Written on every render (see
+  // _prepareContext in character-creator-app.mjs), read back to resume a reopened draft
+  // where the player actually left off instead of always restarting at Ruleset, and by
+  // the GM Progress Dashboard (gm-progress-dashboard.mjs) to show every player's
+  // in-progress draft at a glance without needing to ask or peek over a shoulder.
+
+  get currentStepId() {
+    return this.actor.getFlag(MODULE_ID, CURRENT_STEP_FLAG) ?? null;
+  }
+
+  async setCurrentStepId(stepId) {
+    if (this.currentStepId === stepId) return;
+    await this.actor.setFlag(MODULE_ID, CURRENT_STEP_FLAG, stepId);
+  }
+
+  /**
+   * Discard the draft entirely (e.g. the player cancels character creation). Real,
+   * permanent deletion - only ever safe to call as a GM. A non-GM user cannot delete an
+   * Actor document at all in Foundry's default permission model, even with full
+   * Owner-level ownership on that specific actor ("User player lacks permission to
+   * delete Actor", straight from Foundry's own access check) - Actor deletion is gated
+   * by role, not by per-document ownership. See abandon() for the
+   * path a non-GM player's own "Start Over" actually uses.
+   */
   async discard() {
     await this.actor.delete();
+  }
+
+  /**
+   * The non-GM equivalent of discard() - a player can't delete their own draft actor
+   * (see discard()'s own note), so "Start Over" for a real player instead flags the
+   * draft as abandoned and leaves the document in place. An abandoned draft is still
+   * isDraft (so it stays hidden from the Actor Directory, same hook as any other draft)
+   * but findExisting() now skips it, so it can never resurface as "your current draft"
+   * - a fresh CharacterDraft.create() right after this is what actually gives the
+   * player a new character to work with. Real cleanup (deleting the abandoned actor for
+   * good) is left to a GM, who always has delete permission - see the GM Progress
+   * Dashboard's own Delete action.
+   */
+  async abandon() {
+    await this.actor.setFlag(MODULE_ID, ABANDONED_FLAG, true);
+  }
+
+  get abandoned() {
+    return this.actor.getFlag(MODULE_ID, ABANDONED_FLAG) === true;
   }
 
   /** Mark the draft as a finished character. */

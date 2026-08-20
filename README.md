@@ -4,6 +4,13 @@ A Foundry VTT module that adds a step-by-step character creation wizard for the 
 
 This module does not copy text from any book. It reads classes, species, backgrounds, feats, spells, and equipment from the compendiums already installed in your world (system packs, official modules like the Player's Handbook, and any homebrew content).
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Class step](screenshots/class.jpg) | ![Equipment step](screenshots/equipment.jpg) |
+| ![Abilities step](screenshots/abilities.jpg) | ![Review step](screenshots/review.jpg) |
+
 ## Requirements
 
 - Foundry VTT version 13 or 14.
@@ -18,18 +25,20 @@ This module does not copy text from any book. It reads classes, species, backgro
 
 ## What the wizard does
 
-- Eleven steps: Ruleset, Class, Species, Background, Abilities, Feats, Skills, Spells, Equipment, About, Review.
-- Choosing a ruleset (2014, 2024, or both) controls which content is offered.
-- Multiclassing: add as many classes as you want and remove any of them.
+- Eleven steps: Getting Started (ruleset), Class, Species, Background, Abilities, Feats, Skills, Spells, Equipment, About, Review.
+- Choosing a ruleset (2014, 2024, or both) controls which content is offered. The Getting Started step includes a short comparison of what actually differs between the two rulesets for a new player, with a few terms linked straight into dnd5e's own rules glossary for a hover explanation.
+- Multiclassing: add as many classes as you want and remove any of them. The Class step can also compare two or three classes side by side, and flags when a class's primary ability isn't the character's strongest score.
 - Species that are split into several variants in the compendiums (for example Elf: Drow, High, Wood) show up as one card with a variant picker, instead of separate cards.
 - Four ways to generate ability scores: standard array, point buy, dice roll (per ability, with the option to swap values), and manual entry.
 - Character advancement (skill picks, traits, subclass choices, and so on) happens right inside the wizard window, with no separate popups.
 - The Equipment step lets you pick a starting kit from your class or background, or buy your own gear using the character's real money. You cannot buy something you cannot afford.
 - The "Learn More" button on a class or species card shows its stats and real features, with a link to the compendium.
-- The "Add Custom" button quickly creates a placeholder for a homebrew class, species, or background, which you can then finish by hand.
+- The "Add Custom" button creates a homebrew class, species, or background with real type-specific fields (hit die, primary ability, spell level, and so on), or adopts an existing world item instead of starting from a blank placeholder.
 - The character's portrait and name can be edited from any step.
 - A finished character can be exported as a PDF (for printing) or as a Foundry Journal Entry.
 - The "Start Over" button lets you delete the current draft character and begin a new one.
+- **Level Up**: reopens the wizard on an already-finished character (from a button on their sheet) to add levels, resolve new choices, and pick up new class features, instead of only working for brand new characters.
+- Accessibility: the step list is fully keyboard-navigable, done/warning states are marked with icons (not color alone), and a text-size control and a "Simplify" toggle (hides card artwork) are available at any time.
 
 ## Settings for the game master
 
@@ -46,6 +55,8 @@ All settings are available through the module's menu in the world's Configure Se
 **Default Ruleset.** Which ruleset (2014, 2024, or both) a new character starts with.
 
 **Require GM review before finalizing.** When turned on, a player's "Build Character" button does not finish the character right away. Instead it sends the game master a chat card asking for approval. The game master is never subject to this setting. It is off by default.
+
+**Progress Dashboard.** A button next to "Create Character" in the Actor Directory (game master only) lists every player's in-progress draft, whose it is, which step they're on, and which required steps are still incomplete, with a button to reopen the wizard on that specific draft.
 
 ## Settings for players
 

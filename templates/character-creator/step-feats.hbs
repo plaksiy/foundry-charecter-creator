@@ -8,7 +8,10 @@
     <li class="dnd-cc-feat-row">
       <div class="dnd-cc-feat-icon" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
       <div class="dnd-cc-feat-info">
-        <span class="dnd-cc-feat-name">{{this.name}}</span>
+        <span class="dnd-cc-feat-name">
+          {{this.name}}
+          {{#if this.missingHint}}<i class="fa-solid fa-circle-info dnd-cc-missing-hint" title="{{this.missingHint}}"></i>{{/if}}
+        </span>
         {{#if this.subtypeLabel}}<span class="dnd-cc-pill">{{this.subtypeLabel}}</span>{{/if}}
       </div>
       <div class="dnd-cc-feat-side">

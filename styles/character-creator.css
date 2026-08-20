@@ -41,19 +41,24 @@
   border-bottom: 1px solid var(--dcc-border);
 }
 
-.application.dnd-cc .window-title {
-  font-family: var(--dcc-font-display);
-  letter-spacing: 0.04em;
-}
 
 .application.dnd-cc .window-content {
   padding: 0;
   background: var(--dcc-bg);
   color: var(--dcc-text);
   font-family: var(--dcc-font-ui);
+  /* The window itself never resizes for the text-size setting (zoom is scoped to
+     .dnd-cc-wizard only, see _onRender) - if a bigger text size needs more room than
+     the window currently has, this scrolls to reveal it instead of the zoomed content
+     silently clipping past the window's own border. */
+  overflow: auto;
 }
 
-.application.dnd-cc h1, .application.dnd-cc h2, .application.dnd-cc h3 {
+/* :not(.window-title) - this h1 selector was unintentionally also catching the native
+   window titlebar (a real <h1> in Foundry's own header markup), applying our display
+   font/margin there too and making it read as uneven at that tiny native size. Our own
+   content never actually uses a bare <h1>, only h2/h3, so this exclusion costs nothing. */
+.application.dnd-cc h1:not(.window-title), .application.dnd-cc h2, .application.dnd-cc h3 {
   font-family: var(--dcc-font-display);
   color: var(--dcc-text);
   margin: 0 0 0.5rem;
@@ -89,17 +94,17 @@
    `.header-control` (Foundry's native window titlebar buttons) is excluded from the
    font-family override specifically - it breaks the Font Awesome icon glyph on
    Close/Toggle Controls, which relies on its own icon font applying to the button
-   element itself (not a child), and our font would otherwise clobber it.
-   Foundry wraps every module's stylesheet into an unlayered-vs-layered CSS cascade:
-   core Foundry CSS is unlayered while all module CSS (this file included) is placed
+   element itself (not a child), and our font would otherwise clobber it. */
+/* Foundry wraps every module's stylesheet in an unlayered-vs-layered CSS cascade:
+   core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
    selector specificity, which is why a plain (non-!important) override here loses to
    core's own button sizing despite being more specific. `!important` on a layered
    declaration outranks a normal unlayered one, which is the correct, spec-sanctioned
    way to override core chrome from here - not a hack. Every button/select override in
-   this file that fights Foundry's own default sizing needs `!important` for the same
-   reason, not just this shared base rule. */
+   this file that fights Foundry's own default
+   sizing needs `!important` for the same reason, not just this shared base rule. */
 .application.dnd-cc button:not(.header-control) {
   font-family: var(--dcc-font-ui);
   height: auto !important;
@@ -135,31 +140,39 @@
   position: relative;
   display: grid;
   grid-template-columns: 220px 1fr;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
   grid-template-areas:
-    "header header"
     "nav content"
     "nav footer";
   height: 100%;
   min-height: 0;
 }
 
-.dnd-cc-identity-bar {
-  grid-area: header;
+/* The action toolbar itself no longer renders here at all - its buttons are injected
+   directly into the native ApplicationV2 window-header instead (see _onRender), so the
+   rail's identity block starts right under that header with no empty row above it. */
+
+/* Portrait+name block at the top of the step rail, read as a character folder's own
+   cover rather than a page-level toolbar item - matches the "oath dossier" mockup
+   direction. The name stays a real, obviously-editable <input> here, not a static
+   label, even though it's now visually closer to a title than a form field. */
+.dnd-cc-rail-identity {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.75rem 1.25rem;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem 1rem;
+  margin-bottom: 0.5rem;
   border-bottom: 1px solid var(--dcc-border);
-  background: var(--dcc-surface);
+  text-align: center;
 }
 
 .dnd-cc-identity-portrait {
   flex: none;
-  width: 48px;
-  height: 48px;
+  width: 84px;
+  height: 84px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1.5px solid var(--dcc-border-strong);
   overflow: hidden;
   cursor: pointer;
@@ -176,27 +189,31 @@
 .dnd-cc-identity-fields {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 0.2rem;
   min-width: 0;
+  width: 100%;
 }
 .dnd-cc-identity-label {
   font-family: var(--dcc-font-ui);
   font-weight: 700;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--dcc-text-muted);
 }
 .dnd-cc-identity-name {
   font-family: var(--dcc-font-display);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--dcc-text);
   background: transparent;
   border: none;
   border-bottom: 1px solid transparent;
   padding: 0.1rem 0;
-  min-width: 260px;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
 }
 .dnd-cc-identity-name:hover,
 .dnd-cc-identity-name:focus {
@@ -204,26 +221,31 @@
   outline: none;
 }
 
-.dnd-cc-sources-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-left: auto;
-  padding: 0.5rem 0.8rem;
-  background: var(--dcc-surface-alt);
-  border: 1px solid var(--dcc-border);
-  border-radius: 7px;
-  color: var(--dcc-text-muted);
-  font-family: var(--dcc-font-ui);
-  font-weight: 700;
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  cursor: pointer;
+/* Text size / Simplify / Sources / Start Over now live as native window-header
+   controls (injected in _renderHeaderToolbar, not part of this template's own PARTS.body
+   at all) - deliberately left unstyled beyond these two states, so they read as exactly
+   the same kind of control as Foundry's own toggleControls/copyUuid/close buttons
+   already in that header, not a second, differently-styled toolbar bolted on. */
+.dnd-cc-header-toolbar-button.active { color: var(--dcc-accent); }
+.dnd-cc-header-discard-button:hover { color: var(--dcc-danger); }
+
+.dnd-cc-identity-portrait:focus-visible,
+.dnd-cc-card-select:focus-visible,
+.dnd-cc-card-learn-more:focus-visible {
+  outline: 2px solid var(--dcc-accent);
+  outline-offset: 1px;
 }
-.dnd-cc-sources-button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
-.dnd-cc-discard-button { margin-left: 0.5rem; }
-.dnd-cc-discard-button:hover { border-color: var(--dcc-danger); color: var(--dcc-danger); }
+
+/* "Simplify" mode - a plain colored card (the same accent color every card already sets
+   as its own inline background) instead of full-bleed artwork, for anyone who finds the
+   imagery visually noisy/distracting, needs a plainer view for a screen magnifier, or
+   just wants a faster-scanning grid. Text, pills, and buttons are all untouched - only
+   the decorative art layer and its darkening gradient go away. */
+.dnd-cc-reduce-imagery .dnd-cc-card:not(.dnd-cc-lineage-card) .dnd-cc-card-icon,
+.dnd-cc-reduce-imagery .dnd-cc-card::before,
+.dnd-cc-reduce-imagery .dnd-cc-class-row-art img {
+  display: none;
+}
 
 .dnd-cc-sources-list {
   list-style: none;
@@ -288,8 +310,9 @@
 }
 
 .dnd-cc-step-icon {
-  width: 24px;
-  height: 24px;
+  position: relative;
+  width: 28px;
+  height: 28px;
   flex: none;
   display: flex;
   align-items: center;
@@ -297,15 +320,36 @@
   color: var(--dcc-text-muted);
 }
 
+/* Done/warn status is conveyed by icon color everywhere above, but color alone isn't a
+   colorblind-safe signal - this small corner badge (a genuinely different glyph, check
+   vs triangle-exclamation, not just a differently-colored dot) means the status reads
+   correctly even with no color perception at all. */
+.dnd-cc-step-status-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  font-size: 11px;
+  line-height: 1;
+  background: var(--dcc-surface);
+  border-radius: 50%;
+}
+.dnd-cc-step-status-done { color: var(--dcc-done); }
+.dnd-cc-step-status-warn { color: var(--dcc-warn); }
+
+.dnd-cc-step:focus-visible {
+  outline: 2px solid var(--dcc-accent);
+  outline-offset: 1px;
+}
+
 .dnd-cc-step-icon svg {
-  width: 21px;
-  height: 21px;
+  width: 24px;
+  height: 24px;
 }
 
 .dnd-cc-step-label {
   font-family: var(--dcc-font-ui);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 1.01rem;
   color: var(--dcc-text-muted);
 }
 
@@ -349,18 +393,38 @@
   padding: 1.4rem 2rem;
 }
 
+/* Class/Species/Background specifically: the window itself should never need scrolling
+   to see everything above the card grid (intro, current pick, filters) - only the grid
+   of cards scrolls internally, however tall it gets. .dnd-cc-content switches from
+   "the whole step scrolls as one block" to "a fixed-height flex column whose last child
+   grows and scrolls on its own" only for these three steps; every other step keeps the
+   simple whole-block scroll it already had. */
+.dnd-cc-content:has(> .dnd-cc-step-class),
+.dnd-cc-content:has(> .dnd-cc-step-species),
+.dnd-cc-content:has(> .dnd-cc-step-background) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dnd-cc-step-class, .dnd-cc-step-species, .dnd-cc-step-background {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
 .dnd-cc-step-intro {
   font-family: var(--dcc-font-body);
   color: var(--dcc-text-muted);
   max-width: 62ch;
   line-height: 1.5;
-  margin: 0 0 1.1rem;
+  margin: 0 0 0.8rem;
 }
 
-/* Shown on a step body while its action's actor update(s) and re-render are in
-   flight - see _withBusy in character-creator-app.mjs. Dims the content and disables
-   interaction without hiding it outright, so the control the player just used stays
-   visible under the spinner instead of the step appearing to blank out. */
+/* Shown on a step body while an action's actor update(s) and re-render are in flight -
+   see _withBusy in character-creator-app.mjs. Dims the content and disables interaction
+   without hiding it outright, so the control the player just used stays visible under
+   the spinner instead of the step appearing to blank out. */
 .dnd-cc-step-body.dnd-cc-busy {
   position: relative;
   pointer-events: none;
@@ -473,7 +537,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dcc-warn);
-  margin: 1.3rem 0 0.6rem;
+  margin: 1rem 0 0.5rem;
 }
 .dnd-cc-section-label:first-of-type { margin-top: 0; }
 
@@ -577,6 +641,39 @@
   flex-wrap: wrap;
 }
 
+.dnd-cc-compare-tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.8rem;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-card-compare-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  cursor: pointer;
+}
+.dnd-cc-card-compare-toggle input { accent-color: var(--dcc-accent); cursor: pointer; }
+
+.dnd-cc-ability-mismatch-hint { color: var(--dcc-warn); }
+
+.dnd-cc-comparison-table th, .dnd-cc-comparison-table td { text-align: center; }
+.dnd-cc-comparison-table th:first-child, .dnd-cc-comparison-table td:first-child {
+  text-align: left;
+  color: var(--dcc-text-muted);
+  font-weight: 600;
+}
+
 /* ---------------- Ruleset cards (also reused visual language for method cards) ---------------- */
 
 .dnd-cc-ruleset-options {
@@ -616,6 +713,54 @@
   font-size: 0.78rem;
 }
 
+.dnd-cc-ruleset-advisor {
+  margin-top: 1.6rem;
+  padding: 1rem 1.1rem;
+  border-radius: 9px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface);
+}
+.dnd-cc-ruleset-advisor h3 {
+  margin: 0 0 0.3rem;
+}
+.dnd-cc-ruleset-advisor .dnd-cc-step-intro {
+  margin: 0 0 0.9rem;
+  font-size: 0.82rem;
+}
+
+.dnd-cc-advisor-table {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--dcc-border);
+}
+.dnd-cc-advisor-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr);
+  gap: 0.7rem;
+  padding: 0.55rem 0.8rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.83rem;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-advisor-row:nth-child(even) { background: var(--dcc-surface-alt); }
+.dnd-cc-advisor-header {
+  font-weight: 700;
+  color: var(--dcc-text);
+  background: var(--dcc-surface-alt) !important;
+  border-bottom: 1px solid var(--dcc-border);
+}
+.dnd-cc-advisor-label {
+  font-weight: 600;
+  color: var(--dcc-text);
+}
+.dnd-cc-advisor-active { color: var(--dcc-text); }
+.dnd-cc-advisor-row a.content-link {
+  color: var(--dcc-accent);
+  border-color: var(--dcc-accent);
+}
+
 /* ---------------- Card grid: Class/Species/Background pick-from-a-list steps ---------------- */
 
 .dnd-cc-card-grid {
@@ -623,7 +768,11 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  /* Tuned so the Class/Species/Background grids show 3 per row at this app's default
+     window size (1500px, see BASE_POSITION in character-creator-app.mjs) - still
+     auto-fill, so resizing the window still reflows to more or fewer columns
+     naturally, this only sets what "default" looks like. */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1.1rem;
 }
 
@@ -631,7 +780,8 @@
    character-creator-app.mjs) - the scroll region lives here so switching from a flat
    grid to grouped sections doesn't turn into several independently-scrolling boxes. */
 .dnd-cc-card-groups {
-  max-height: 460px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 0.4rem;
 }
@@ -652,9 +802,12 @@
 
 /*
  * dnd5e's own class/species/background icon art is monochrome line art on a transparent
- * background, so it reads as washed-out gray tiles if stretched full-bleed as a card
- * background. Cards get a real, solid, deterministic color instead (hashCardColor in
- * character-creator-app.mjs) with the icon sitting as a small badge on top.
+ * background, so it reads as washed-out gray tiles if it's the *only* thing filling the
+ * card at full strength. Cards keep a real, solid, deterministic color underneath
+ * (hashCardColor in character-creator-app.mjs) and the icon sits on top of that as a
+ * large, semi-transparent watermark - big enough to read as the card's real background,
+ * but still tinted by the color and darkened by the gradient below the text so it never
+ * washes out to flat gray.
  */
 .dnd-cc-card {
   position: relative;
@@ -674,18 +827,23 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.82) 100%);
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.55) 68%, rgba(0,0,0,0.96) 100%);
 }
 .dnd-cc-card-icon {
   position: absolute;
-  top: 0.75rem;
-  left: 0.8rem;
-  z-index: 2;
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.dnd-cc-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+.dnd-cc-card-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
 .dnd-cc-card-edition {
   position: absolute;
   top: 0.65rem;
@@ -930,7 +1088,9 @@
   position: static;
   width: 32px;
   height: 32px;
+  padding: 0;
 }
+.dnd-cc-lineage-card .dnd-cc-card-icon img { opacity: 1; }
 .dnd-cc-lineage-name {
   font-family: var(--dcc-font-ui);
   font-weight: 700;
@@ -946,6 +1106,72 @@
   border: 1px solid var(--dcc-border-strong);
   border-radius: 6px;
   padding: 0.5rem 0.6rem;
+}
+
+.dnd-cc-custom-form-tabs { margin-bottom: 0.9rem; }
+.dnd-cc-custom-form-tabs button { flex: 1; }
+
+.dnd-cc-custom-form select {
+  width: 100%;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border-strong);
+  border-radius: 6px;
+  color: var(--dcc-text);
+  padding: 0.5rem 0.6rem;
+  font-family: var(--dcc-font-ui);
+  margin-bottom: 0.7rem;
+}
+
+.dnd-cc-custom-description {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border-strong);
+  border-radius: 6px;
+  color: var(--dcc-text);
+  padding: 0.5rem 0.6rem;
+  font-family: var(--dcc-font-body);
+  margin-bottom: 0.9rem;
+}
+
+.dnd-cc-custom-checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.9rem;
+}
+.dnd-cc-custom-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.85rem;
+  color: var(--dcc-text-muted);
+  cursor: pointer;
+}
+.dnd-cc-custom-checkbox input { accent-color: var(--dcc-accent); cursor: pointer; }
+
+.dnd-cc-custom-existing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dnd-cc-custom-existing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  font-family: var(--dcc-font-ui);
 }
 
 /* ---------------- Current-pick summary (Species/Background) ---------------- */
@@ -965,14 +1191,9 @@
   height: 52px;
   border-radius: 8px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  border: 1px solid var(--dcc-border);
-  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+  overflow: hidden;
 }
-.dnd-cc-current-pick-art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.dnd-cc-current-pick-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dnd-cc-current-pick-info { display: flex; flex-direction: column; gap: 0.2rem; }
 .dnd-cc-current-pick-label {
   font-family: var(--dcc-font-ui);
@@ -1014,14 +1235,14 @@
   height: 46px;
   border-radius: 8px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem;
-  border: 1px solid var(--dcc-border);
-  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+  overflow: hidden;
+  /* Neutral, not the class's own accent color - a small thumbnail next to several
+     other classes' rows tinted with each one's own color read as a wall of clashing
+     colored boxes rather than a calm list. Only shows at all as a sliver behind an
+     image that doesn't perfectly fill the box (rare), no longer as a padded frame. */
+  background-color: var(--dcc-surface-alt);
 }
-.dnd-cc-class-row-art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.dnd-cc-class-row-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .dnd-cc-class-row-info {
   flex: 1;
@@ -1143,14 +1364,9 @@
   height: 44px;
   flex-shrink: 0;
   border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem;
-  border: 1px solid var(--dcc-border);
-  background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
+  overflow: hidden;
 }
-.dnd-cc-feat-icon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+.dnd-cc-feat-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .dnd-cc-feat-info {
   flex: 1;
@@ -1280,6 +1496,99 @@
 .dnd-cc-ability-method-card p { margin: 0; font-family: var(--dcc-font-ui); font-size: 0.76rem; color: var(--dcc-text-muted); }
 
 .dnd-cc-ability-body { margin-top: 0.5rem; }
+
+/* One color-keyed card per ability, replacing the old plain table - the same
+   --dcc-str/dex/con/int/wis/cha tokens the Skills table already keys its rows off. */
+.dnd-cc-ability-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.85rem;
+}
+
+.dnd-cc-ability-card {
+  --card-accent: var(--dcc-text-muted);
+  border-radius: 10px;
+  border: 1.5px solid var(--dcc-border);
+  border-top: 3px solid var(--card-accent);
+  background: var(--dcc-surface);
+  padding: 0.85rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.dnd-cc-ability-card[data-ability="str"] { --card-accent: var(--dcc-str); }
+.dnd-cc-ability-card[data-ability="dex"] { --card-accent: var(--dcc-dex); }
+.dnd-cc-ability-card[data-ability="con"] { --card-accent: var(--dcc-con); }
+.dnd-cc-ability-card[data-ability="int"] { --card-accent: var(--dcc-int); }
+.dnd-cc-ability-card[data-ability="wis"] { --card-accent: var(--dcc-wis); }
+.dnd-cc-ability-card[data-ability="cha"] { --card-accent: var(--dcc-cha); }
+
+.dnd-cc-ability-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+.dnd-cc-ability-card-abbr {
+  font-family: var(--dcc-font-display);
+  font-weight: 900;
+  font-size: 1rem;
+  text-transform: uppercase;
+  color: var(--card-accent);
+}
+.dnd-cc-ability-card-label {
+  font-family: var(--dcc-font-ui);
+  font-size: 0.7rem;
+  color: var(--dcc-text-muted);
+}
+
+.dnd-cc-ability-card-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.dnd-cc-ability-card-total {
+  font-family: var(--dcc-font-display);
+  font-weight: 900;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--dcc-text);
+}
+.dnd-cc-ability-card-mod {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--card-accent);
+  color: var(--card-accent);
+}
+
+.dnd-cc-ability-card-control { width: 100%; margin-top: 0.1rem; }
+.dnd-cc-ability-card-control .dnd-cc-point-buy-control,
+.dnd-cc-ability-card-control .dnd-cc-ability-pool-control {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+.dnd-cc-ability-card-control .dnd-cc-ability-pool-control select { flex: 1; }
+.dnd-cc-ability-card-control .dnd-cc-ability-manual-input,
+.dnd-cc-ability-card-control select { width: 100%; }
+.dnd-cc-ability-card-control .dnd-cc-ability-roll-button { width: 100%; justify-content: center; }
+
+.dnd-cc-ability-card-breakdown {
+  margin: 0;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  color: var(--dcc-text-muted);
+}
 
 .dnd-cc-point-buy-remaining {
   font-family: var(--dcc-font-ui);
@@ -1661,7 +1970,7 @@
   border: 1px solid var(--dcc-border);
   border-radius: 8px;
   background: var(--dcc-surface);
-  padding: 1rem 1.2rem;
+  padding: 1.6rem 2rem;
 }
 
 .dnd-cc-advancement-body .dnd5e2.advancement.manager {
@@ -1722,8 +2031,9 @@
   font-family: var(--dcc-font-display);
   color: var(--dcc-text);
   border-bottom: 1px solid var(--dcc-border);
-  padding-bottom: 0.4rem;
-  font-size: 1.3rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.55rem;
 }
 
 .dnd-cc-advancement-body .items-section.card {
@@ -1732,29 +2042,72 @@
   border-radius: 8px;
 }
 
-/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, since the
-   default sizing was cramped and hard to click precisely. */
-.dnd-cc-advancement-body { font-size: 1.05rem; }
+/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, per user
+   feedback that the default sizing was cramped and hard to click precisely - increased
+   again in a third pass (no artificial min-height on the container this time, which
+   just left a sparse step like Hit Points looking like mostly empty space - the fix is
+   actually bigger content, not a taller empty box around small content). */
+.dnd-cc-advancement-body { font-size: 1.3rem; }
+.dnd-cc-advancement-body .item-list { gap: 0.6rem; }
 .dnd-cc-advancement-body .item-list .item {
-  min-height: 2.6rem;
-  padding: 0.4rem 0.5rem;
+  min-height: 3.6rem;
+  padding: 0.7rem 0.9rem;
 }
-.dnd-cc-advancement-body .item-list .item .title { font-size: 1rem; }
+.dnd-cc-advancement-body .item-list .item .title { font-size: 1.2rem; }
 .dnd-cc-advancement-body dnd5e-icon,
 .dnd-cc-advancement-body .item-name img {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 2.2rem;
+  height: 2.2rem;
 }
 .dnd-cc-advancement-body dnd5e-checkbox,
 .dnd-cc-advancement-body input[type="radio"] {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.6rem;
+  height: 1.6rem;
 }
 .dnd-cc-advancement-body select,
 .dnd-cc-advancement-body input[type="text"],
 .dnd-cc-advancement-body input[type="number"] {
-  font-size: 1rem;
-  min-height: 2.3rem;
+  font-size: 1.1rem;
+  min-height: 2.6rem;
+}
+.dnd-cc-advancement-body .form-group { margin-bottom: 0.9rem; }
+.dnd-cc-advancement-body fieldset { padding: 1rem 1.1rem; }
+.dnd-cc-advancement-body legend {
+  font-family: var(--dcc-font-display);
+  font-size: 1.1rem;
+}
+.dnd-cc-advancement-body .form-group > label {
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+/* The HP flow's own "Max = Final" (or "Prev. + Roll = Final") breakdown row - these
+   numbers are the entire content of a level-1 first-class Hit Points step, so they're
+   what actually needs to read as big and confident rather than the container around
+   them just being taller. */
+.dnd-cc-advancement-body .breakdown {
+  gap: 1.4rem;
+}
+.dnd-cc-advancement-body .breakdown .form-fields {
+  gap: 1.4rem;
+  align-items: center;
+}
+.dnd-cc-advancement-body .form-group.label-top span {
+  font-family: var(--dcc-font-display);
+  font-size: 2.4rem;
+  color: var(--dcc-text);
+}
+.dnd-cc-advancement-body .breakdown > .separator {
+  font-size: 2rem;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-advancement-body .roll-button {
+  width: 3.2rem;
+  height: 3.2rem;
+}
+.dnd-cc-advancement-body .roll-button dnd5e-icon {
+  width: 1.8rem;
+  height: 1.8rem;
 }
 
 .dnd-cc-advancement-body .item-list .item:hover {
@@ -1787,9 +2140,10 @@
 .dnd-cc-advancement-body nav.flexrow button {
   font-family: var(--dcc-font-ui);
   border-radius: 6px;
-  font-size: 1rem;
-  padding: 0.6rem 1rem;
-  min-height: 2.6rem;
+  font-size: 1.1rem;
+  padding: 0.75rem 1.2rem;
+  min-height: 3.1rem;
+  margin-top: 0.4rem;
 }
 .dnd-cc-advancement-body nav.flexrow button[data-action="next"],
 .dnd-cc-advancement-body nav.flexrow button[data-action="complete"] {
@@ -1810,7 +2164,7 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input. The two otherwise look visually identical (same box, same weight),
+   min!=max input. The two look visually identical by default (same box, same weight),
    making it hard to tell at a glance which scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
@@ -1836,7 +2190,7 @@
 
 /* ---------------- Compendium Sources / House Rules (separate GM apps, same stylesheet) ---------------- */
 
-.dnd-cc-compendium-sources, .dnd-cc-house-rules {
+.dnd-cc-compendium-sources, .dnd-cc-house-rules, .dnd-cc-gm-progress {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -1846,6 +2200,35 @@
   font-family: var(--dcc-font-ui);
 }
 .dnd-cc-house-rules { overflow-y: auto; }
+
+.dnd-cc-gm-progress-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.85em;
+}
+.dnd-cc-gm-progress-status.ready { color: var(--dcc-done); }
+.dnd-cc-gm-progress-status.stuck { color: var(--dcc-warn); }
+
+.dnd-cc-gm-progress-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dnd-cc-gm-progress-open:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+.dnd-cc-gm-progress-delete { margin-left: 0.4rem; }
+.dnd-cc-gm-progress-delete:hover { border-color: var(--dcc-danger); color: var(--dcc-danger); }
 
 /* A <table> as a direct flex item resists flex-shrink even with min-height:0 (confirmed
    live - it kept computing to its full content height, 690px, inside a 558px-tall flex
@@ -1863,6 +2246,22 @@
   border-collapse: collapse;
   width: 100%;
   font-size: 0.9em;
+}
+.dnd-cc-compendium-table + .dnd-cc-compendium-table { margin-top: 1.4rem; }
+
+.dnd-cc-compendium-table .col-category {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--dcc-surface);
+  color: var(--dcc-accent);
+  font-family: var(--dcc-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  border-bottom: 1.5px solid var(--dcc-accent);
+  padding: 0.6rem 0.6rem 0.4rem;
 }
 
 .dnd-cc-compendium-table th, .dnd-cc-compendium-table td {
@@ -1983,14 +2382,16 @@
 
 .dnd-cc-about-characteristics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
+  /* Narrow enough that all 9 characteristic fields sit on one row at this app's
+     default window width, instead of a lone 3rd row leaving most of its width empty. */
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: 0.6rem;
 }
 
 .dnd-cc-about-field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
   font-family: var(--dcc-font-ui);
   font-size: 0.62rem;
   font-weight: 700;
@@ -2003,18 +2404,22 @@
   text-transform: none;
   letter-spacing: normal;
   font-weight: 400;
+  min-height: 2rem;
 }
 
 .dnd-cc-about-personality {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.75rem;
+  /* Narrow enough that all 5 (traits/ideals/bonds/flaws/appearance) sit on one row at
+     this app's default window width, instead of Appearance alone on an otherwise-empty
+     2nd row. */
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.6rem;
 }
 
 .dnd-cc-about-textarea {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
   font-family: var(--dcc-font-ui);
   font-size: 0.62rem;
   font-weight: 700;
@@ -2038,7 +2443,7 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
-  margin: 0 0 0.75rem;
+  margin: 0.6rem 0 0;
 }
 
 .dnd-cc-language-chip {
@@ -2064,9 +2469,17 @@
 
 .dnd-cc-language-controls {
   display: flex;
-  align-items: flex-end;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.6rem;
   flex-wrap: wrap;
+}
+.dnd-cc-language-controls select {
+  flex: 2;
+  min-width: 200px;
+}
+.dnd-cc-language-controls input[type="text"] {
+  flex: 1;
+  min-width: 160px;
 }
 
 .dnd-cc-lifestyle-tiers {
@@ -2110,7 +2523,7 @@
 .dnd-cc-review-headline {
   font-family: var(--dcc-font-ui);
   color: var(--dcc-text-muted);
-  margin: 0 0 1.1rem;
+  margin: 0 0 0.8rem;
 }
 .dnd-cc-review-headline strong {
   font-family: var(--dcc-font-display);
@@ -2122,7 +2535,7 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.55rem;
-  margin-bottom: 1.3rem;
+  margin-bottom: 0.9rem;
 }
 .dnd-cc-stat-tile {
   min-width: 0;
@@ -2154,19 +2567,19 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   align-items: stretch;
-  gap: 0.9rem;
-  margin-bottom: 1.4rem;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
 }
 .dnd-cc-review-card {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0.9rem 1rem;
+  padding: 0.7rem 0.9rem;
   background: var(--dcc-surface);
   border: 1px solid var(--dcc-border);
   border-radius: 10px;
 }
-.dnd-cc-review-card h3 { font-size: 0.9rem; margin: 0 0 0.6rem; }
+.dnd-cc-review-card h3 { font-size: 0.9rem; margin: 0 0 0.45rem; }
 .dnd-cc-review-card .dnd-cc-ability-table { max-width: none; }
 .dnd-cc-review-card .dnd-cc-ability-table td { font-size: 0.82rem; padding: 0.3rem 0.4rem; }
 

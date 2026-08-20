@@ -57,25 +57,89 @@ export const CLASS_COMPLEXITY = {
 };
 
 /**
- * Thematic accent color per class, for the Class step's card grid and detail overlay -
- * a curated judgment call (not rules text), matched by class item name. A class not
- * listed here (homebrew, third-party) falls back to the deterministic name-hash color
- * every other card type still uses (see hashCardColor in character-creator-app.mjs).
+ * Class card accent colors, for the Class step's card grid and detail overlay - each
+ * keyed to the actual dominant non-neutral color in that class's real dnd5e/PHB icon art
+ * (e.g. Cleric's icon background is a bright blue starfield, Sorcerer's is electric-blue
+ * lightning, Wizard's is gold-lit), not a generic per-class stereotype. Fighter/Monk/
+ * Paladin/Ranger were kept as explicit prior user choices even where they diverge from
+ * their icon's own dominant tone - a deliberate design decision from an earlier round,
+ * not an oversight. A class not listed here (homebrew, third-party) falls back to the
+ * deterministic name-hash color every other card type uses (hashCardColor).
  */
 export const CLASS_THEME_COLORS = {
-  Barbarian: "#8b1a1a",
-  Bard: "#c9427f",
-  Cleric: "#e8c84f",
+  Barbarian: "#b25a2f",
+  Bard: "#8a6fae",
+  Cleric: "#4f8fd9",
   Druid: "#4f7a3f",
   Fighter: "#5c7185",
   Monk: "#a67c52",
   Paladin: "#d98a3f",
   Ranger: "#1f4f38",
-  Rogue: "#2a2433",
-  Sorcerer: "#d9622f",
-  Warlock: "#5c2f7a",
-  Wizard: "#2f5fae",
+  Rogue: "#2f3a52",
+  Sorcerer: "#3f6fd9",
+  Warlock: "#3f7a8a",
+  Wizard: "#c9a53f",
   Artificer: "#2f8f9e"
+};
+
+/**
+ * A plain, light, neutral gray - the card color for any species/background entry with
+ * no curated color below (most often real Eberron-specific content, or an SRD entry
+ * that only has a generic icon-library image rather than real illustrated art to look
+ * at and pick a color from). Deliberately not run through hashCardColor's colorful
+ * palette the way Feats still are - an unreviewed entry should read as genuinely
+ * unthemed, not accidentally land on a color that looks like a deliberate pick.
+ */
+export const NEUTRAL_CARD_COLOR = "#a8a49c";
+
+/**
+ * Species card accent colors, picked the same way as CLASS_THEME_COLORS - the actual
+ * dominant non-neutral color in that species's real PHB icon art. Only covers species
+ * with real illustrated art actually looked at; anything else falls back to
+ * NEUTRAL_CARD_COLOR (see hashCardColor's caller in character-creator-app.mjs).
+ */
+export const SPECIES_THEME_COLORS = {
+  Human: "#c17a4a",
+  Dwarf: "#c9a227",
+  "Elf, High": "#5fa8a3",
+  "Elf, Wood": "#5c9e5c",
+  "Elf, Drow": "#7a4f9e",
+  "Gnome, Forest": "#5c9e4f",
+  "Gnome, Rock": "#b23f7a",
+  Halfling: "#d9a627",
+  Dragonborn: "#c9502f",
+  "Tiefling, Infernal": "#c97a2f",
+  "Tiefling, Abyssal": "#c93f3f",
+  "Tiefling, Chthonic": "#a888b0",
+  Goliath: "#6f8299",
+  Orc: "#b8942f",
+  Aasimar: "#d4b04f",
+  Changeling: "#b8703f",
+  Kalashtar: "#2f9e8a",
+  Khoravar: "#a8322f",
+  Shifter: "#8a2f3f",
+  Warforged: "#3f6f8a"
+};
+
+/** Background card accent colors - same "actually looked at the real art" approach as
+ *  SPECIES_THEME_COLORS/CLASS_THEME_COLORS. */
+export const BACKGROUND_THEME_COLORS = {
+  Acolyte: "#d9a24f",
+  Criminal: "#3a4f7a",
+  Sage: "#6f5fae",
+  Soldier: "#c9702f",
+  Artisan: "#3f8a99",
+  Charlatan: "#c9427f",
+  Entertainer: "#b06f3f",
+  Farmer: "#5c9e4f",
+  Guard: "#3f9ea3",
+  Guide: "#4f8a4f",
+  Hermit: "#c9822f",
+  Merchant: "#8a6142",
+  Noble: "#8a2f3f",
+  Sailor: "#3fa38a",
+  Scribe: "#a3792f",
+  Wayfarer: "#3f7a99"
 };
 
 export const PARTY_ROLES = ["tank", "damage", "support", "healer"];

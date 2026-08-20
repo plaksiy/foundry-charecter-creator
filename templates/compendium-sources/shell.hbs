@@ -2,8 +2,12 @@
   <p class="dnd-cc-step-intro">{{localize "DND-CC.CompendiumSources.Intro"}}</p>
 
   <div class="dnd-cc-compendium-table-scroll">
+    {{#each categoryGroups}}
     <table class="dnd-cc-compendium-table">
       <thead>
+        <tr>
+          <th class="col-category" colspan="4">{{this.label}}</th>
+        </tr>
         <tr>
           <th class="col-enabled">{{localize "DND-CC.CompendiumSources.Column.Enabled"}}</th>
           <th class="col-name">{{localize "DND-CC.CompendiumSources.Column.Compendium"}}</th>
@@ -12,16 +16,16 @@
         </tr>
       </thead>
       <tbody>
-        {{#each packs}}
+        {{#each this.packs}}
         <tr>
           <td class="col-enabled">
-            <input type="hidden" name="packs.{{@index}}.id" value="{{this.id}}">
-            <input type="checkbox" name="packs.{{@index}}.enabled" {{#if this.enabled}}checked{{/if}}>
+            <input type="hidden" name="packs.{{this.index}}.id" value="{{this.id}}">
+            <input type="checkbox" name="packs.{{this.index}}.enabled" id="pack-enabled-{{this.index}}" {{#if this.enabled}}checked{{/if}}>
           </td>
-          <td class="col-name">{{this.label}}</td>
+          <td class="col-name"><label for="pack-enabled-{{this.index}}">{{this.label}}</label></td>
           <td class="col-source">{{this.source}}</td>
           <td class="col-ruleset">
-            <select name="packs.{{@index}}.ruleset">
+            <select name="packs.{{this.index}}.ruleset" aria-label="{{localize 'DND-CC.CompendiumSources.Column.Ruleset'}} - {{this.label}}">
               {{#each this.rulesetOptions}}
               <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
               {{/each}}
@@ -31,6 +35,7 @@
         {{/each}}
       </tbody>
     </table>
+    {{/each}}
   </div>
 
   <footer class="dnd-cc-compendium-sources-footer">

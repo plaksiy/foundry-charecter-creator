@@ -21,7 +21,10 @@
     "Identity": {
       "Name": "Character Name",
       "NamePlaceholder": "Enter a name...",
-      "ChangePortrait": "Change portrait"
+      "ChangePortrait": "Change portrait",
+      "PortraitUrlTitle": "Set Portrait Image",
+      "PortraitUrlHint": "Your GM hasn't given you permission to browse files, so paste an image URL or a path instead.",
+      "PortraitUrlSave": "Save"
     },
     "Sources": {
       "ButtonLabel": "Sources",
@@ -36,6 +39,43 @@
       "Title": "Discard This Character?",
       "Confirm": "This will permanently delete {name} and everything chosen so far. This can't be undone. A brand new, empty character will open right after."
     },
+    "LevelUp": {
+      "SheetButtonLabel": "Level Up",
+      "SheetButtonTitle": "Level up this character using the character creator wizard",
+      "WindowTitle": "Level Up: {name}",
+      "Done": "Done"
+    },
+    "Accessibility": {
+      "StepNavLabel": "Character creation steps",
+      "FontSizeLabel": "Text size",
+      "FontSizeOption": "Text size: {size}",
+      "ReduceImageryLabel": "Simplify",
+      "ReduceImageryTitle": "Hide card artwork and show plain colored cards instead"
+    },
+    "GmAssist": {
+      "WindowTitle": "Assisting: {name}"
+    },
+    "GmProgress": {
+      "ButtonLabel": "Progress",
+      "Title": "Character Creation Progress",
+      "Intro": "Every player's in-progress character, at a glance. Click Open to jump into a draft and help directly.",
+      "Column": {
+        "Player": "Player",
+        "Character": "Character",
+        "Step": "Current Step",
+        "Status": "Status"
+      },
+      "Ready": "Ready to finish",
+      "Abandoned": "Abandoned (Start Over)",
+      "Open": "Open",
+      "Delete": "Delete",
+      "DeleteTitle": "Delete This Draft?",
+      "DeleteConfirm": "This will permanently delete {name}. Players can't delete their own drafts (Foundry reserves that for GMs), so this is the only way to actually remove one. This can't be undone.",
+      "Refresh": "Refresh",
+      "NoDrafts": "No characters are currently in progress.",
+      "NoOwner": "Unowned",
+      "ActorMissing": "That draft no longer exists."
+    },
     "ReplaceItem": {
       "Title": "Replace This Pick?",
       "Warning": "Switching from {old} to {incoming} will remove {old} and everything it granted, including:"
@@ -45,10 +85,24 @@
       "OpenInCompendium": "Open in Compendium"
     },
     "CustomForm": {
-      "Hint": "Creates a bare placeholder you can finish authoring on its own item sheet afterward (description, proficiencies, advancement, etc.).",
+      "TabCreate": "Create New",
+      "TabExisting": "Use Existing",
+      "Hint": "Creates a placeholder you can finish authoring on its own item sheet afterward (proficiencies, advancement, etc.).",
       "Name": "Name",
       "NamePlaceholder": "Enter a name...",
-      "Create": "Create"
+      "Description": "Description",
+      "HitDie": "Hit Die",
+      "PrimaryAbility": "Primary Ability",
+      "Speed": "Speed (ft)",
+      "FeatType": "Feat Type",
+      "SpellLevel": "Spell Level",
+      "SpellSchool": "School",
+      "Cantrip": "Cantrip",
+      "Create": "Create",
+      "CreateFailed": "Couldn't create that item - check the console for details.",
+      "ExistingHint": "Adopt an item you already created outside the wizard - it'll show up in this grid from now on.",
+      "UseThis": "Use This",
+      "NoExisting": "No unused items of this type found."
     },
     "Lineage": {
       "Count": "{count} lineages",
@@ -57,7 +111,7 @@
       "PickerTitle": "{base} - Choose a Lineage"
     },
     "Steps": {
-      "Ruleset": "Ruleset",
+      "Ruleset": "Getting Started",
       "Class": "Class",
       "Species": "Species",
       "Background": "Background",
@@ -183,7 +237,31 @@
       "2024": "2024 Rules (D&D 5.5e)",
       "2024Hint": "The updated rules from the 2024 core rulebooks.",
       "Both": "Both Rulesets",
-      "BothHint": "Show content from both the 2014 and 2024 rules side by side."
+      "BothHint": "Show content from both the 2014 and 2024 rules side by side.",
+      "Advisor": {
+        "Title": "New to D&D? Here's what actually differs",
+        "Intro": "Both rulesets play the same game. These are the differences a new player will actually notice - hover an underlined term for a quick rules explanation.",
+        "Column2014": "2014 Rules",
+        "Column2024": "2024 Rules",
+        "AbilityIncreaseLabel": "Ability score increases",
+        "AbilityIncrease2014": "Come from your Race.",
+        "AbilityIncrease2024": "Come from your Background instead.",
+        "FeatsLabel": "Starting feats",
+        "Feats2014": "Optional - most tables don't grant one until 4th level.",
+        "Feats2024": "Every character gets a free {term} at 1st level, chosen through their Background.",
+        "OriginFeatTerm": "Origin Feat",
+        "MasteryLabel": "Weapon Mastery",
+        "Mastery2014": "Not part of these rules.",
+        "Mastery2024": "Several classes gain {term}, unlocking a special property on weapons they're proficient with.",
+        "WeaponMasteryTerm": "Weapon Mastery",
+        "TerminologyLabel": "Terminology",
+        "Terminology2014": "This step is called \"Race.\"",
+        "Terminology2024": "This step is called \"Species\" - the same choice, new name.",
+        "AdvantageLabel": "Advantage & Disadvantage",
+        "Advantage2014": "Works the same in both rulesets - click {term} to see exactly how it's resolved.",
+        "Advantage2024": "Works the same in both rulesets - click {term} to see exactly how it's resolved.",
+        "AdvantageTerm": "Advantage"
+      }
     },
     "About": {
       "Intro": "Fill in your character's personality, appearance, and background. None of this affects game mechanics, except Lifestyle, which is a reference for downtime upkeep costs.",
@@ -280,6 +358,12 @@
         "2024": "2024 Only",
         "both": "Both"
       },
+      "Category": {
+        "core": "Core Rules",
+        "expanded": "Expanded Rules",
+        "homebrew": "Homebrew",
+        "legacy": "Legacy (2014)"
+      },
       "Save": "Save"
     },
     "HouseRules": {
@@ -313,7 +397,16 @@
         "damage": "Damage Dealer",
         "support": "Support/Utility Caster",
         "healer": "Healer"
-      }
+      },
+      "Compare": "Compare",
+      "CompareCount": "Comparing {count} classes",
+      "CompareNow": "Compare Now",
+      "CompareClear": "Clear",
+      "CompareTitle": "Class Comparison",
+      "CompareHitDie": "Hit Die",
+      "ComparePrimaryAbility": "Primary Ability",
+      "CompareRoles": "Party Roles",
+      "AbilityMismatch": "{abilities} is your lowest score ({score}) - this class leans on it most."
     }
   }
 }

@@ -12,15 +12,16 @@
   <ul class="dnd-cc-class-list">
     {{#each classes}}
     <li class="dnd-cc-class-row">
-      <div class="dnd-cc-class-row-art" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-class-row-art"><img src="{{this.img}}" alt="" /></div>
       <div class="dnd-cc-class-row-info">
         <span class="dnd-cc-class-row-name">
           {{this.name}}
           {{#if this.missingHint}}<i class="fa-solid fa-circle-info dnd-cc-missing-hint" title="{{this.missingHint}}"></i>{{/if}}
+          {{#if this.abilityMismatchHint}}<i class="fa-solid fa-scale-unbalanced dnd-cc-missing-hint dnd-cc-ability-mismatch-hint" title="{{this.abilityMismatchHint}}"></i>{{/if}}
         </span>
         <div class="dnd-cc-pill-row">
-          {{#if this.isOriginalClass}}<span class="dnd-cc-pill" style="border-color:{{this.color}};color:{{this.color}}">{{localize "DND-CC.Class.OriginalClass"}}</span>{{/if}}
-          {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../color}};color:{{../color}}">{{this}}</span>{{/each}}
+          {{#if this.isOriginalClass}}<span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Class.OriginalClass"}}</span>{{/if}}
+          {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
         </div>
       </div>
       <label class="dnd-cc-class-row-level">
@@ -54,6 +55,15 @@
       </button>
       {{/each}}
     </div>
+    <span class="dnd-cc-compare-tray">
+      {{#unless compareMode}}
+      <button type="button" class="dnd-cc-gm-progress-open" data-compare-toggle>{{localize "DND-CC.ClassExtras.Compare"}}</button>
+      {{else}}
+      {{#if compareCount}}<span class="dnd-cc-compare-count">{{localize "DND-CC.ClassExtras.CompareCount" count=compareCount}}</span>{{/if}}
+      <button type="button" class="dnd-cc-gm-progress-open" data-compare-now {{#unless canCompare}}disabled{{/unless}}>{{localize "DND-CC.ClassExtras.CompareNow"}}</button>
+      <button type="button" class="dnd-cc-gm-progress-open" data-compare-clear>{{localize "DND-CC.ClassExtras.CompareClear"}}</button>
+      {{/unless}}
+    </span>
   </div>
   {{#unless addableClasses.length}}
   <p class="dnd-cc-empty-state">{{localize "DND-CC.Class.NoneAvailable"}}</p>
@@ -77,8 +87,14 @@
             <span class="dnd-cc-card-name">{{this.name}}</span>
             {{#if this.pills.length}}
             <div class="dnd-cc-pill-row">
-              {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../color}};color:{{../color}}">{{this}}</span>{{/each}}
+              {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
             </div>
+            {{/if}}
+            {{#if this.compareMode}}
+            <label class="dnd-cc-card-compare-toggle">
+              <input type="checkbox" data-compare-class="{{this.uuid}}" {{#if this.compareSelected}}checked{{/if}} />
+              {{localize "DND-CC.ClassExtras.Compare"}}
+            </label>
             {{/if}}
             <div class="dnd-cc-card-actions">
               <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">

@@ -50,55 +50,53 @@
     {{/if}}
 
     {{#if showAbilityTable}}
-    <table class="dnd-cc-ability-table">
-      <thead>
-        <tr>
-          <th>{{localize "DND-CC.Abilities.Ability"}}</th>
-          <th>{{localize "DND-CC.Abilities.Base"}}</th>
-          <th>{{localize "DND-CC.Abilities.Bonus"}}</th>
-          <th>{{localize "DND-CC.Abilities.Total"}}</th>
-          <th>{{localize "DND-CC.Abilities.Modifier"}}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each abilities}}
-        <tr data-ability="{{this.key}}">
-          <td>{{this.label}}</td>
-          <td class="dnd-cc-ability-base-cell">
-            {{#if (eq ../abilityMethod "pointBuy")}}
-            <div class="dnd-cc-point-buy-control">
-              <button type="button" data-ability-adjust="{{this.key}}:-1">-</button>
-              <span class="dnd-cc-point-buy-value">{{this.base}}</span>
-              <button type="button" data-ability-adjust="{{this.key}}:1">+</button>
-            </div>
-            {{else if (eq ../abilityMethod "manual")}}
-            <input type="number" class="dnd-cc-ability-manual-input" data-ability-manual="{{this.key}}" value="{{this.base}}" />
-            {{else if this.needsRoll}}
-            <button type="button" class="dnd-cc-ability-roll-button" data-ability-roll="{{this.key}}">
-              {{localize "DND-CC.Abilities.RollButton"}}
+    <ul class="dnd-cc-ability-grid">
+      {{#each abilities}}
+      <li class="dnd-cc-ability-card" data-ability="{{this.key}}">
+        <div class="dnd-cc-ability-card-header">
+          <span class="dnd-cc-ability-card-abbr">{{this.key}}</span>
+          <span class="dnd-cc-ability-card-label">{{this.label}}</span>
+        </div>
+        <div class="dnd-cc-ability-card-score">
+          <span class="dnd-cc-ability-card-total">{{this.totalText}}</span>
+          <span class="dnd-cc-ability-card-mod">{{this.modText}}</span>
+        </div>
+
+        <div class="dnd-cc-ability-card-control">
+          {{#if (eq ../abilityMethod "pointBuy")}}
+          <div class="dnd-cc-point-buy-control">
+            <button type="button" data-ability-adjust="{{this.key}}:-1">-</button>
+            <span class="dnd-cc-point-buy-value">{{this.base}}</span>
+            <button type="button" data-ability-adjust="{{this.key}}:1">+</button>
+          </div>
+          {{else if (eq ../abilityMethod "manual")}}
+          <input type="number" class="dnd-cc-ability-manual-input" data-ability-manual="{{this.key}}" value="{{this.base}}" />
+          {{else if this.needsRoll}}
+          <button type="button" class="dnd-cc-ability-roll-button" data-ability-roll="{{this.key}}">
+            {{localize "DND-CC.Abilities.RollButton"}}
+          </button>
+          {{else}}
+          <div class="dnd-cc-ability-pool-control">
+            <select data-ability-pool="{{this.key}}">
+              {{#each this.poolOptions}}
+              <option value="{{this.index}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+            {{#if (eq ../abilityMethod "roll")}}
+            <button type="button" class="dnd-cc-ability-reroll-button" data-ability-roll="{{this.key}}" title="{{localize 'DND-CC.Abilities.RerollButton'}}">
+              <i class="fa-solid fa-arrow-rotate-right"></i>
             </button>
-            {{else}}
-            <div class="dnd-cc-ability-pool-control">
-              <select data-ability-pool="{{this.key}}">
-                {{#each this.poolOptions}}
-                <option value="{{this.index}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                {{/each}}
-              </select>
-              {{#if (eq ../abilityMethod "roll")}}
-              <button type="button" class="dnd-cc-ability-reroll-button" data-ability-roll="{{this.key}}" title="{{localize 'DND-CC.Abilities.RerollButton'}}">
-                <i class="fa-solid fa-arrow-rotate-right"></i>
-              </button>
-              {{/if}}
-            </div>
             {{/if}}
-          </td>
-          <td>{{this.bonusText}}</td>
-          <td>{{this.totalText}}</td>
-          <td>{{this.modText}}</td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+          </div>
+          {{/if}}
+        </div>
+
+        <p class="dnd-cc-ability-card-breakdown">
+          {{localize "DND-CC.Abilities.Base"}} {{this.base}} {{localize "DND-CC.Abilities.Bonus"}} {{this.bonusText}}
+        </p>
+      </li>
+      {{/each}}
+    </ul>
     {{/if}}
 
     {{#unless isAbilityStepComplete}}

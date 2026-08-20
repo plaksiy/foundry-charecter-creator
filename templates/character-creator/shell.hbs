@@ -1,30 +1,36 @@
 <div class="dnd-cc-wizard">
-  <header class="dnd-cc-identity-bar">
-    <button type="button" class="dnd-cc-identity-portrait" data-identity-portrait title="{{localize 'DND-CC.Identity.ChangePortrait'}}">
-      <img src="{{characterImg}}" alt="" />
-    </button>
-    <div class="dnd-cc-identity-fields">
-      <label class="dnd-cc-identity-label">{{localize "DND-CC.Identity.Name"}}</label>
-      <input type="text" class="dnd-cc-identity-name" data-identity-name value="{{characterName}}" placeholder="{{localize 'DND-CC.Identity.NamePlaceholder'}}" />
+  <nav class="dnd-cc-steps" aria-label="{{localize 'DND-CC.Accessibility.StepNavLabel'}}">
+    <div class="dnd-cc-rail-identity">
+      <button type="button" class="dnd-cc-identity-portrait" data-identity-portrait title="{{localize 'DND-CC.Identity.ChangePortrait'}}" aria-label="{{localize 'DND-CC.Identity.ChangePortrait'}}">
+        <img src="{{characterImg}}" alt="" aria-hidden="true" />
+      </button>
+      <div class="dnd-cc-identity-fields">
+        <label class="dnd-cc-identity-label" for="dnd-cc-identity-name-input">{{localize "DND-CC.Identity.Name"}}</label>
+        <input type="text" id="dnd-cc-identity-name-input" class="dnd-cc-identity-name" data-identity-name value="{{characterName}}" placeholder="{{localize 'DND-CC.Identity.NamePlaceholder'}}" />
+      </div>
     </div>
-    <button type="button" class="dnd-cc-sources-button" data-open-source-filter title="{{localize 'DND-CC.Sources.ButtonTitle'}}">
-      <i class="fa-solid fa-book-atlas"></i> {{localize "DND-CC.Sources.ButtonLabel"}}
-    </button>
-    <button type="button" class="dnd-cc-sources-button dnd-cc-discard-button" data-discard-draft title="{{localize 'DND-CC.Discard.ButtonTitle'}}">
-      <i class="fa-solid fa-trash"></i> {{localize "DND-CC.Discard.ButtonLabel"}}
-    </button>
-  </header>
-
-  <nav class="dnd-cc-steps">
     <ol>
       {{#each steps}}
       <li
         class="dnd-cc-step {{#if this.active}}active{{/if}} {{#if this.done}}{{#if this.complete}}done{{else}}warn{{/if}}{{/if}}"
         data-step="{{this.id}}"
+        tabindex="0"
+        role="button"
+        aria-current="{{#if this.active}}step{{else}}false{{/if}}"
+        aria-label="{{this.label}}{{#if this.missingHint}} - {{this.missingHint}}{{/if}}"
       >
-        <span class="dnd-cc-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{{this.icon}}}</svg></span>
+        <span class="dnd-cc-step-icon" aria-hidden="true">
+          <svg viewBox="{{this.iconViewBox}}">{{{this.icon}}}</svg>
+          {{#if this.done}}
+          {{#if this.complete}}
+          <i class="fa-solid fa-circle-check dnd-cc-step-status-badge dnd-cc-step-status-done"></i>
+          {{else}}
+          <i class="fa-solid fa-triangle-exclamation dnd-cc-step-status-badge dnd-cc-step-status-warn"></i>
+          {{/if}}
+          {{/if}}
+        </span>
         <span class="dnd-cc-step-label">{{this.label}}</span>
-        {{#if this.missingHint}}<i class="fa-solid fa-circle-info dnd-cc-missing-hint" title="{{this.missingHint}}"></i>{{/if}}
+        {{#if this.missingHint}}<i class="fa-solid fa-circle-info dnd-cc-missing-hint" aria-hidden="true" title="{{this.missingHint}}"></i>{{/if}}
       </li>
       {{/each}}
     </ol>
