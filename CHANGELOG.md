@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.0
+
+### New
+
+- **Identity step**: a new step, positioned right before About, for Name, Portrait, Pronoun, Alignment, and Backstory - with a "Randomize Name" button (a pool of invented, generic fantasy names) and a few short roleplay tips. The rest of the physical-characteristics fields stayed on About.
+- **Configurable step order**: a game master settings screen lets you reorder the wizard's steps (drag-and-drop, or up/down buttons for keyboard use), resettable to the default order. Applies to every player and the game master alike.
+- **Accent color picker**: the default accent is now a neutral tone instead of red, so it no longer sits in direct color competition with the step rail's green "done" state. A small picker (alongside the existing text-size/Simplify controls) offers four more accent options, including the previous red. "Simplify" now also strips card gradients, not just artwork.
+- **Randomize buttons** on Class, Species, Background, and Abilities let you quickly pick a random option to start from - you still resolve every resulting choice normally, nothing is auto-completed for you.
+- **One-click diagnostic report**: a "Copy Diagnostic Report" entry in the wizard window's own "..." menu copies module/Foundry/dnd5e versions, your current step, and basic environment info to the clipboard, useful when reporting a bug.
+- Ability score bonuses granted by a class, species, or background (for example "increase one ability by 2 and a different one by 1") are now previewed directly on that item's card and in its "Learn More" panel, before you pick it.
+- Background cards now show which abilities their Ability Score Improvement can raise and the name of the feat they grant, at a glance.
+- The Abilities step now opens with Standard Array already selected instead of a blank method picker.
+
+### Improved
+
+- Class cards are now fully square; Species and Background cards use a taller 3:4 ratio instead of a wide rectangle.
+- The README now states plainly that the module runs entirely locally, with no telemetry.
+- Back/Next button labels and tooltips are clearer about what each one does.
+
+### Fixed
+
+- A Warlock-only character could not pick any spells (cantrips and feats worked fine) - the spell-level filter only checked normal spell slots and missed Pact Magic's separate slot table. Warlock spell selection now works correctly.
+- Typing in one field on the About or Identity step, then clicking directly into a different field, could scramble the second field's cursor/selection.
+- The Backstory editor could visually hide the cursor and typed text behind its own toolbar under certain layouts; fixed so the editor's toolbar and text area stack correctly.
+- The "Build Character" button (and a few other solid-accent-filled controls) could render illegible text against the new lighter default accent color.
+
 ## 0.6.7
 
 ### New

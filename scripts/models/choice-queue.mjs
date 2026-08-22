@@ -157,10 +157,10 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // (`AdvancementManager.flowsForLevel`), so a "secondary" grant on an original-class
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
-    // stops a genuinely inapplicable grant from being reported as a missed choice - an
-    // original-class Bard's "secondary" 1-skill/1-tool grants never appear as steps
-    // during a normal add, yet still carry an empty `value` forever since nothing ever
-    // resolves them.
+    // stops a genuinely inapplicable grant from being reported as a missed choice - for
+    // example, an original-class Bard's "secondary" 1-skill/
+    // 1-tool grants never appear as steps during a normal add, yet still carry an empty
+    // `value` forever since nothing ever resolves them.
     if (!advancement.appliesToClass) continue;
 
     if (advancement.type === "Trait") {
@@ -179,9 +179,9 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
       // the advancement can apply at more than one level: a flat {itemId: uuid} map
       // when there's only ever one choice tier (e.g. a Fighting Style), or a
       // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
-      // Counting values that are themselves objects as nested per-level entries, and
-      // anything else as one flat entry, covers both without needing to know in
-      // advance which shape a given advancement uses.
+      // Counting values that are themselves objects as nested
+      // per-level entries, and anything else as one flat entry, covers both without
+      // needing to know in advance which shape a given advancement uses.
       let added = 0;
       for (const entry of entryValues(advancement.value?.added)) {
         added += entry && typeof entry === "object" ? countEntries(entry) : 1;
@@ -245,12 +245,12 @@ export function isStepComplete(actor, stepId) {
 
 /**
  * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds - these
- * show up as a real `Set` for some Trait configurations (e.g. a Weapon Mastery pick),
- * a plain object for others, and occasionally a `Map`. A naive `.length` check silently
- * reads `undefined` (=> treated as empty) on anything but a real array, which would
- * misreport a genuinely-completed Set-backed choice as unresolved. Handles all three
- * shapes so the count is right regardless of which one a given advancement happens to
- * use.
+ * show up as a real `Set` for some Trait configurations (e.g. a
+ * Weapon Mastery pick), a plain object for others, and occasionally a `Map`. A naive
+ * `.length` check silently reads `undefined` (=> treated as empty) on anything but a
+ * real array, which is exactly what caused a genuinely-completed choice (a real Set
+ * with entries) to misreport as unresolved. Handles all three shapes so the count is right regardless of which one a
+ * given advancement happens to use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
  */

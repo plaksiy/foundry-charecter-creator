@@ -15,6 +15,30 @@ export const ORIGIN_FEAT_SUBTYPE = "origin";
 export const EQUIPMENT_ITEM_TYPES = ["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"];
 
 /**
+ * 100 invented, generic fantasy character names for the Identity step's "Randomize"
+ * button - a mix of short single names and two-part names, so both short one-word
+ * options and longer ones are available. None of these are
+ * drawn from any book, setting, or media property - safe, structural placeholder data
+ * the same way LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
+ */
+export const NAME_EXAMPLES = [
+  "Finn", "Vex", "Orin", "Sable", "Bram", "Lyra", "Dax", "Wren", "Kael", "Rue",
+  "Torin", "Isolde", "Garrick", "Nyx", "Fenn", "Sorin", "Thistle", "Roswyn", "Cade", "Marlow",
+  "Kaelith Duskbane", "Torvin Ironbeard", "Sable Nightwhisper", "Bram Thistlewood", "Isolde Ravenscroft",
+  "Garrick Stormwake", "Orin Ashfall", "Wren Hollowmere", "Dax Emberlyn", "Rue Thornfield",
+  "Sorin Blackwood", "Roswyn Faircastle", "Cade Wintermoor", "Marlow Duskhollow", "Fenn Greycairn",
+  "Lyra Moonwhisper", "Kael Stonebrook", "Nyx Fellwood", "Thistle Brambleworth", "Vex Ironhollow",
+  "Aldric", "Briar", "Corwin", "Delphine", "Edric", "Faelan", "Gideon", "Halcyon", "Ivo", "Junia",
+  "Kestrel", "Lior", "Maren", "Niall", "Ondine", "Percival", "Quillon", "Rhiannon", "Soren", "Tessaly",
+  "Ulric", "Vesper", "Wystan", "Xanthe", "Yara", "Zephyrine", "Aeliana", "Bastian", "Calla", "Dorian",
+  "Elowen Hartley", "Finnian Oakmoor", "Greta Stonewell", "Hollis Fenwick", "Ines Duskraven",
+  "Jorah Wildmere", "Kira Ashgrove", "Lucan Thornbury", "Mira Blackfern", "Nash Ravenwood",
+  "Odessa Vale", "Piers Hollowgate", "Quinby Fairwind", "Rosaline Grimhold", "Silas Northgate",
+  "Talon", "Una", "Varek", "Wisp", "Xylas", "Yorick", "Zara", "Brynn", "Cassian", "Della",
+  "Emberly", "Fable", "Grimm", "Hale", "Iris", "Jasper", "Kip", "Larke", "Moss", "Nell"
+];
+
+/**
  * Lifestyle Expenses tiers (identical table in both the 2014 and 2024 rules). dnd5e's
  * own actor data model has no field for this, so it's tracked as a draft flag instead
  * of an actor property. Cost is in GP-equivalent per day; costLabel is the display

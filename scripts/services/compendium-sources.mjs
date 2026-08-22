@@ -51,7 +51,7 @@ export async function setPlayerSourceVisibility(packId, visible) {
 }
 
 /**
- * Every Item pack the GM has actually enabled, with the current user's own visibility
+ * Every Item pack the GM has actually enabled, with the current player's own visibility
  * preference - the option list for the in-wizard "Sources" filter panel. A pack the GM
  * disabled entirely never appears here, so a player can only narrow, never expand,
  * what's actually available.
@@ -216,9 +216,10 @@ export const PACK_CATEGORIES = ["core", "expanded", "homebrew", "legacy"];
 
 /**
  * Which of the 4 GM-facing groups a pack belongs to, purely from Foundry's own package
- * metadata plus one dnd5e naming convention: 2024 system packs are suffixed "24"
- * (`classes24`, `origins24`, ...), 2014 ones aren't. `packageType` already tells
- * world/module apart natively, and the "24" suffix is a stable convention this
+ * metadata plus the one already-documented dnd5e naming convention (see "Compendium
+ * structure" in CLAUDE.md): 2024 system packs are suffixed "24" (`classes24`,
+ * `origins24`, ...), 2014 ones aren't. No new guessing involved - `packageType` already
+ * tells world/module apart natively, and the "24" suffix is a stable convention this
  * codebase already relies on elsewhere (getStepItems' ruleset resolution).
  * @param {CompendiumCollection} pack
  * @returns {"core"|"expanded"|"homebrew"|"legacy"}

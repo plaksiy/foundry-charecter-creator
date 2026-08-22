@@ -1,0 +1,50 @@
+<div class="dnd-cc-step-body dnd-cc-step-identity">
+  <h2>{{localize "DND-CC.Steps.Identity"}}</h2>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.Identity.Intro"}}</p>
+
+  <div class="dnd-cc-identity-hero">
+    <button type="button" class="dnd-cc-identity-hero-portrait" data-identity-portrait title="{{localize 'DND-CC.Identity.ChangePortrait'}}" aria-label="{{localize 'DND-CC.Identity.ChangePortrait'}}">
+      <img src="{{characterImg}}" alt="" aria-hidden="true" />
+      <span class="dnd-cc-identity-hero-portrait-hint">{{localize "DND-CC.Identity.ChangePortrait"}}</span>
+    </button>
+    <div class="dnd-cc-identity-hero-fields">
+      <label class="dnd-cc-about-field">
+        <span>{{localize "DND-CC.Identity.Name"}}</span>
+        <div class="dnd-cc-identity-name-row">
+          <input type="text" class="dnd-cc-identity-hero-name" data-identity-name value="{{characterName}}" placeholder="{{localize 'DND-CC.Identity.NamePlaceholder'}}" />
+          <button type="button" class="dnd-cc-identity-randomize" data-randomize-name data-tooltip="{{localize 'DND-CC.Identity.RandomizeName'}}" aria-label="{{localize 'DND-CC.Identity.RandomizeName'}}">
+            <i class="fa-solid fa-dice" aria-hidden="true"></i>
+          </button>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="dnd-cc-identity-tips">
+    <i class="fa-solid fa-feather-pointed" aria-hidden="true"></i>
+    <ul>
+      {{#each tips}}
+      <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+
+  <div class="dnd-cc-about-characteristics">
+    <label class="dnd-cc-about-field">
+      <span>{{{alignmentTermLink}}}</span>
+      <select data-about-alignment>
+        <option value="">-</option>
+        {{#each alignmentOptions}}
+        <option value="{{this.label}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label class="dnd-cc-about-field">
+      <span>{{pronoun.label}}</span>
+      <input type="text" data-about-field="{{pronoun.key}}" value="{{pronoun.value}}" />
+    </label>
+  </div>
+
+  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Backstory"}}</div>
+  <prose-mirror data-about-biography name="system.details.biography.value" value="{{biography}}" data-document-uuid="{{actorUuid}}"></prose-mirror>
+</div>

@@ -1,6 +1,13 @@
 <div class="dnd-cc-step-body dnd-cc-step-background">
-  <h2>{{localize "DND-CC.Steps.Background"}}</h2>
-  <p class="dnd-cc-step-intro">{{localize "DND-CC.Background.Intro"}}</p>
+  <div class="dnd-cc-step-header-row">
+    <div>
+      <h2>{{localize "DND-CC.Steps.Background"}}</h2>
+      <p class="dnd-cc-step-intro">{{localize "DND-CC.Background.Intro"}}</p>
+    </div>
+    <button type="button" class="dnd-cc-randomize-button" data-randomize-background>
+      <i class="fa-solid fa-dice" aria-hidden="true"></i> {{localize "DND-CC.RandomizeButton"}}
+    </button>
+  </div>
 
   {{#if selectedBackgroundName}}
   <div class="dnd-cc-current-pick">
@@ -33,6 +40,11 @@
           <div class="dnd-cc-card-icon"><img src="{{this.img}}" alt="" /></div>
           <div class="dnd-cc-card-content">
             <span class="dnd-cc-card-name">{{this.name}}</span>
+            {{#if this.pills.length}}
+            <div class="dnd-cc-pill-row">
+              {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
+            </div>
+            {{/if}}
             {{#if this.selected}}
             <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
             {{else}}

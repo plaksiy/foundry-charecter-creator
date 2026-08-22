@@ -2,6 +2,7 @@ import { CharacterCreatorApp } from "./apps/character-creator-app.mjs";
 import { CompendiumSourcesConfig } from "./apps/compendium-sources-config.mjs";
 import { HouseRulesConfig } from "./apps/house-rules-config.mjs";
 import { GmProgressDashboard } from "./apps/gm-progress-dashboard.mjs";
+import { StepOrderConfig } from "./apps/step-order-config.mjs";
 import { CharacterDraft } from "./models/character-draft.mjs";
 import { MODULE_ID } from "./constants.mjs";
 
@@ -93,9 +94,38 @@ Hooks.once("init", () => {
     restricted: true
   });
 
+  // One shared order for every player and the GM alike - a per-table preference, not a
+  // per-player one, so it's world-scoped like compendiumSources/houseRules above.
+  game.settings.register(MODULE_ID, "stepOrder", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: []
+  });
+
+  game.settings.registerMenu(MODULE_ID, "stepOrderMenu", {
+    name: "DND-CC.StepOrder.MenuName",
+    label: "DND-CC.StepOrder.MenuLabel",
+    hint: "DND-CC.StepOrder.MenuHint",
+    icon: "fa-solid fa-arrow-down-up-across-line",
+    type: StepOrderConfig,
+    restricted: true
+  });
+
+  // Personal viewing preference, same client-scoped/config:false pattern as
+  // fontScale/reduceImagery above - adjusted live from the wizard's own toolbar, not a
+  // settings-menu entry.
+  game.settings.register(MODULE_ID, "accentColor", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "neutral"
+  });
+
   const loadTemplates = foundry.applications.handlebars.loadTemplates;
   loadTemplates([
     `modules/${MODULE_ID}/templates/character-creator/step-ruleset.hbs`,
+    `modules/${MODULE_ID}/templates/character-creator/step-identity.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-class.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-species.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-background.hbs`,
@@ -111,7 +141,8 @@ Hooks.once("init", () => {
     `modules/${MODULE_ID}/templates/character-creator/step-placeholder.hbs`,
     `modules/${MODULE_ID}/templates/compendium-sources/shell.hbs`,
     `modules/${MODULE_ID}/templates/house-rules/shell.hbs`,
-    `modules/${MODULE_ID}/templates/gm-progress/shell.hbs`
+    `modules/${MODULE_ID}/templates/gm-progress/shell.hbs`,
+    `modules/${MODULE_ID}/templates/step-order/shell.hbs`
   ]);
 });
 

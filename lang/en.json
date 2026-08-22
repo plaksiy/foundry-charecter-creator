@@ -2,16 +2,25 @@
   "DND-CC": {
     "WindowTitle": "Character Creator",
     "OpenButton": "Create Character",
-    "Back": "Back",
+    "Back": "Previous Step",
+    "BackTooltip": "Go back to the previous step - nothing you've entered is lost",
     "Next": "Next",
+    "NextTooltip": "Continue to the next step",
     "Finish": "Finish",
+    "FinishTooltip": "Continue to the final Review step",
     "Select": "Select",
     "Selected": "Selected",
     "StepCounter": "Step {current} of {total}",
     "Close": "Close",
+    "RandomizeButton": "Randomize",
     "LearnMore": "Learn More",
     "AddCustom": "Add Custom",
     "Homebrew": "Homebrew",
+    "Diagnostics": {
+      "ButtonLabel": "Copy Diagnostic Report",
+      "Copied": "Diagnostic report copied to the clipboard.",
+      "CopyFailed": "Could not copy the diagnostic report - your browser may be blocking clipboard access."
+    },
     "Source": {
       "Other": "Other"
     },
@@ -24,7 +33,15 @@
       "ChangePortrait": "Change portrait",
       "PortraitUrlTitle": "Set Portrait Image",
       "PortraitUrlHint": "Your GM hasn't given you permission to browse files, so paste an image URL or a path instead.",
-      "PortraitUrlSave": "Save"
+      "PortraitUrlSave": "Save",
+      "Intro": "Set your character's name, portrait, alignment, and backstory here. You can change any of this later - nothing here is permanent.",
+      "NameExamples": "Need inspiration? Kaelith Duskbane · Torvin Ironbeard · Sable Nightwhisper · Bram Thistlewood",
+      "RandomizeName": "Randomize name",
+      "Alignment": "Alignment",
+      "Pronoun": "Pronoun",
+      "TipName": "A name doesn't have to be final - you can rename your character at any time, even after finishing the wizard.",
+      "TipAlignment": "Alignment is a starting point, not a cage. What your character actually does at the table is what defines them.",
+      "TipBackstory": "Nothing here is set in stone - come back and expand your backstory any time, even after the character is finished."
     },
     "Sources": {
       "ButtonLabel": "Sources",
@@ -50,7 +67,14 @@
       "FontSizeLabel": "Text size",
       "FontSizeOption": "Text size: {size}",
       "ReduceImageryLabel": "Simplify",
-      "ReduceImageryTitle": "Hide card artwork and show plain colored cards instead"
+      "ReduceImageryTitle": "Hide card artwork, gradients, and the edition badge, and show plain colored cards instead",
+      "AccentColorLabel": "Accent color",
+      "AccentColorOption": "Accent color: {color} (click to change)",
+      "AccentNeutral": "Neutral",
+      "AccentRed": "Red",
+      "AccentBlue": "Blue",
+      "AccentViolet": "Violet",
+      "AccentAmber": "Amber"
     },
     "GmAssist": {
       "WindowTitle": "Assisting: {name}"
@@ -82,6 +106,7 @@
     },
     "Detail": {
       "Features": "Features",
+      "AbilityScoreImprovement": "Ability Score Improvement",
       "OpenInCompendium": "Open in Compendium"
     },
     "CustomForm": {
@@ -112,6 +137,7 @@
     },
     "Steps": {
       "Ruleset": "Getting Started",
+      "Identity": "Identity",
       "Class": "Class",
       "Species": "Species",
       "Background": "Background",
@@ -160,11 +186,15 @@
       "Skill": "Skill",
       "Ability": "Ability",
       "Proficiency": "Proficiency",
+      "Expertise": "Expertise",
       "Modifier": "Modifier",
       "Passive": "Passive"
     },
     "Spells": {
       "Intro": "Pick your class's cantrips and known spells here. Spells granted by a feat or background (like Magic Initiate) are already resolved and just shown for reference.",
+      "TermsNote": "Not sure what {concentration} or a {ritual} spell means? Hover the term for a quick rules reminder.",
+      "ConcentrationTerm": "Concentration",
+      "RitualTerm": "Ritual",
       "CantripsHeader": "{class} Cantrips {current}/{max}",
       "SpellsHeader": "{class} Spells {current}/{max}",
       "CantripsFor": "{class} Cantrips",
@@ -205,7 +235,8 @@
       "Intro": "Choose a background to see its proficiencies and choices. You can change your mind and pick a different background before moving on.",
       "Selected": "Selected: {name}",
       "Change": "Change Background",
-      "NoneAvailable": "No backgrounds are available for the selected ruleset and enabled compendiums."
+      "NoneAvailable": "No backgrounds are available for the selected ruleset and enabled compendiums.",
+      "AsiPill": "{abilities}"
     },
     "Abilities": {
       "Intro": "Choose how to generate your ability scores. Any Ability Score Improvement already granted by your background, species, or class shows up as a separate bonus on top, so it never gets overwritten.",
@@ -381,6 +412,18 @@
       "BannedSpecies": "Banned Species",
       "BannedSpeciesHint": "Checked species won't be offered on the Species step, regardless of ruleset.",
       "Save": "Save"
+    },
+    "StepOrder": {
+      "MenuName": "Step Order",
+      "MenuLabel": "Configure Step Order",
+      "MenuHint": "Change the order the wizard's steps appear in, for every player and yourself alike.",
+      "Title": "Step Order",
+      "Intro": "Drag a step to reorder it, or use the arrow buttons. This order applies to every player and the game master alike.",
+      "MoveUp": "Move up",
+      "MoveDown": "Move down",
+      "Reset": "Reset to Default",
+      "Save": "Save",
+      "Saved": "Step order saved."
     },
     "ClassExtras": {
       "ComplexityFilter": "Complexity",

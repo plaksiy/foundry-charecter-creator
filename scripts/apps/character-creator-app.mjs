@@ -10,6 +10,7 @@ import {
   LIFESTYLE_TIERS,
   MAX_CLASS_LEVEL,
   MODULE_ID,
+  NAME_EXAMPLES,
   NEUTRAL_CARD_COLOR,
   ORIGIN_FEAT_SUBTYPE,
   PARTY_ROLES,
@@ -39,6 +40,7 @@ import {
   isSpeciesBanned
 } from "../services/house-rules.mjs";
 import { ruleLinkHtml } from "../services/rules-glossary.mjs";
+import { getOrderedStepDefinitions } from "../services/step-order.mjs";
 import { branchLabel, getEquipmentBranches, resolveBranch } from "../services/starting-equipment.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -219,6 +221,16 @@ export const STEP_DEFINITIONS = [
     icon: '<g fill="currentColor"><path d="M64.5,51h-27A1.5,1.5,0,0,0,36,52.5v17A1.5,1.5,0,0,0,37.5,71h27A1.5,1.5,0,0,0,66,69.5v-17A1.5,1.5,0,0,0,64.5,51ZM63,68H39V54H63Z"/><path d="M78.95,51H75V33h2.5A1.5,1.5,0,0,0,79,31.5v-8A11.5,11.5,0,0,0,67.52,12H59A8.49,8.49,0,0,0,42,12H34.48A11.5,11.5,0,0,0,23,23.48v8A1.5,1.5,0,0,0,24.5,33H27V51H22.05A7.06,7.06,0,0,0,15,58.06V85.5A1.5,1.5,0,0,0,16.5,87h68A1.5,1.5,0,0,0,86,85.5V58.06A7.06,7.06,0,0,0,78.95,51ZM50.5,7A5.51,5.51,0,0,1,56,12H45A5.5,5.5,0,0,1,50.5,7ZM26,23.48A8.49,8.49,0,0,1,34.48,15h33A8.49,8.49,0,0,1,76,23.48V30H66V25.5a1.5,1.5,0,0,0-3,0V30H38V25.5a1.5,1.5,0,0,0-3,0V30H26ZM18,58.06A4.06,4.06,0,0,1,22.05,54H27V84H18ZM30,33h5v4.5a1.5,1.5,0,0,0,3,0V33H63v4.5a1.5,1.5,0,0,0,3,0V33h6V84H30ZM83,84H75V54h3.95A4.06,4.06,0,0,1,83,58.06Z"/></g>'
   },
   {
+    id: "identity",
+    label: "DND-CC.Steps.Identity",
+    iconViewBox: "0 0 48 48",
+    // An ID-badge-with-a-clip outline around a filled person silhouette - matches the
+    // rest of the rail's mix of stroke-outline container shapes with solid-fill interior
+    // elements (viewBox "0 0 48 48" is also the most common one already in use here,
+    // shared with Class). Placeholder until a dedicated icon is supplied.
+    icon: '<g fill="currentColor"><rect x="6" y="10" width="36" height="30" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="18" y="4" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="21" r="5.5"/><path d="M14 34C14 28.4772 18.4772 24 24 24C29.5228 24 34 28.4772 34 34V35H14V34Z"/></g>'
+  },
+  {
     id: "about",
     label: "DND-CC.Steps.About",
     iconViewBox: "0 0 128 128",
@@ -250,6 +262,21 @@ const FONT_SCALE_OPTIONS = [
 ];
 
 /**
+ * Accent color options for the toolbar's color picker - "neutral" (a bone/silver tone,
+ * not red) is the default per the colorblind-accessibility fix; "red" keeps today's
+ * color available for anyone who wants it back. Each key matches a `.dnd-cc-accent-*`
+ * CSS class defined in character-creator.css (neutral needs no class - it's the base
+ * `.application.dnd-cc` definition itself).
+ */
+const ACCENT_COLOR_OPTIONS = [
+  { value: "neutral", labelKey: "DND-CC.Accessibility.AccentNeutral", swatch: "#e6e1d6" },
+  { value: "red", labelKey: "DND-CC.Accessibility.AccentRed", swatch: "#df0000" },
+  { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#4f7fd9" },
+  { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
+  { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" }
+];
+
+/**
  * The window's default size - fixed regardless of the text-size setting (see
  * _onRender: `zoom` is scoped to the wizard body only, and the window-content area
  * scrolls if a larger text size needs more room than this, rather than the window
@@ -265,7 +292,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     window: {
       title: "DND-CC.WindowTitle",
       icon: "fa-solid fa-dice-d20",
-      resizable: true
+      resizable: true,
+      controls: [
+        {
+          icon: "fa-solid fa-stethoscope",
+          label: "DND-CC.Diagnostics.ButtonLabel",
+          action: "copyDiagnostics"
+        }
+      ]
+    },
+    actions: {
+      copyDiagnostics: CharacterCreatorApp.#onCopyDiagnostics
     },
     position: { ...BASE_POSITION }
   };
@@ -298,7 +335,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
      * character," which is exactly and only true for this one case.
      */
     this.isAssisting = Boolean(this._openedActor) && !this.levelUp;
-    this.stepIndex = this.levelUp ? STEP_DEFINITIONS.findIndex((step) => step.id === "class") : 0;
+    this.stepIndex = this.levelUp ? this.orderedSteps.findIndex((step) => step.id === "class") : 0;
     /**
      * Which step ids have actually been opened at least once, independent of free
      * navigation - the rail only shows a step as done/warn (colored) once the player
@@ -307,7 +344,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
      * the player ever looks at it, but that's not worth flagging as a warning yet).
      * @type {Set<string>}
      */
-    this.visitedSteps = new Set([STEP_DEFINITIONS[this.stepIndex].id]);
+    this.visitedSteps = new Set([this.orderedSteps[this.stepIndex].id]);
     /** @type {CharacterDraft|null} set lazily in _prepareContext, since Actor.create() is async */
     this.draft = null;
     /** True once _prepareContext has restored stepIndex from the draft's persisted currentStepId, so it only happens on the very first render, not every re-render. */
@@ -335,6 +372,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     this.compareMode = false;
   }
 
+  /**
+   * STEP_DEFINITIONS reordered per the GM's `stepOrder` world setting (see
+   * services/step-order.mjs) - every place that iterates steps in order or indexes into
+   * them by position reads this instead of STEP_DEFINITIONS directly, so a custom order
+   * actually takes effect. A plain getter (not cached) since it's cheap to recompute and
+   * always reflects the current setting, including a mid-session GM change.
+   */
+  get orderedSteps() {
+    return getOrderedStepDefinitions(STEP_DEFINITIONS);
+  }
+
   /** Level Up / assisting modes already know the actor's name synchronously; no need to wait on this.draft. */
   get title() {
     if (this.levelUp) {
@@ -357,15 +405,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (!this._stepIndexRestored) {
       this._stepIndexRestored = true;
       if (!this.levelUp) {
-        const savedIndex = STEP_DEFINITIONS.findIndex((step) => step.id === this.draft.currentStepId);
+        const savedIndex = this.orderedSteps.findIndex((step) => step.id === this.draft.currentStepId);
         if (savedIndex >= 0) {
           this.stepIndex = savedIndex;
-          this.visitedSteps.add(STEP_DEFINITIONS[savedIndex].id);
+          this.visitedSteps.add(this.orderedSteps[savedIndex].id);
         }
       }
     }
 
-    const currentStep = STEP_DEFINITIONS[this.stepIndex];
+    const currentStep = this.orderedSteps[this.stepIndex];
     // Not awaited deliberately - this is a background bookkeeping write (for the resume
     // flow and the GM Progress Dashboard), nothing in the render that follows actually
     // depends on it completing, so there's no reason to make every single render wait
@@ -396,7 +444,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // whether it's still the "current" step or how it was reached - free jumping means
     // "was this the most recently visited one" doesn't mean anything reliable, but
     // "does Class/Species/Background/Abilities actually have what it needs" always does.
-    const steps = STEP_DEFINITIONS.map((step, index) => {
+    const steps = this.orderedSteps.map((step, index) => {
       const visited = index !== this.stepIndex && this.visitedSteps.has(step.id);
       const complete = this._isStepComplete(step.id);
       return {
@@ -423,12 +471,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       currentStepLabel: game.i18n.localize(currentStep.label),
       stepCounterLabel: game.i18n.format("DND-CC.StepCounter", {
         current: this.stepIndex + 1,
-        total: STEP_DEFINITIONS.length
+        total: this.orderedSteps.length
       }),
       canGoBack: this.stepIndex > 0,
-      canGoNext: this.stepIndex < STEP_DEFINITIONS.length - 1 && this._isStepComplete(currentStep.id),
+      canGoNext: this.stepIndex < this.orderedSteps.length - 1 && this._isStepComplete(currentStep.id),
       nextLabel: game.i18n.localize(
-        this.stepIndex < STEP_DEFINITIONS.length - 1 ? "DND-CC.Next" : "DND-CC.Finish"
+        this.stepIndex < this.orderedSteps.length - 1 ? "DND-CC.Next" : "DND-CC.Finish"
+      ),
+      nextTooltip: game.i18n.localize(
+        this.stepIndex < this.orderedSteps.length - 1 ? "DND-CC.NextTooltip" : "DND-CC.FinishTooltip"
       ),
       ...stepContext
     };
@@ -446,6 +497,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           ruleset: this.draft.ruleset,
           ...(await this._prepareRulesetAdvisorContext())
         };
+      case "identity":
+        return { partialPath: this._partialPath("step-identity"), ...(await this._prepareIdentityContext()) };
       case "class":
         return { partialPath: this._partialPath("step-class"), ...(await this._prepareClassesContext()) };
       case "species":
@@ -471,13 +524,20 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           }))
         };
       case "abilities":
+        // Default to Standard Array the first time this step is opened, so the player
+        // lands on a ready-to-use assignment UI instead of a blank method picker they
+        // have to click through first - they can still switch to any other method
+        // freely, this only avoids an unnecessary first click. Genuinely sets the flag
+        // (same as a real click would), not just a display-only default, so every other
+        // "is a method chosen" check stays consistent.
+        if (!this.draft.abilityMethod) await this.draft.setAbilityMethod("standardArray");
         return { partialPath: this._partialPath("step-abilities"), ...this._prepareAbilitiesContext() };
       case "feats":
         return { partialPath: this._partialPath("step-feats"), ...(await this._prepareFeatsContext()) };
       case "skills":
-        return { partialPath: this._partialPath("step-skills"), ...this._prepareSkillsContext() };
+        return { partialPath: this._partialPath("step-skills"), ...(await this._prepareSkillsContext()) };
       case "spells":
-        return { partialPath: this._partialPath("step-spells"), ...this._prepareSpellsContext() };
+        return { partialPath: this._partialPath("step-spells"), ...(await this._prepareSpellsContext()) };
       case "equipment":
         return { partialPath: this._partialPath("step-equipment"), ...(await this._prepareEquipmentContext()) };
       case "about":
@@ -524,6 +584,28 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         selected: item.name === selected?.name
       }));
 
+    // Backgrounds specifically get two extra pills, per direct user request: which
+    // abilities its Ability Score Improvement can raise, and the name of the feat it
+    // grants (if any) - both read from each item's own real Advancement data via a
+    // full-document fetch (the lightweight index used above has no advancement data at
+    // all), same helpers the "Learn More" detail panel already uses. Scoped to
+    // background only - a full-document fetch per card is cheap for the handful of
+    // backgrounds a table has enabled, not worth doing for every class/species card too.
+    if (dnd5eType === "background") {
+      await Promise.all(
+        list.map(async (card) => {
+          const fullItem = await fromUuid(card.uuid);
+          if (!fullItem) return;
+          const abilities = this._abilityScoreImprovementAbilities(fullItem);
+          if (abilities.length) {
+            card.pills.push(game.i18n.format("DND-CC.Background.AsiPill", { abilities: abilities.join("/") }));
+          }
+          const [featName] = await this._getItemGrantFeatureNames(fullItem, 1);
+          if (featName) card.pills.push(featName);
+        })
+      );
+    }
+
     if (groupLineages) list = this._groupLineageCards(list);
 
     return {
@@ -540,8 +622,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * "Tiefling, Abyssal" / "Tiefling, Chthonic" / "Tiefling, Infernal") into one parent
    * card per base name, matching how a player actually thinks about picking a species
    * ("Elf, then which kind") rather than showing every lineage as an unrelated top-level
-   * card. "Name, Lineage" is the real compendium naming convention dnd5e itself uses for
-   * pre-split species - not every species uses it (Dragonborn,
+   * card. The "Name, Lineage" naming is the real compendium convention dnd5e itself uses
+   * for pre-split species - not every species uses it (Dragonborn,
    * Human, etc. are single un-split items and pass through untouched here). A base name
    * with only one surviving member (e.g. house-rules banned the other two lineages)
    * isn't a real group, so it's put back as a normal standalone card instead.
@@ -866,6 +948,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       .filter((item) => item.type === "class")
       .reduce((sum, item) => sum + item.system.levels, 0);
     const canSwapOriginFeat = areFeatsAllowedAtLevel(totalLevel);
+    const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
+    const originFeatTermLink = await ruleLinkHtml("originFeat", ruleset, game.i18n.localize("DND-CC.Feats.OriginFeat"));
 
     let originFeatOptions = [];
     if (hasOriginFeat && canSwapOriginFeat) {
@@ -905,7 +989,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       };
     });
 
-    return { feats };
+    return { feats, originFeatTermLink };
   }
 
   /**
@@ -916,7 +1000,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * aggregates all of that into one place, so this step has nothing left to do but
    * display it, same as saving throws never get a screen of their own either.
    */
-  _prepareSkillsContext() {
+  async _prepareSkillsContext() {
+    const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
     const skills = Object.entries(CONFIG.DND5E.skills)
       .map(([key, config]) => {
         const skill = this.draft.actor.system.skills[key];
@@ -935,7 +1020,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       })
       .sort((a, b) => a.abilityOrder - b.abilityOrder || a.label.localeCompare(b.label));
 
-    return { skills };
+    const [proficiencyTermLink, expertiseTermLink] = await Promise.all([
+      ruleLinkHtml("proficiencyBonus", ruleset, game.i18n.localize("DND-CC.Skills.Proficiency")),
+      ruleLinkHtml("expertise", ruleset, game.i18n.localize("DND-CC.Skills.Expertise"))
+    ]);
+
+    return { skills, proficiencyTermLink, expertiseTermLink };
   }
 
   /**
@@ -955,11 +1045,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * technically permissive for which spell *levels* a given class's own known-spells
    * list should be limited to.
    */
-  _prepareSpellsContext() {
+  async _prepareSpellsContext() {
     const actor = this.draft.actor;
     const spellcastingClasses = actor.spellcastingClasses ?? {};
     const identifiers = Object.keys(spellcastingClasses);
     if (!identifiers.length) return { hasSpellcasting: false, spellcastingGroups: [] };
+
+    const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
 
     const rollData = actor.getRollData();
     const classSourceKeys = new Set(identifiers.map((identifier) => `class:${identifier}`));
@@ -1010,9 +1102,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       otherGroupsMap.get(key).push(item);
     }
 
+    const [concentrationTermLink, ritualTermLink] = await Promise.all([
+      ruleLinkHtml("concentration", ruleset, game.i18n.localize("DND-CC.Spells.ConcentrationTerm")),
+      ruleLinkHtml("ritual", ruleset, game.i18n.localize("DND-CC.Spells.RitualTerm"))
+    ]);
+    const spellTermsNote = game.i18n.format("DND-CC.Spells.TermsNote", {
+      concentration: concentrationTermLink,
+      ritual: ritualTermLink
+    });
+
     return {
       hasSpellcasting: true,
       spellcastingGroups,
+      spellTermsNote,
       otherGroups: Array.from(otherGroupsMap.entries()).map(([key, items]) => ({
         label: this._humanizeSourceItem(key),
         items: items.map((item) => ({ id: item.id, name: item.name, img: item.img }))
@@ -1031,11 +1133,20 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
   /**
    * Highest spell level the draft actor can currently cast, read from dnd5e's own
-   * derived slot data rather than recomputing class progression ourselves.
+   * derived slot data rather than recomputing class progression ourselves. Includes
+   * both `type: "spell"` (Wizard/Cleric/Sorcerer/... standard slots) and `type: "pact"`
+   * (Warlock's Pact Magic) - a Warlock-only actor has every `spellN` entry at `max: 0`
+   * (Pact Magic doesn't use them at all), so excluding "pact" here made this always
+   * resolve to 0 for a Warlock, which made every "Add Spell" browse request use an
+   * impossible `{min: 1, max: 0}` level range and silently return zero results - the
+   * actual bug behind "Could not pick any Warlock spells (Cantrips and feats worked)".
+   * Deliberately still excludes other non-level-based resource pools that also live in
+   * `system.spells` (e.g. a homebrew module's "dragonmarked" pool, which has no `level`
+   * field at all) by only matching the two real spell-slot types.
    */
   _maxSpellSlotLevel() {
     return Object.values(this.draft.actor.system.spells)
-      .filter((slot) => slot.type === "spell" && slot.max > 0)
+      .filter((slot) => (slot.type === "spell" || slot.type === "pact") && slot.max > 0)
       .reduce((max, slot) => Math.max(max, slot.level ?? 0), 0);
   }
 
@@ -1439,9 +1550,18 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /** Write one field straight onto the draft actor - used by every plain About-step control. */
+  /**
+   * Deliberately does NOT re-render after saving - every field this is used for
+   * (Alignment, Pronoun/characteristics, Personality, Backstory) is plain input the
+   * browser already shows correctly on its own, with nothing else on either step
+   * visually depending on it. A full `.dnd-cc-content` re-render on every blur used to
+   * run right as the player clicked into the *next* field, landing that click during a
+   * DOM swap and leaving its focus/selection in a broken state (typing in one field,
+   * then clicking a different one, misplaced the second
+   * field's cursor) before this was removed.
+   */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
-    this.render();
   }
 
   async _addLanguage(key) {
@@ -1466,6 +1586,46 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * _selectItem via CharacterDraft#recordAbilityDelta) - kept separate so the
    * breakdown stays legible instead of just showing one opaque final number.
    */
+  /**
+   * Randomize button for the Abilities step - fills in real, valid values for whichever
+   * generation method is currently active (defaulting to Standard Array if somehow none
+   * is set yet), rather than switching methods out from under the player. Standard
+   * Array/Roll get a real shuffle across all six abilities via the same
+   * assignAbilityPoolValue swap logic the pool <select>s already use one at a time; Point
+   * Buy spends the real budget through the same adjustPointBuy validation the +/- buttons
+   * use (so it can never overspend or go out of range); Manual picks a random value in
+   * the same 8-15 band Point Buy allows, since manual has no rules-defined range of its
+   * own to sample from otherwise.
+   */
+  async _randomizeAbilities() {
+    const method = this.draft.abilityMethod ?? "standardArray";
+    if (!this.draft.abilityMethod) await this.draft.setAbilityMethod(method);
+
+    if (method === "standardArray" || method === "roll") {
+      if (method === "roll") {
+        for (const key of ABILITY_KEYS) await this.draft.rollAbility(key);
+      }
+      const indices = ABILITY_KEYS.map((_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      for (let i = 0; i < ABILITY_KEYS.length; i++) {
+        await this.draft.assignAbilityPoolValue(ABILITY_KEYS[i], indices[i]);
+      }
+    } else if (method === "pointBuy") {
+      await this.draft.setAbilityMethod("pointBuy");
+      for (let attempt = 0; attempt < 60 && this.draft.pointBuyRemaining > 0; attempt++) {
+        const key = ABILITY_KEYS[Math.floor(Math.random() * ABILITY_KEYS.length)];
+        await this.draft.adjustPointBuy(key, 1);
+      }
+    } else {
+      for (const key of ABILITY_KEYS) {
+        await this.draft.setAbilityBaseScore(key, 8 + Math.floor(Math.random() * 8));
+      }
+    }
+  }
+
   _prepareAbilitiesContext() {
     const method = this.draft.abilityMethod;
     const base = this.draft.abilityBaseScores;
@@ -1557,28 +1717,21 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
-   * About step context: alignment/physical characteristics, personality traits, the
-   * biography rich text, Languages, and Lifestyle. Everything except Lifestyle reads
-   * straight from dnd5e's own actor fields (`system.details.*`, `system.traits.languages`),
-   * the same "no bookkeeping of our own" approach already used for Skills and saving
-   * throws, since a species/background's Trait advancement (e.g. a background's
-   * language choice) already writes straight into `system.traits.languages.value`.
+   * About step context: the remaining physical characteristics (everything except
+   * Pronoun, which lives on Identity now), personality traits, Languages, and
+   * Lifestyle. Alignment and Backstory also moved to Identity - see
+   * _prepareIdentityContext. Everything here still reads straight from dnd5e's own
+   * actor fields (`system.details.*`, `system.traits.languages`), the same "no
+   * bookkeeping of our own" approach already used for Skills and saving throws.
    */
   _prepareAboutContext() {
     const details = this.draft.actor.system.details;
 
-    const characteristics = ["gender", "eyes", "height", "weight", "age", "hair", "skin", "faith"].map((key) => ({
+    const characteristics = ["eyes", "height", "weight", "age", "hair", "skin", "faith"].map((key) => ({
       key,
       label: game.i18n.localize(`DND-CC.About.${key.charAt(0).toUpperCase()}${key.slice(1)}`),
       value: details[key] ?? ""
     }));
-
-    const alignmentOptions = Object.entries(CONFIG.DND5E.alignments)
-      .filter(([key]) => isAlignmentKeyAllowed(key))
-      .map(([, label]) => ({
-        label,
-        selected: label === details.alignment
-      }));
 
     const personality = ["trait", "ideal", "bond", "flaw", "appearance"].map((key) => ({
       key,
@@ -1588,10 +1741,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     return {
       characteristics,
-      alignmentOptions,
       personality,
-      biography: details.biography.value ?? "",
-      actorUuid: this.draft.actor.uuid,
       ...this._prepareLanguagesContext(),
       lifestyles: LIFESTYLE_TIERS.map((tier) => ({
         key: tier.key,
@@ -1599,6 +1749,48 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         label: game.i18n.localize(`DND-CC.About.LifestyleTier.${tier.key}`),
         selected: tier.key === this.draft.lifestyle
       }))
+    };
+  }
+
+  /**
+   * Identity step context: name/portrait (the persistent header's own fields, rendered
+   * again here larger/more prominent - see the shared data-identity-name/portrait
+   * wiring in _onRender, which now wires every matching element, not just the rail's),
+   * alignment, Pronoun (the one physical-characteristic field that stays here, labeled
+   * "Pronoun" rather than dnd5e's own "Gender" - still the same underlying
+   * `system.details.gender` field, just a friendlier label for how the field actually
+   * gets used in practice), and the Backstory rich-text editor. Positioned right before
+   * About in STEP_DEFINITIONS - the two are meant to feel like one continuous "who is
+   * this character" arc, quick facts here, the deeper prompts on About right after.
+   */
+  async _prepareIdentityContext() {
+    const details = this.draft.actor.system.details;
+    const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
+
+    const alignmentOptions = Object.entries(CONFIG.DND5E.alignments)
+      .filter(([key]) => isAlignmentKeyAllowed(key))
+      .map(([, label]) => ({
+        label,
+        selected: label === details.alignment
+      }));
+
+    const alignmentTermLink = await ruleLinkHtml(
+      "alignment",
+      ruleset,
+      game.i18n.localize("DND-CC.Identity.Alignment")
+    );
+
+    return {
+      pronoun: { key: "gender", label: game.i18n.localize("DND-CC.Identity.Pronoun"), value: details.gender ?? "" },
+      alignmentOptions,
+      alignmentTermLink,
+      biography: details.biography.value ?? "",
+      actorUuid: this.draft.actor.uuid,
+      tips: [
+        "DND-CC.Identity.TipName",
+        "DND-CC.Identity.TipAlignment",
+        "DND-CC.Identity.TipBackstory"
+      ].map((key) => game.i18n.localize(key))
     };
   }
 
@@ -1753,9 +1945,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       passivePerception: actor.system.skills.prc?.passive,
       alignment: details.alignment || null,
       abilities: this._prepareAbilitiesContext().abilities,
-      proficientSkills: this._prepareSkillsContext().skills.filter((skill) => skill.isProficient),
+      proficientSkills: (await this._prepareSkillsContext()).skills.filter((skill) => skill.isProficient),
       feats,
-      ...this._prepareSpellsContext(),
+      ...(await this._prepareSpellsContext()),
       equipment,
       currencyText: ["pp", "gp", "ep", "sp", "cp"]
         .map((key) => `${actor.system.currency[key] ?? 0} ${key.toUpperCase()}`)
@@ -1777,13 +1969,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   async _preparePdfExportContext() {
     const reviewContext = await this._prepareReviewContext();
     const aboutContext = this._prepareAboutContext();
+    const identityContext = await this._prepareIdentityContext();
 
     return {
       ...reviewContext,
-      skills: this._prepareSkillsContext().skills,
-      characteristics: aboutContext.characteristics,
+      skills: (await this._prepareSkillsContext()).skills,
+      // Pronoun (Identity) plus the rest of the physical characteristics (About) back
+      // into one combined list for the printable sheet, which doesn't split these two
+      // steps apart the way the wizard itself does.
+      characteristics: [identityContext.pronoun, ...aboutContext.characteristics],
       personality: aboutContext.personality,
-      biography: aboutContext.biography,
+      biography: identityContext.biography,
       languages: aboutContext.languages,
       lifestyleLabel: aboutContext.lifestyles.find((tier) => tier.selected)?.label ?? null
     };
@@ -1857,8 +2053,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. For a non-GM "player" user,
-   * Foundry's FilePicker requires the FILES_BROWSE permission, which the Player role
+   * Change the character's portrait. For a non-GM player: Foundry's FilePicker requires
+   * the FILES_BROWSE permission, which the Player role
    * doesn't have by default - same class of gap as Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
    * silently never opens for a user who lacks it, with no error to react to. Falls back
@@ -1898,6 +2094,47 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     this.render();
   }
 
+  /**
+   * Header-control (the native window-header's own "..." menu, not our injected toolbar
+   * icons - Foundry's own `window.controls`/`actions` mechanism, the correct way to add
+   * an item there since we don't own that dropdown's own DOM to wire a listener onto
+   * manually) entry point for the one-click diagnostic report. `this` is bound to the
+   * app instance by ApplicationV2's own action dispatch.
+   */
+  static async #onCopyDiagnostics(_event, _target) {
+    await this._copyDiagnosticReport();
+  }
+
+  /**
+   * Gathers a short, copy-pasteable block of environment info useful for a bug report
+   * (module/Foundry/system versions, current draft/step, browser) and puts it on the
+   * clipboard - no telemetry, nothing sent anywhere, purely local like the rest of this
+   * module (see README).
+   */
+  async _copyDiagnosticReport() {
+    const moduleData = game.modules.get(MODULE_ID);
+    const currentStep = this.orderedSteps?.[this.stepIndex]?.id ?? "n/a";
+    const lines = [
+      `${game.i18n.localize("DND-CC.WindowTitle")} - diagnostic report`,
+      `Module version: ${moduleData?.version ?? "unknown"}`,
+      `Foundry version: ${game.version}`,
+      `dnd5e system version: ${game.system?.version ?? "unknown"}`,
+      `Ruleset: ${this.draft?.ruleset ?? "n/a"}`,
+      `Current step: ${currentStep}`,
+      `Draft actor: ${this.draft?.actor?.name ?? "n/a"} (${this.draft?.actor?.uuid ?? "n/a"})`,
+      `Level Up mode: ${this.levelUp}`,
+      `Browser: ${navigator.userAgent}`
+    ];
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      ui.notifications.info(game.i18n.localize("DND-CC.Diagnostics.Copied"));
+    } catch (error) {
+      console.error(`${MODULE_ID} | Failed to copy diagnostic report`, error);
+      ui.notifications.warn(game.i18n.localize("DND-CC.Diagnostics.CopyFailed"));
+    }
+  }
+
   async _discardDraft() {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: game.i18n.localize("DND-CC.Discard.Title") },
@@ -1906,14 +2143,14 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (!confirmed) return;
 
     // A non-GM player can't actually delete their own draft actor - Foundry reserves
-    // Actor deletion for GMs regardless of per-document ownership - so "Start Over"
-    // abandons it instead (see CharacterDraft#abandon) for anyone but a GM, real
-    // deletion only where it's guaranteed to succeed.
+    // Actor deletion for GMs regardless of per-document ownership - so
+    // "Start Over" abandons it instead (see CharacterDraft#abandon) for anyone but a GM,
+    // real deletion only where it's guaranteed to succeed.
     if (game.user.isGM) await this.draft.discard();
     else await this.draft.abandon();
     this.draft = await this._resolveDraft();
     this.stepIndex = 0;
-    this.visitedSteps = new Set([STEP_DEFINITIONS[0].id]);
+    this.visitedSteps = new Set([this.orderedSteps[0].id]);
     this.render();
   }
 
@@ -2017,6 +2254,21 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
     insertButton(imageryButton);
 
+    const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
+    const accentIndex = Math.max(0, ACCENT_COLOR_OPTIONS.findIndex((option) => option.value === accentValue));
+    const accentButton = document.createElement("button");
+    accentButton.classList.add("fa-solid", "fa-palette");
+    accentButton.dataset.tooltip = game.i18n.format("DND-CC.Accessibility.AccentColorOption", {
+      color: game.i18n.localize(ACCENT_COLOR_OPTIONS[accentIndex].labelKey)
+    });
+    accentButton.setAttribute("aria-label", game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"));
+    accentButton.addEventListener("click", async () => {
+      const next = ACCENT_COLOR_OPTIONS[(accentIndex + 1) % ACCENT_COLOR_OPTIONS.length];
+      await game.settings.set(MODULE_ID, "accentColor", next.value);
+      this.render();
+    });
+    insertButton(accentButton);
+
     const sourcesButton = document.createElement("button");
     sourcesButton.classList.add("fa-solid", "fa-book-atlas");
     sourcesButton.dataset.tooltip = game.i18n.localize("DND-CC.Sources.ButtonTitle");
@@ -2049,6 +2301,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (wizard) wizard.style.zoom = fontScale;
     root.classList.toggle("dnd-cc-reduce-imagery", game.settings.get(MODULE_ID, "reduceImagery"));
 
+    // "neutral" needs no class of its own - it's the base .application.dnd-cc definition
+    // in character-creator.css already, so removing every accent class covers it.
+    ACCENT_COLOR_OPTIONS.forEach((option) => root.classList.remove(`dnd-cc-accent-${option.value}`));
+    const accentColor = String(game.settings.get(MODULE_ID, "accentColor"));
+    if (accentColor !== "neutral") root.classList.add(`dnd-cc-accent-${accentColor}`);
+
     this._renderHeaderToolbar();
 
     // See the matching capture in _prepareContext - restores scroll position after
@@ -2062,11 +2320,16 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     // Persistent identity bar - name/portrait must be editable from the moment the
     // wizard opens (before Ruleset) and on every step after, per the "persistent wizard
-    // shell" requirement, rather than gated to one step.
-    root.querySelector("[data-identity-name]")?.addEventListener("change", async (event) => {
-      const name = event.target.value.trim() || game.i18n.localize("DND-CC.WindowTitle");
-      await this.draft.actor.update({ name });
-      this.render();
+    // shell" requirement, rather than gated to one step. querySelectorAll, not a single
+    // querySelector, because the Identity step renders its own larger copy of this same
+    // field alongside the rail's compact one - both write straight to the same
+    // draft.actor.name, so a change through either re-renders and keeps both in sync.
+    root.querySelectorAll("[data-identity-name]").forEach((el) => {
+      el.addEventListener("change", async (event) => {
+        const name = event.target.value.trim() || game.i18n.localize("DND-CC.WindowTitle");
+        await this.draft.actor.update({ name });
+        this.render();
+      });
     });
 
     root.querySelector("[data-overlay-close]")?.addEventListener("click", () => this._hideOverlay());
@@ -2086,7 +2349,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       el.addEventListener("click", () => this._showLineagePicker(el.dataset.chooseLineage));
     });
 
-    root.querySelector("[data-identity-portrait]")?.addEventListener("click", () => this._changePortrait());
+    root.querySelectorAll("[data-identity-portrait]").forEach((el) => {
+      el.addEventListener("click", () => this._changePortrait());
+    });
+
+    root.querySelector("[data-randomize-name]")?.addEventListener("click", async () => {
+      const name = NAME_EXAMPLES[Math.floor(Math.random() * NAME_EXAMPLES.length)];
+      await this.draft.actor.update({ name });
+      this.render();
+    });
 
     root.querySelectorAll("[data-ruleset]").forEach((el) => {
       el.addEventListener("click", async () => {
@@ -2102,6 +2373,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         await this._addClass(el.dataset.addClass);
       });
     });
+
+    root.querySelector("[data-randomize-class]")?.addEventListener("click", () => this._randomizeClass());
 
     root.querySelectorAll("[data-remove-class]").forEach((el) => {
       el.addEventListener("click", async () => {
@@ -2151,12 +2424,14 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         await this._selectItem(el.dataset.uuid, "race");
       });
     });
+    root.querySelector("[data-randomize-species]")?.addEventListener("click", () => this._randomizeSpecies());
 
     root.querySelectorAll(".dnd-cc-step-background [data-uuid]").forEach((el) => {
       el.addEventListener("click", async () => {
         await this._selectItem(el.dataset.uuid, "background");
       });
     });
+    root.querySelector("[data-randomize-background]")?.addEventListener("click", () => this._randomizeBackground());
 
     root.querySelectorAll("[data-ability-method]").forEach((el) => {
       el.addEventListener("click", async () => {
@@ -2203,6 +2478,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           await this.draft.rollAbility(el.dataset.abilityRoll);
           await this.render();
         });
+      });
+    });
+
+    root.querySelector("[data-randomize-abilities]")?.addEventListener("click", async () => {
+      await this._withBusy(async () => {
+        await this._randomizeAbilities();
+        await this.render();
       });
     });
 
@@ -2296,7 +2578,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // Any step is reachable directly from the rail, not just ones already passed -
         // jumping around never touches any data on its own (only an in-step action like
         // picking an item does), so there's nothing to protect by restricting movement.
-        const index = STEP_DEFINITIONS.findIndex((step) => step.id === el.dataset.step);
+        const index = this.orderedSteps.findIndex((step) => step.id === el.dataset.step);
         this._goToStep(index);
       };
       el.addEventListener("click", jump);
@@ -2499,6 +2781,40 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
+   * A background/species/class's own Ability Score Improvement advancement, if it has
+   * one, read straight from its real `hint` text - dnd5e itself already writes a full,
+   * accurate sentence there ("Your background allows you to increase your Intelligence,
+   * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
+   * increase all three by 1."). Reading this instead of computing our own summary from
+   * `configuration.locked`/`points`/`cap`
+   * means the preview can never drift out of sync with what the actual Advancement flow
+   * will say once picked, and needs no SRD text of our own - it's the same real
+   * compendium data every other "Learn More" fact on this panel already reads.
+   * @param {Item} item
+   * @returns {string|null}
+   */
+  _abilityScoreImprovementHint(item) {
+    const advancement = Object.values(item.advancement?.byId ?? {}).find((a) => a.type === "AbilityScoreImprovement");
+    return advancement?.hint || null;
+  }
+
+  /**
+   * Short ability abbreviations (e.g. ["INT", "WIS", "CHA"]) a background/species/class's
+   * own AbilityScoreImprovement advancement offers - the *unlocked* keys in its
+   * `configuration.locked` list - the real field dnd5e itself uses to mark which
+   * abilities a given ASI can't touch. Short enough for a card-level pill,
+   * unlike the full `hint` sentence _abilityScoreImprovementHint reads for the detail panel.
+   * @param {Item} item
+   * @returns {string[]}
+   */
+  _abilityScoreImprovementAbilities(item) {
+    const advancement = Object.values(item.advancement?.byId ?? {}).find((a) => a.type === "AbilityScoreImprovement");
+    if (!advancement) return [];
+    const locked = new Set(advancement.configuration?.locked ?? []);
+    return ABILITY_KEYS.filter((key) => !locked.has(key)).map((key) => key.toUpperCase());
+  }
+
+  /**
    * "Learn More" detail panel for a Class/Species/Background card. Built from real,
    * already-available data only (the same hit die/primary ability/speed pills the
    * cards show, plus real granted-feature names via _getItemGrantFeatureNames) rather
@@ -2517,6 +2833,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       speed: item.system.movement?.walk ?? null
     }).pills;
     const features = await this._getItemGrantFeatureNames(item);
+    const abilityScoreHint = this._abilityScoreImprovementHint(item);
     const ruleset = item.system.source?.label ?? item.system.source?.rules ?? null;
     const esc = this._escapeHtml.bind(this);
 
@@ -2540,6 +2857,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       </div>
       <div class="dnd-cc-detail-body">
         ${pills.length ? `<div class="dnd-cc-pill-row">${pills.map((p) => `<span class="dnd-cc-pill">${esc(p)}</span>`).join("")}</div>` : ""}
+        ${abilityScoreHint ? `
+          <div class="dnd-cc-section-label">${esc(game.i18n.localize("DND-CC.Detail.AbilityScoreImprovement"))}</div>
+          <p class="dnd-cc-detail-asi-hint">${esc(abilityScoreHint)}</p>
+        ` : ""}
         ${features.length ? `
           <div class="dnd-cc-section-label">${esc(game.i18n.localize("DND-CC.Detail.Features"))}</div>
           <ul class="dnd-cc-detail-features">${features.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
@@ -2858,8 +3179,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const primaryAbilities = Array.from(wrapper.querySelectorAll("[data-custom-primary-ability]:checked")).map(
         (el) => el.value
       );
-      // dnd5e's own schema wants the full "d#" string - a bare number fails validation
-      // with "must be a dice value in the format d#" - not the denomination as a number.
+      // dnd5e's own schema wants the full "d#" string - a bare number
+      // fails validation with "must be a dice value in the format d#" - not the
+      // denomination as a number.
       return {
         hd: { denomination: hitDie },
         primaryAbility: { value: primaryAbilities }
@@ -2893,8 +3215,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * gets cleaned up too instead of left behind as orphans - a plain
    * deleteEmbeddedDocuments would leave granted items like a species's feats behind.
    *
-   * The old item is removed *before* the new one is added - this is the only order that
-   * actually works: dnd5e itself rejects a second race/background item
+   * The old item is removed *before* the new one is added - this is the
+   * only order that actually works: dnd5e itself rejects a second race/background item
    * outright while one is already on the actor ("Only a single Species can be added to
    * a Player Character", logged straight from dnd5e's own validation) - a race/
    * background genuinely can't have both on the actor even briefly, unlike class,
@@ -3015,6 +3337,48 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * semantics for Species/Background.
    * @param {string} uuid
    */
+  /**
+   * Randomize buttons for Class/Species/Background - pick a real random item from the
+   * exact same real, already-filtered data source the step's own grid reads
+   * (getStepItems, respecting ruleset/compendium-source/house-rule filtering) and run it
+   * through the normal _addClass/_selectItem flow, same as if the player had clicked
+   * that card themselves. Deliberately does NOT auto-resolve the resulting embedded
+   * AdvancementManager flow (skill picks, HP roll, subclass, ...) - only which item gets
+   * picked is randomized, the player still walks through its real choices normally, same
+   * as the backlog's "full randomize everything" idea but scoped down to what's actually
+   * safe to automate without guessing at unattended-Advancement-completion semantics.
+   */
+  async _randomizeClass() {
+    const classItems = this.draft.actor.items.filter((item) => item.type === "class");
+    const totalLevel = classItems.reduce((sum, item) => sum + item.system.levels, 0);
+    if (totalLevel >= MAX_CLASS_LEVEL) return;
+
+    const existingNames = new Set(classItems.map((item) => item.name));
+    const items = await getStepItems("class", this.rulesetVersions);
+    const pool = items.filter((item) => !existingNames.has(item.name));
+    if (!pool.length) return;
+
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    await this._addClass(pick.uuid);
+  }
+
+  async _randomizeSpecies() {
+    const items = await getStepItems("race", this.rulesetVersions);
+    const pool = items.filter((item) => !isSpeciesBanned(item.uuid));
+    if (!pool.length) return;
+
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    await this._selectItem(pick.uuid, "race");
+  }
+
+  async _randomizeBackground() {
+    const items = await getStepItems("background", this.rulesetVersions);
+    if (!items.length) return;
+
+    const pick = items[Math.floor(Math.random() * items.length)];
+    await this._selectItem(pick.uuid, "background");
+  }
+
   async _addClass(uuid) {
     const item = await fromUuid(uuid);
     if (!item) return;
@@ -3207,10 +3571,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // instead of leaving the actor with no class at all. dnd5e only writes a
         // Trait/ItemGrant advancement's resolved value onto the actor's real derived
         // traits (armor/weapon proficiencies, etc.) as a side effect of a manager flow
-        // actually running - directly recreating an item from already-resolved data,
-        // with no manager involved, leaves those derived traits empty even though the
-        // item's own stored advancement values look complete. So this still has to go
-        // through a real flow, not a plain re-create - it's just a
+        // actually running - directly recreating an item from
+        // already-resolved data, with no manager involved, leaves those derived traits
+        // empty even though the item's own stored advancement values look complete. So
+        // this still has to go through a real flow, not a plain re-create - it's just a
         // much lighter one than the original redo, since every step already shows its
         // previous answer instead of asking again, and only needs Next clicked through.
         const beforeRestore = snapshotAbilities(this.draft.actor);
@@ -3276,9 +3640,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   _goToStep(index) {
-    if (index < 0 || index >= STEP_DEFINITIONS.length) return;
+    if (index < 0 || index >= this.orderedSteps.length) return;
     this.stepIndex = index;
-    this.visitedSteps.add(STEP_DEFINITIONS[index].id);
+    this.visitedSteps.add(this.orderedSteps[index].id);
     // Every caller (rail clicks, Back/Next, the various "pick it, keep moving"
     // auto-advances) goes through here, so wrapping this one spot covers all of them -
     // switching steps re-renders the whole wizard shell, not just the destination
@@ -3325,9 +3689,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data. A brand new
-    // character should always start at full health regardless of pick order, so top it
-    // off here.
+    // afterward without current following, since current isn't derived data (e.g. a
+    // Dwarf Fighter can show 10/13 at Review instead of 13/13). A brand new character
+    // should always start at full health regardless of pick order, so top it off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }

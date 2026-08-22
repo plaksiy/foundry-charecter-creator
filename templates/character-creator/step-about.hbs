@@ -4,15 +4,6 @@
 
   <div class="dnd-cc-section-label">{{localize "DND-CC.About.Characteristics"}}</div>
   <div class="dnd-cc-about-characteristics">
-    <label class="dnd-cc-about-field">
-      <span>{{localize "DND-CC.About.Alignment"}}</span>
-      <select data-about-alignment>
-        <option value="">-</option>
-        {{#each alignmentOptions}}
-        <option value="{{this.label}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-        {{/each}}
-      </select>
-    </label>
     {{#each characteristics}}
     <label class="dnd-cc-about-field">
       <span>{{this.label}}</span>
@@ -64,7 +55,4 @@
     </button>
     {{/each}}
   </div>
-
-  <div class="dnd-cc-section-label">{{localize "DND-CC.About.Backstory"}}</div>
-  <prose-mirror data-about-biography name="system.details.biography.value" value="{{biography}}" data-document-uuid="{{actorUuid}}"></prose-mirror>
 </div>

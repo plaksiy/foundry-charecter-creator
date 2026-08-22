@@ -8,7 +8,7 @@
         <th></th>
         <th>{{localize "DND-CC.Skills.Skill"}}</th>
         <th>{{localize "DND-CC.Skills.Ability"}}</th>
-        <th>{{localize "DND-CC.Skills.Proficiency"}}</th>
+        <th>{{{proficiencyTermLink}}}</th>
         <th>{{localize "DND-CC.Skills.Modifier"}}</th>
         <th>{{localize "DND-CC.Skills.Passive"}}</th>
       </tr>
@@ -19,7 +19,7 @@
         <td><span class="dnd-cc-prof-dot dnd-cc-prof-{{this.proficiencyTier}}"></span></td>
         <td>{{this.label}}</td>
         <td>{{this.abilityLabel}}</td>
-        <td>{{this.proficiencyLabel}}</td>
+        <td>{{#if (eq this.proficiencyTier "expertise")}}{{{../expertiseTermLink}}}{{else}}{{this.proficiencyLabel}}{{/if}}</td>
         <td>{{this.totalText}}</td>
         <td>{{this.passive}}</td>
       </tr>

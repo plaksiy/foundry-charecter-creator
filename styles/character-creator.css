@@ -19,11 +19,20 @@
   --dcc-surface: #161514;
   --dcc-surface-alt: #1f1c1a;
   --dcc-border: #3a3633;
-  --dcc-border-strong: #df0000;
   --dcc-text: #f2efe8;
   --dcc-text-muted: #a8a49a;
-  --dcc-accent: #df0000;
-  --dcc-accent-contrast: #ffffff;
+  /* Accent color: never a fixed red on its own - a colorblind-accessibility review flagged
+     pure red sitting next to the rail's own green "done" state as a real problem for
+     colorblind players. Default is this neutral bone/silver tone instead; the toolbar's
+     accent-picker button (see _onRender) toggles one of the .dnd-cc-accent-* classes
+     below, each of which is a complete, legible accent+contrast pair, not a single color
+     swapped in isolation. --dcc-done deliberately stays green regardless of accent choice
+     (green still reads correctly as "complete", backed by a check
+     icon too, not color alone) - only the *other* uses of red (buttons, active states,
+     card selection) move off red by default. */
+  --dcc-accent: #e6e1d6;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #e6e1d6;
   --dcc-done: #3fae5c;
   --dcc-warn: #d9b23f;
   --dcc-danger: #8c1c1c;
@@ -34,6 +43,27 @@
   --dcc-font-ui: "DndCcRoboto", sans-serif;
   background: var(--dcc-bg);
   color: var(--dcc-text);
+}
+
+.application.dnd-cc.dnd-cc-accent-red {
+  --dcc-accent: #df0000;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #df0000;
+}
+.application.dnd-cc.dnd-cc-accent-blue {
+  --dcc-accent: #4f7fd9;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #4f7fd9;
+}
+.application.dnd-cc.dnd-cc-accent-violet {
+  --dcc-accent: #9a63d1;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #9a63d1;
+}
+.application.dnd-cc.dnd-cc-accent-amber {
+  --dcc-accent: #d99a2b;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #d99a2b;
 }
 
 .application.dnd-cc .window-header {
@@ -90,20 +120,21 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them.
-   `.header-control` (Foundry's native window titlebar buttons) is excluded from the
-   font-family override specifically - it breaks the Font Awesome icon glyph on
-   Close/Toggle Controls, which relies on its own icon font applying to the button
-   element itself (not a child), and our font would otherwise clobber it. */
+   overflows the fixed box and visually overlaps whatever sits next to them (e.g.
+   without this, a ruleset card computes to `height: 34px` while its own h3+p content spans
+   48.5px, overlapping the next card). `.header-control` (Foundry's native window titlebar
+   buttons) is excluded from the font-family override specifically - it broke the Font
+   Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
+   to the button element itself (not a child), and our font would otherwise clobber it. */
 /* Foundry wraps every module's stylesheet in an unlayered-vs-layered CSS cascade:
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity, which is why a plain (non-!important) override here loses to
-   core's own button sizing despite being more specific. `!important` on a layered
-   declaration outranks a normal unlayered one, which is the correct, spec-sanctioned
-   way to override core chrome from here - not a hack. Every button/select override in
-   this file that fights Foundry's own default
+   selector specificity - which is exactly why a
+   plain (non-!important) override here loses to core's own button sizing despite being
+   more specific. `!important` on a layered declaration outranks a normal unlayered one,
+   which is the correct, spec-sanctioned way to override core chrome from here - not a
+   hack. Every button/select override in this file that fights Foundry's own default
    sizing needs `!important` for the same reason, not just this shared base rule. */
 .application.dnd-cc button:not(.header-control) {
   font-family: var(--dcc-font-ui);
@@ -149,77 +180,11 @@
 }
 
 /* The action toolbar itself no longer renders here at all - its buttons are injected
-   directly into the native ApplicationV2 window-header instead (see _onRender), so the
-   rail's identity block starts right under that header with no empty row above it. */
-
-/* Portrait+name block at the top of the step rail, read as a character folder's own
-   cover rather than a page-level toolbar item - matches the "oath dossier" mockup
-   direction. The name stays a real, obviously-editable <input> here, not a static
-   label, even though it's now visually closer to a title than a form field. */
-.dnd-cc-rail-identity {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.5rem 1rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--dcc-border);
-  text-align: center;
-}
-
-.dnd-cc-identity-portrait {
-  flex: none;
-  width: 84px;
-  height: 84px;
-  padding: 0;
-  border-radius: 10px;
-  border: 1.5px solid var(--dcc-border-strong);
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--dcc-surface-alt);
-}
-.dnd-cc-identity-portrait:hover { border-color: var(--dcc-accent); }
-.dnd-cc-identity-portrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.dnd-cc-identity-fields {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  min-width: 0;
-  width: 100%;
-}
-.dnd-cc-identity-label {
-  font-family: var(--dcc-font-ui);
-  font-weight: 700;
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--dcc-text-muted);
-}
-.dnd-cc-identity-name {
-  font-family: var(--dcc-font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--dcc-text);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  padding: 0.1rem 0;
-  width: 100%;
-  min-width: 0;
-  text-align: center;
-}
-.dnd-cc-identity-name:hover,
-.dnd-cc-identity-name:focus {
-  border-bottom-color: var(--dcc-border-strong);
-  outline: none;
-}
+   directly into the native ApplicationV2 window-header instead (see _onRender). The
+   rail's own portrait+name block (formerly here) was removed once the Identity step
+   gave name/portrait a real, more prominent home - keeping both was redundant, and the
+   rail copy wasn't obviously clickable per direct user feedback. The rail now starts
+   right under the native window header with just the step list. */
 
 /* Text size / Simplify / Sources / Start Over now live as native window-header
    controls (injected in _renderHeaderToolbar, not part of this template's own PARTS.body
@@ -244,6 +209,19 @@
 .dnd-cc-reduce-imagery .dnd-cc-card:not(.dnd-cc-lineage-card) .dnd-cc-card-icon,
 .dnd-cc-reduce-imagery .dnd-cc-card::before,
 .dnd-cc-reduce-imagery .dnd-cc-class-row-art img {
+  display: none;
+}
+
+/* Extended per direct accessibility feedback: flatten every other decorative gradient
+   sheen too (detail-panel header/icon boxes, lineage-picker cards), not just card art,
+   and drop the edition/book badge - useful metadata, but not needed to pick something,
+   so it's the "slightly less information" this mode was also asked to provide. */
+.dnd-cc-reduce-imagery .dnd-cc-detail-header,
+.dnd-cc-reduce-imagery .dnd-cc-detail-icon,
+.dnd-cc-reduce-imagery .dnd-cc-lineage-card {
+  background-image: none;
+}
+.dnd-cc-reduce-imagery .dnd-cc-card-edition {
   display: none;
 }
 
@@ -571,6 +549,10 @@
   background: rgba(0,0,0,0.3);
 }
 
+/* Background's two extra pills (ability options, granted feat name) read better a touch
+   bigger than the standard card pill size, per direct user feedback. */
+.dnd-cc-step-background .dnd-cc-pill { font-size: 0.72rem; }
+
 .dnd-cc-seg-group {
   display: flex;
   border: 1px solid var(--dcc-border);
@@ -584,10 +566,10 @@
 .application.dnd-cc .dnd-cc-seg-group button {
   font-family: var(--dcc-font-ui);
   font-weight: 600;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  padding: 0.5rem 0.85rem !important;
+  padding: 0.35rem 0.7rem !important;
   height: auto !important;
   background: var(--dcc-surface);
   color: var(--dcc-text-muted);
@@ -602,7 +584,7 @@
 .dnd-cc-seg-group button:focus-visible { outline: 1px solid var(--dcc-accent); outline-offset: -1px; }
 .dnd-cc-seg-group button.active {
   background: var(--dcc-accent);
-  color: #fff;
+  color: var(--dcc-accent-contrast);
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
 }
 
@@ -756,9 +738,16 @@
   color: var(--dcc-text);
 }
 .dnd-cc-advisor-active { color: var(--dcc-text); }
-.dnd-cc-advisor-row a.content-link {
+.application.dnd-cc a.content-link {
   color: var(--dcc-accent);
   border-color: var(--dcc-accent);
+}
+
+.dnd-cc-step-terms-note {
+  font-family: var(--dcc-font-ui);
+  color: var(--dcc-text-muted);
+  font-size: 0.8rem;
+  margin: -0.4rem 0 0.9rem;
 }
 
 /* ---------------- Card grid: Class/Species/Background pick-from-a-list steps ---------------- */
@@ -768,11 +757,12 @@
   margin: 0;
   padding: 0;
   display: grid;
-  /* Tuned so the Class/Species/Background grids show 3 per row at this app's default
-     window size (1500px, see BASE_POSITION in character-creator-app.mjs) - still
-     auto-fill, so resizing the window still reflows to more or fewer columns
-     naturally, this only sets what "default" looks like. */
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* Narrower columns than the grid used before, paired with .dnd-cc-card's own
+     aspect-ratio below - per direct user feedback the old 340px-wide/190px-tall cards
+     read as too wide a rectangle, with most of a card's portrait-oriented art falling
+     outside the visible frame. Still auto-fill, so resizing the window reflows to more
+     or fewer columns naturally, this only sets what "default" looks like. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.1rem;
 }
 
@@ -811,13 +801,17 @@
  */
 .dnd-cc-card {
   position: relative;
-  min-height: 190px;
+  aspect-ratio: 3 / 4;
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
   overflow: hidden;
   transition: border-color 0.15s ease;
 }
+/* Class cards specifically go fully square, per direct user feedback that the class
+   symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
+   frame better than the 3:4 portrait ratio the other two card grids use. */
+.dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
 .dnd-cc-card:hover { border-color: var(--dcc-accent); }
 .dnd-cc-card.selected {
   border-color: var(--dcc-accent);
@@ -892,7 +886,7 @@
   text-transform: uppercase;
   cursor: pointer;
 }
-.dnd-cc-card-select:hover { background: var(--dcc-accent); }
+.dnd-cc-card-select:hover { background: var(--dcc-accent); color: var(--dcc-accent-contrast); }
 .dnd-cc-card-selected-ribbon {
   display: flex;
   align-items: center;
@@ -1041,6 +1035,12 @@
   padding-left: 1.1rem;
   color: var(--dcc-text);
   font-family: var(--dcc-font-body);
+}
+.dnd-cc-detail-asi-hint {
+  margin: 0;
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-body);
+  line-height: 1.5;
 }
 .dnd-cc-detail-open-compendium {
   display: inline-flex;
@@ -2132,7 +2132,7 @@
   font-size: 1.1rem;
 }
 .dnd-cc-advancement-body .item-control:has(.fa-trash):hover {
-  color: #fff;
+  color: var(--dcc-accent-contrast);
   background: var(--dcc-accent);
   border-radius: 4px;
 }
@@ -2164,8 +2164,9 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input. The two look visually identical by default (same box, same weight),
-   making it hard to tell at a glance which scores can actually still be raised. */
+   min!=max input. The two look visually
+   identical without this (same box, same weight), making it hard to tell at a glance which
+   scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
 }
@@ -2210,6 +2211,36 @@
 }
 .dnd-cc-gm-progress-status.ready { color: var(--dcc-done); }
 .dnd-cc-gm-progress-status.stuck { color: var(--dcc-warn); }
+
+.dnd-cc-step-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.dnd-cc-step-header-row .dnd-cc-step-intro { margin-bottom: 0; }
+
+.dnd-cc-randomize-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.2rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border-strong);
+  border-radius: 6px;
+  color: var(--dcc-accent);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dnd-cc-randomize-button:hover { background: var(--dcc-accent); color: var(--dcc-accent-contrast); }
 
 .dnd-cc-gm-progress-open {
   display: inline-flex;
@@ -2378,6 +2409,193 @@
   margin-top: auto;
 }
 
+/* ---------------- Step Order config ---------------- */
+
+.dnd-cc-step-order-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dnd-cc-order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dnd-cc-order-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--dcc-border);
+  border-radius: 8px;
+  background: var(--dcc-surface);
+  cursor: grab;
+}
+.dnd-cc-order-row.dnd-cc-dragging { opacity: 0.4; }
+.dnd-cc-order-row:hover { border-color: var(--dcc-accent); }
+
+.dnd-cc-order-handle { color: var(--dcc-text-muted); }
+
+.dnd-cc-order-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--dcc-accent);
+}
+.dnd-cc-order-icon svg { width: 100%; height: 100%; }
+
+.dnd-cc-order-label {
+  flex: 1;
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  color: var(--dcc-text);
+}
+
+.dnd-cc-order-buttons { display: flex; gap: 0.2rem; }
+.dnd-cc-order-buttons button {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  cursor: pointer;
+}
+.dnd-cc-order-buttons button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+.dnd-cc-step-order-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+}
+
+.dnd-cc-reset-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  background: transparent;
+  border: 1.5px solid var(--dcc-border);
+  border-radius: 8px;
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.dnd-cc-reset-button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+/* ---------------- Identity ---------------- */
+
+.dnd-cc-identity-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+  background: var(--dcc-surface);
+}
+
+.dnd-cc-identity-hero-portrait {
+  /* !important needed here specifically - the base .application.dnd-cc
+     button:not(.header-control) reset above already sets height with !important of its
+     own (a Foundry CSS-cascade-layers workaround, see the comment near that rule), so a
+     plain height here would silently lose to it. */
+  position: relative;
+  flex: none;
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 10px;
+  border: 2px solid var(--dcc-border-strong);
+  background: var(--dcc-surface-alt);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+.dnd-cc-identity-hero-portrait:hover { border-color: var(--dcc-accent); }
+.dnd-cc-identity-hero-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dnd-cc-identity-hero-portrait-hint {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.2rem 0;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.dnd-cc-identity-hero-portrait:hover .dnd-cc-identity-hero-portrait-hint,
+.dnd-cc-identity-hero-portrait:focus-visible .dnd-cc-identity-hero-portrait-hint {
+  opacity: 1;
+}
+
+.dnd-cc-identity-hero-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dnd-cc-identity-name-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.dnd-cc-identity-hero-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--dcc-font-display);
+  font-size: 1.3rem !important;
+  min-height: 2.6rem !important;
+}
+.dnd-cc-identity-randomize {
+  flex: none;
+  width: 2.6rem !important;
+  height: 2.6rem !important;
+  border-radius: 6px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.dnd-cc-identity-randomize:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+.dnd-cc-identity-tips {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.2rem;
+  border: 1px dashed var(--dcc-border);
+  border-radius: 8px;
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-body);
+  font-size: 0.85rem;
+}
+.dnd-cc-identity-tips i { color: var(--dcc-accent); margin-top: 0.2rem; }
+.dnd-cc-identity-tips ul { margin: 0; padding-left: 1.1rem; }
+.dnd-cc-identity-tips li { margin-bottom: 0.3rem; }
+.dnd-cc-identity-tips li:last-child { margin-bottom: 0; }
+
 /* ---------------- About ---------------- */
 
 .dnd-cc-about-characteristics {
@@ -2509,13 +2727,32 @@
 .dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
 .dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
 
-.dnd-cc-step-about prose-mirror {
-  display: block;
+/* display: flex/flex-direction: column - NOT block. This is the real fix for the
+   long-reported "can't see the cursor or text while typing in Backstory" bug: dnd5e's
+   own <prose-mirror> internally needs to be a flex column so its toolbar
+   (.menu-container > menu.editor-menu) and its editable content area stack vertically.
+   `display: block` (what this rule used to say) breaks that - the toolbar's own wrapper
+   collapses to 0 height in block flow while the menu itself still renders at full size
+   via internal positioning, and the editable content area's text then starts at that
+   same collapsed y-offset, landing directly underneath/behind the toolbar buttons.
+   Confirmed via `document.elementFromPoint` on the actual typed text's own
+   bounding-box center: under `display: block` the topmost element there is a toolbar
+   button, not the text; under `display: flex; flex-direction: column`, it's the real
+   text node. The text was never actually invisible
+   or uncolored - it was being visually covered by the toolbar the whole time. */
+.dnd-cc-step-identity prose-mirror {
+  display: flex;
+  flex-direction: column;
   min-height: 180px;
   border: 1px solid var(--dcc-border);
   border-radius: 8px;
   background: var(--dcc-surface);
   font-family: var(--dcc-font-body);
+}
+.dnd-cc-step-identity prose-mirror .ProseMirror {
+  flex: 1;
+  min-height: 0;
+  padding: 0.6rem 0.75rem;
 }
 
 /* ---------------- Review ---------------- */
@@ -2654,9 +2891,14 @@
   background: var(--dcc-accent);
   border: none;
   border-radius: 10px;
-  color: #fff;
+  /* Was a hardcoded #fff - fine back when the accent was always red, but the new
+     neutral (light) default accent made white text on a near-white button nearly
+     invisible. --dcc-accent-contrast already resolves correctly per accent color
+     (dark for the light neutral/amber variants, white for red/blue/violet). */
+  color: var(--dcc-accent-contrast);
   cursor: pointer;
 }
+.dnd-cc-finalize-button i { color: inherit; }
 .dnd-cc-finalize-button:hover:not(:disabled) { filter: brightness(1.1); }
 .dnd-cc-finalize-button:disabled {
   background: var(--dcc-surface-alt);

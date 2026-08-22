@@ -3,6 +3,10 @@
   <p class="dnd-cc-step-intro">{{localize "DND-CC.Spells.Intro"}}</p>
 
   {{#if hasSpellcasting}}
+  <p class="dnd-cc-step-terms-note">{{{spellTermsNote}}}</p>
+  {{/if}}
+
+  {{#if hasSpellcasting}}
 
   {{#each spellcastingGroups}}
 

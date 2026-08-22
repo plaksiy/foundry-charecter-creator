@@ -16,7 +16,7 @@
       </div>
       <div class="dnd-cc-feat-side">
         {{#if this.canSwap}}
-        <span class="dnd-cc-feat-swap-label">{{localize "DND-CC.Feats.OriginFeat"}}</span>
+        <span class="dnd-cc-feat-swap-label">{{{../originFeatTermLink}}}</span>
         <select data-origin-feat-select="{{this.id}}">
           {{#each this.options}}
           <option value="{{this.uuid}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>

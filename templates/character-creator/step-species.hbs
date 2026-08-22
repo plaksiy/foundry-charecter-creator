@@ -1,6 +1,13 @@
 <div class="dnd-cc-step-body dnd-cc-step-species">
-  <h2>{{localize "DND-CC.Steps.Species"}}</h2>
-  <p class="dnd-cc-step-intro">{{localize "DND-CC.Species.Intro"}}</p>
+  <div class="dnd-cc-step-header-row">
+    <div>
+      <h2>{{localize "DND-CC.Steps.Species"}}</h2>
+      <p class="dnd-cc-step-intro">{{localize "DND-CC.Species.Intro"}}</p>
+    </div>
+    <button type="button" class="dnd-cc-randomize-button" data-randomize-species>
+      <i class="fa-solid fa-dice" aria-hidden="true"></i> {{localize "DND-CC.RandomizeButton"}}
+    </button>
+  </div>
 
   {{#if selectedSpeciesName}}
   <div class="dnd-cc-current-pick">

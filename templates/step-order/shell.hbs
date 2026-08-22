@@ -1,0 +1,26 @@
+<div class="dnd-cc-step-order-body">
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.StepOrder.Intro"}}</p>
+
+  <ul class="dnd-cc-order-list">
+    {{#each steps}}
+    <li class="dnd-cc-order-row" draggable="true" data-step-id="{{this.id}}">
+      <i class="fa-solid fa-grip-lines dnd-cc-order-handle" aria-hidden="true"></i>
+      <span class="dnd-cc-order-icon" aria-hidden="true"><svg viewBox="{{this.iconViewBox}}">{{{this.icon}}}</svg></span>
+      <span class="dnd-cc-order-label">{{this.label}}</span>
+      <span class="dnd-cc-order-buttons">
+        <button type="button" data-move="up" aria-label="{{localize 'DND-CC.StepOrder.MoveUp'}}"><i class="fa-solid fa-chevron-up"></i></button>
+        <button type="button" data-move="down" aria-label="{{localize 'DND-CC.StepOrder.MoveDown'}}"><i class="fa-solid fa-chevron-down"></i></button>
+      </span>
+    </li>
+    {{/each}}
+  </ul>
+
+  <footer class="dnd-cc-step-order-footer">
+    <button type="button" data-action="reset" class="dnd-cc-reset-button">
+      <i class="fa-solid fa-rotate-left"></i> {{localize "DND-CC.StepOrder.Reset"}}
+    </button>
+    <button type="button" class="dnd-cc-save-button">
+      <i class="fa-solid fa-floppy-disk"></i> {{localize "DND-CC.StepOrder.Save"}}
+    </button>
+  </footer>
+</div>

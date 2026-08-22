@@ -1,14 +1,5 @@
 <div class="dnd-cc-wizard">
   <nav class="dnd-cc-steps" aria-label="{{localize 'DND-CC.Accessibility.StepNavLabel'}}">
-    <div class="dnd-cc-rail-identity">
-      <button type="button" class="dnd-cc-identity-portrait" data-identity-portrait title="{{localize 'DND-CC.Identity.ChangePortrait'}}" aria-label="{{localize 'DND-CC.Identity.ChangePortrait'}}">
-        <img src="{{characterImg}}" alt="" aria-hidden="true" />
-      </button>
-      <div class="dnd-cc-identity-fields">
-        <label class="dnd-cc-identity-label" for="dnd-cc-identity-name-input">{{localize "DND-CC.Identity.Name"}}</label>
-        <input type="text" id="dnd-cc-identity-name-input" class="dnd-cc-identity-name" data-identity-name value="{{characterName}}" placeholder="{{localize 'DND-CC.Identity.NamePlaceholder'}}" />
-      </div>
-    </div>
     <ol>
       {{#each steps}}
       <li
@@ -41,11 +32,11 @@
   </section>
 
   <footer class="dnd-cc-footer">
-    <button type="button" class="dnd-cc-back" {{#unless canGoBack}}disabled{{/unless}}>
+    <button type="button" class="dnd-cc-back" data-tooltip="{{localize 'DND-CC.BackTooltip'}}" {{#unless canGoBack}}disabled{{/unless}}>
       <i class="fa-solid fa-arrow-left"></i> {{localize "DND-CC.Back"}}
     </button>
     <div class="dnd-cc-step-counter">{{stepCounterLabel}}</div>
-    <button type="button" class="dnd-cc-next" {{#unless canGoNext}}disabled{{/unless}}>
+    <button type="button" class="dnd-cc-next" data-tooltip="{{nextTooltip}}" {{#unless canGoNext}}disabled{{/unless}}>
       {{nextLabel}} <i class="fa-solid fa-arrow-right"></i>
     </button>
   </footer>

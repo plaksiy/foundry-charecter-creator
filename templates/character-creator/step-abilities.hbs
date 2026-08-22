@@ -1,6 +1,15 @@
 <div class="dnd-cc-step-body dnd-cc-step-abilities">
-  <h2>{{localize "DND-CC.Steps.Abilities"}}</h2>
-  <p class="dnd-cc-step-intro">{{localize "DND-CC.Abilities.Intro"}}</p>
+  <div class="dnd-cc-step-header-row">
+    <div>
+      <h2>{{localize "DND-CC.Steps.Abilities"}}</h2>
+      <p class="dnd-cc-step-intro">{{localize "DND-CC.Abilities.Intro"}}</p>
+    </div>
+    {{#if abilityMethod}}
+    <button type="button" class="dnd-cc-randomize-button" data-randomize-abilities>
+      <i class="fa-solid fa-dice" aria-hidden="true"></i> {{localize "DND-CC.RandomizeButton"}}
+    </button>
+    {{/if}}
+  </div>
 
   <div class="dnd-cc-ability-methods">
     {{#if allowedAbilityMethods.standardArray}}
