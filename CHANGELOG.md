@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.3
+
+### New
+
+- **Ability Scores step redesigned**: each ability is now a flip card with its own icon. The front keeps the existing Standard Array/Point Buy/Roll/Manual controls; the back shows that ability's saving throw and every skill it governs, including passive scores. The separate Skills step has been removed - it was a plain read-only table showing the same information, now folded directly into these cards.
+- **Browse Feats**: the Feats step gained a general browsable grid of every available feat, not just the background's origin feat swap, with a level-requirement pill on any feat you don't yet qualify for and a plain warning (not a hard block) if you pick one anyway or one that would duplicate a "normally singular" type like your Fighting Style.
+- **Inline item browsing**: picking a spell, buying equipment, resolving an equipment category choice, or choosing a subclass now opens dnd5e's compendium browser directly inside the wizard window instead of a separate popup, with its filter panel collapsed to just Search by default and content matching your character's ruleset shown first.
+- **GM Progress Dashboard improvements**: now lists finished characters alongside in-progress drafts, with class/level, species, background, HP, and (when your world uses XP-based leveling) a "ready to level up" indicator; the dashboard also refreshes itself live as players make progress, with no need to click Refresh. A whispered chat notification lets a game master (and, if enabled, the player) know when a character has earned enough XP to level up.
+- **Level Up now works with Tidy 5e Sheets**, and only shows the steps that are actually relevant to an existing character (no Ruleset/Species/Background/Abilities/Equipment) - continuing your current class is a single click, and multiclassing into a new one is an explicit opt-in rather than always-expanded.
+- **Add Custom** now covers subclasses and equipment as well as class/species/background/feat/spell.
+
+### Improved
+
+- The Ability Scores grid now lays out three cards per row instead of six in one line, with a "Flip All" button and a small always-visible flip control on each card.
+- The Class, Species, and Background card grids now flow "Add Custom" into whatever room is left in the last row instead of always starting a new one.
+- Review's Feats section now shows each feat as a full row with its subtype, and its name links to dnd5e's own item preview on hover.
+
+### Fixed
+
+- A Warlock or a third-caster subclass (Eldritch Knight, Arcane Trickster) could show no spellcasting options at all on the Spells step - the third-caster case reads its spellcasting configuration from the subclass rather than the class, which wasn't accounted for.
+- Removing a class or swapping Background could leave behind spells or starting equipment that were never actually removed, tagged to a source that no longer existed on the character.
+- An equipment choice offering a fixed item "or" a category of items (for example "a Greataxe or any martial melee weapon") silently did nothing when picked - both alternatives, including a focus-item alternative, now resolve correctly.
+- A background or class Ability Score Improvement could be reported as fully resolved even when no points had actually been spent on it, letting a step show as complete with a real choice still missing.
+- The "Minimum Feat Level" house rule wasn't enforced on the new Browse Feats grid, only the origin-feat swap.
+- Several embedded compendium-browser layout issues: duplicated filter rows, a search box crowded by an oversized "Filters" button, an oversized empty gap above search results, and a Select button that could scroll out of view.
+
 ## 0.7.0
 
 ### New
