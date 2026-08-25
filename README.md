@@ -20,14 +20,15 @@ The module runs entirely locally. It does not send data anywhere, does not phone
 
 ## What the wizard does
 
-- Eleven steps: Ruleset, Class, Species, Background, Abilities, Feats, Skills, Spells, Equipment, About, Review.
+- Eleven steps: Getting Started, Class, Species, Background, Abilities, Feats, Spells, Equipment, Identity, About, Review.
 - Choosing a ruleset (2014, 2024, or both) controls which content is offered.
 - Multiclassing: add as many classes as you want and remove any of them.
 - Species that are split into several variants in the compendiums (for example Elf: Drow, High, Wood) show up as one card with a variant picker, instead of separate cards.
 - Four ways to generate ability scores: standard array, point buy, dice roll (per ability, with the option to swap values), and manual entry.
 - Character advancement (skill picks, traits, subclass choices, and so on) happens right inside the wizard window, with no separate popups.
 - The Equipment step lets you pick a starting kit from your class or background, or buy your own gear using the character's real money. You cannot buy something you cannot afford.
-- The "Learn More" button on a class or species card shows its stats and real features, with a link to the compendium.
+- The "Learn More" button on a class, species, or background card shows its real compendium description, ability score improvements, and granted features, with a link to open it in the compendium.
+- A finished character can be leveled up later from its own character sheet, using the same guided steps as creation.
 - The "Add Custom" button quickly creates a placeholder for a homebrew class, species, or background, which you can then finish by hand.
 - The character's portrait and name can be edited from any step.
 - A finished character can be exported as a PDF (for printing) or as a Foundry Journal Entry.
@@ -49,9 +50,19 @@ All settings are available through the module's menu in the world's Configure Se
 
 **Require GM review before finalizing.** When turned on, a player's "Build Character" button does not finish the character right away. Instead it sends the game master a chat card asking for approval. The game master is never subject to this setting. It is off by default.
 
+**Character Creation Progress.** A button next to "Create Character" in the Actor Directory lists every player's in-progress draft and every finished character, with their current step and what's still missing, so the game master can jump in and help directly.
+
 ## Settings for players
 
 The "Sources" button in the wizard's top bar lets a player personally hide any content source the game master has enabled (for example, a book the player does not own). This only affects that player's own view, not the table's settings.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Class step](screenshots/class.png) Choosing a class | ![Learn More](screenshots/learn-more.png) Learn More, with the real compendium description |
+| ![Abilities step](screenshots/abilities.png) Generating ability scores | ![Identity step](screenshots/identity.png) Name, portrait, alignment, and backstory |
+| ![GM settings](screenshots/gm-settings.png) Game master settings | ![GM progress dashboard](screenshots/gm-progress.png) Tracking every player's progress |
 
 ## Language
 
