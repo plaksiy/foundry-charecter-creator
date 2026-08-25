@@ -55,7 +55,7 @@ The "Sources" button in the wizard's top bar lets a player personally hide any c
 
 ## Language
 
-The interface is available in English and Ukrainian.
+The interface is available in English right now, can be changed later.
 
 ## License
 
