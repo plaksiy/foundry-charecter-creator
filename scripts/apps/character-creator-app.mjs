@@ -1,4 +1,6 @@
 import {
+  ABILITY_HINTS,
+  ABILITY_ICONS,
   ABILITY_KEYS,
   ABILITY_METHODS,
   BACKGROUND_THEME_COLORS,
@@ -27,11 +29,17 @@ import {
   itemsAtRiskFromLevelDecrease,
   itemsGrantedBy,
   removeItemWithAdvancement,
+  runCompendiumBrowser,
   snapshotAbilities,
   triggerAdvancement,
   unresolvedAdvancementTitles
 } from "../models/choice-queue.mjs";
-import { getStepItems, listPlayerVisiblePacks, setPlayerSourceVisibility } from "../services/compendium-sources.mjs";
+import {
+  getRulesetMismatchedSourceSlugs,
+  getStepItems,
+  listPlayerVisiblePacks,
+  setPlayerSourceVisibility
+} from "../services/compendium-sources.mjs";
 import { formatGp, itemPriceInGp, redenominateGp, totalGpEquivalent } from "../services/currency.mjs";
 import {
   areFeatsAllowedAtLevel,
@@ -138,6 +146,17 @@ function lightenColor(hex) {
 }
 
 /**
+ * A dnd5e proficiency multiplier (0/0.5/1/2, from `system.skills[key].value` or
+ * `system.abilities[key].saveProf.multiplier`) as the same four-tier label the Skills
+ * step and the Abilities flip cards' Saving Throw/skills-governed backs both use.
+ * @param {number} value
+ * @returns {"none"|"half"|"prof"|"expertise"}
+ */
+function proficiencyTier(value) {
+  return value >= 2 ? "expertise" : value >= 1 ? "prof" : value > 0 ? "half" : "none";
+}
+
+/**
  * Decorate an item-list entry (already carrying uuid/name/img/ruleset from getStepItems)
  * with display-ready pill text for whatever real mechanical data was fetched alongside it
  * - real hit die / primary ability for classes, real speed for species. `null` for
@@ -203,12 +222,6 @@ export const STEP_DEFINITIONS = [
     icon: '<g fill="currentColor"><path d="M14.564 40.259C14.1811 40.2568 13.8029 40.1748 13.4535 40.0181C13.1042 39.8613 12.7914 39.6334 12.5352 39.3489C12.2789 39.0643 12.0849 38.7294 11.9656 38.3656C11.8462 38.0018 11.8041 37.617 11.842 37.236L12.759 28.188L6.7 21.405C6.38126 21.0473 6.16176 20.6123 6.06337 20.1434C5.96498 19.6745 5.99112 19.188 6.1392 18.7324C6.28728 18.2767 6.55212 17.8678 6.90737 17.5463C7.26261 17.2248 7.69587 17.002 8.164 16.9L17.053 14.975L21.5 7.331C21.7544 6.89439 22.1189 6.53211 22.557 6.28032C22.9952 6.02853 23.4917 5.89603 23.997 5.89603C24.5023 5.89603 24.9988 6.02853 25.437 6.28032C25.8751 6.53211 26.2396 6.89439 26.494 7.331L30.944 14.972L39.834 16.897C40.3029 16.9984 40.7369 17.221 41.0929 17.5426C41.4488 17.8642 41.7142 18.2735 41.8626 18.7297C42.0109 19.1859 42.037 19.673 41.9383 20.1424C41.8396 20.6119 41.6195 21.0472 41.3 21.405L35.24 28.188L36.157 37.236C36.2054 37.7132 36.1277 38.1948 35.9317 38.6326C35.7357 39.0704 35.4283 39.4492 35.0402 39.7311C34.6521 40.0129 34.1968 40.188 33.7198 40.2389C33.2428 40.2898 32.7609 40.2147 32.322 40.021L24 36.354L15.677 40.021C15.3268 40.1775 14.9476 40.2586 14.564 40.259ZM24 7.9C23.8443 7.89834 23.691 7.93835 23.5559 8.01589C23.4209 8.09343 23.3091 8.20568 23.232 8.341L18.559 16.36C18.4892 16.4799 18.3951 16.584 18.2829 16.6656C18.1706 16.7472 18.0426 16.8046 17.907 16.834L8.587 18.853C8.45979 18.8799 8.34188 18.9398 8.24509 19.0266C8.1483 19.1135 8.07603 19.2242 8.03552 19.3478C7.99501 19.4713 7.98768 19.6034 8.01427 19.7306C8.04085 19.8579 8.10042 19.976 8.187 20.073L14.541 27.184C14.6333 27.2874 14.7032 27.409 14.746 27.5408C14.7889 27.6727 14.8039 27.812 14.79 27.95L13.83 37.438C13.817 37.5671 13.8381 37.6974 13.8912 37.8158C13.9443 37.9342 14.0275 38.0366 14.1326 38.1128C14.2376 38.189 14.3608 38.2364 14.4899 38.2501C14.6189 38.2638 14.7493 38.2434 14.868 38.191L23.6 34.347C23.7269 34.2907 23.8642 34.2616 24.003 34.2616C24.1418 34.2616 24.2791 34.2907 24.406 34.347L33.132 38.191C33.2507 38.2434 33.3811 38.2638 33.5101 38.2501C33.6392 38.2364 33.7624 38.189 33.8674 38.1128C33.9725 38.0366 34.0557 37.9342 34.1088 37.8158C34.1619 37.6974 34.183 37.5671 34.17 37.438L33.21 27.95C33.1961 27.812 33.2111 27.6727 33.254 27.5408C33.2968 27.409 33.3667 27.2874 33.459 27.184L39.813 20.072C39.8993 19.975 39.9587 19.857 39.9851 19.7298C40.0116 19.6027 40.0042 19.4708 39.9637 19.3474C39.9232 19.224 39.851 19.1134 39.7544 19.0267C39.6577 18.9399 39.54 18.88 39.413 18.853L30.092 16.834C29.9564 16.8046 29.8284 16.7472 29.7161 16.6656C29.6039 16.584 29.5098 16.4799 29.44 16.36L24.768 8.337C24.6904 8.20243 24.5784 8.09098 24.4434 8.01416C24.3084 7.93734 24.1553 7.89794 24 7.9V7.9Z"/><path d="M24 46C23.7348 46 23.4804 45.8946 23.2929 45.7071C23.1054 45.5196 23 45.2652 23 45V41C23 40.7348 23.1054 40.4804 23.2929 40.2929C23.4804 40.1054 23.7348 40 24 40C24.2652 40 24.5196 40.1054 24.7071 40.2929C24.8946 40.4804 25 40.7348 25 41V45C25 45.2652 24.8946 45.5196 24.7071 45.7071C24.5196 45.8946 24.2652 46 24 46Z"/><path d="M4.028 31.489C3.78993 31.489 3.55969 31.404 3.37867 31.2493C3.19766 31.0947 3.07775 30.8806 3.0405 30.6454C3.00326 30.4103 3.05113 30.1696 3.17551 29.9666C3.29988 29.7636 3.4926 29.6116 3.719 29.538L7.519 28.302C7.76715 28.2335 8.03217 28.2632 8.2589 28.3852C8.48563 28.5071 8.6566 28.7118 8.73623 28.9566C8.81586 29.2014 8.79801 29.4675 8.68639 29.6995C8.57477 29.9315 8.37799 30.1115 8.137 30.202L4.337 31.438C4.23739 31.4714 4.13307 31.4886 4.028 31.489V31.489Z"/><path d="M43.972 31.489C43.867 31.4893 43.7627 31.4727 43.663 31.44L39.863 30.204C39.7328 30.168 39.6112 30.106 39.5056 30.0218C39.4 29.9375 39.3125 29.8327 39.2485 29.7137C39.1846 29.5947 39.1453 29.464 39.1333 29.3294C39.1212 29.1949 39.1365 29.0593 39.1783 28.9308C39.2201 28.8023 39.2875 28.6836 39.3764 28.5819C39.4653 28.4802 39.574 28.3976 39.6957 28.339C39.8174 28.2804 39.9498 28.2471 40.0848 28.2411C40.2197 28.2351 40.3545 28.2565 40.481 28.304L44.281 29.54C44.5074 29.6136 44.7001 29.7656 44.8245 29.9686C44.9489 30.1716 44.9967 30.4123 44.9595 30.6474C44.9223 30.8826 44.8023 31.0967 44.6213 31.2513C44.4403 31.406 44.2101 31.4909 43.972 31.491V31.489Z"/><path d="M33.991 11.247C33.8066 11.2468 33.6259 11.1957 33.4688 11.0993C33.3116 11.0028 33.1842 10.8648 33.1006 10.7005C33.017 10.5362 32.9804 10.3519 32.995 10.1681C33.0095 9.98433 33.0746 9.80814 33.183 9.659L35.534 6.423C35.6901 6.20844 35.925 6.06467 36.1871 6.02332C36.4492 5.98197 36.7169 6.04642 36.9315 6.2025C37.1461 6.35858 37.2898 6.5935 37.3312 6.85559C37.3725 7.11767 37.3081 7.38544 37.152 7.6L34.8 10.834C34.7073 10.9618 34.5857 11.0659 34.4451 11.1377C34.3045 11.2094 34.1489 11.2469 33.991 11.247Z"/><path d="M14.009 11.247C13.851 11.2471 13.6951 11.2097 13.5543 11.1379C13.4135 11.0661 13.2918 10.962 13.199 10.834L10.848 7.6C10.6921 7.38544 10.6277 7.11772 10.6692 6.85573C10.7106 6.59374 10.8544 6.35895 11.069 6.203C11.2836 6.04706 11.5513 5.98273 11.8133 6.02418C12.0753 6.06562 12.3101 6.20944 12.466 6.424L14.817 9.66C14.9254 9.80913 14.9905 9.98533 15.005 10.1691C15.0196 10.3529 14.983 10.5372 14.8994 10.7015C14.8158 10.8658 14.6884 11.0038 14.5312 11.1003C14.3741 11.1967 14.1934 11.2478 14.009 11.248V11.247Z"/></g>'
   },
   {
-    id: "skills",
-    label: "DND-CC.Steps.Skills",
-    iconViewBox: "0 0 48 48",
-    icon: '<path fill="currentColor" d="M45 20H44V18C44 17.2044 43.6839 16.4413 43.1213 15.8787C42.5587 15.3161 41.7956 15 41 15H39V13C39 12.2044 38.6839 11.4413 38.1213 10.8787C37.5587 10.3161 36.7956 10 36 10H33C32.2044 10 31.4413 10.3161 30.8787 10.8787C30.3161 11.4413 30 12.2044 30 13V20H18V13C18 12.2044 17.6839 11.4413 17.1213 10.8787C16.5587 10.3161 15.7956 10 15 10H12C11.2044 10 10.4413 10.3161 9.87868 10.8787C9.31607 11.4413 9 12.2044 9 13V15H7C6.20435 15 5.44129 15.3161 4.87868 15.8787C4.31607 16.4413 4 17.2044 4 18V20H3C2.20435 20 1.44129 20.3161 0.87868 20.8787C0.31607 21.4413 0 22.2044 0 23L0 25C0 25.7956 0.31607 26.5587 0.87868 27.1213C1.44129 27.6839 2.20435 28 3 28H4V30C4 30.7956 4.31607 31.5587 4.87868 32.1213C5.44129 32.6839 6.20435 33 7 33H9V35C9 35.7956 9.31607 36.5587 9.87868 37.1213C10.4413 37.6839 11.2044 38 12 38H15C15.7956 38 16.5587 37.6839 17.1213 37.1213C17.6839 36.5587 18 35.7956 18 35V28H30V35C30 35.7956 30.3161 36.5587 30.8787 37.1213C31.4413 37.6839 32.2044 38 33 38H36C36.7956 38 37.5587 37.6839 38.1213 37.1213C38.6839 36.5587 39 35.7956 39 35V33H41C41.7956 33 42.5587 32.6839 43.1213 32.1213C43.6839 31.5587 44 30.7956 44 30V28H45C45.7956 28 46.5587 27.6839 47.1213 27.1213C47.6839 26.5587 48 25.7956 48 25V23C48 22.2044 47.6839 21.4413 47.1213 20.8787C46.5587 20.3161 45.7956 20 45 20ZM3 26C2.73478 26 2.48043 25.8946 2.29289 25.7071C2.10536 25.5196 2 25.2652 2 25V23C2 22.7348 2.10536 22.4804 2.29289 22.2929C2.48043 22.1054 2.73478 22 3 22H4V26H3ZM7 31C6.73478 31 6.48043 30.8946 6.29289 30.7071C6.10536 30.5196 6 30.2652 6 30V18C6 17.7348 6.10536 17.4804 6.29289 17.2929C6.48043 17.1054 6.73478 17 7 17H9V31H7ZM16 35C16 35.2652 15.8946 35.5196 15.7071 35.7071C15.5196 35.8946 15.2652 36 15 36H12C11.7348 36 11.4804 35.8946 11.2929 35.7071C11.1054 35.5196 11 35.2652 11 35V13C11 12.7348 11.1054 12.4804 11.2929 12.2929C11.4804 12.1054 11.7348 12 12 12H15C15.2652 12 15.5196 12.1054 15.7071 12.2929C15.8946 12.4804 16 12.7348 16 13V35ZM18 26V22H30V26H18ZM37 35C37 35.2652 36.8946 35.5196 36.7071 35.7071C36.5196 35.8946 36.2652 36 36 36H33C32.7348 36 32.4804 35.8946 32.2929 35.7071C32.1054 35.5196 32 35.2652 32 35V13C32 12.7348 32.1054 12.4804 32.2929 12.2929C32.4804 12.1054 32.7348 12 33 12H36C36.2652 12 36.5196 12.1054 36.7071 12.2929C36.8946 12.4804 37 12.7348 37 13V35ZM42 30C42 30.2652 41.8946 30.5196 41.7071 30.7071C41.5196 30.8946 41.2652 31 41 31H39V17H41C41.2652 17 41.5196 17.1054 41.7071 17.2929C41.8946 17.4804 42 17.7348 42 18V30ZM46 25C46 25.2652 45.8946 25.5196 45.7071 25.7071C45.5196 25.8946 45.2652 26 45 26H44V22H45C45.2652 22 45.5196 22.1054 45.7071 22.2929C45.8946 22.4804 46 22.7348 46 23V25Z"/>'
-  },
-  {
     id: "spells",
     label: "DND-CC.Steps.Spells",
     iconViewBox: "0 0 600 600",
@@ -227,7 +240,7 @@ export const STEP_DEFINITIONS = [
     // An ID-badge-with-a-clip outline around a filled person silhouette - matches the
     // rest of the rail's mix of stroke-outline container shapes with solid-fill interior
     // elements (viewBox "0 0 48 48" is also the most common one already in use here,
-    // shared with Class). Placeholder until a dedicated icon is supplied.
+    // shared with Class).
     icon: '<g fill="currentColor"><rect x="6" y="10" width="36" height="30" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="18" y="4" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="21" r="5.5"/><path d="M14 34C14 28.4772 18.4772 24 24 24C29.5228 24 34 28.4772 34 34V35H14V34Z"/></g>'
   },
   {
@@ -370,6 +383,16 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
      * a clean slate rather than remembering a stale selection.
      */
     this.compareMode = false;
+    /**
+     * Level Up's Class step starts on "level up whichever class(es) you already have"
+     * (the existing per-class level dropdowns, unchanged) - the full "add a class" grid
+     * (complexity filter, compare tray, card grid) only appears once this flips true via
+     * the step's own "Multiclass into a new class" toggle. Previously that whole grid
+     * was always visible during Level Up too, which read as the wizard pushing
+     * multiclassing on every level-up rather than it being an explicit, opt-in choice.
+     * Pure UI-session state, same reasoning as classComplexityFilter/compareMode above.
+     */
+    this._levelUpShowMulticlass = false;
   }
 
   /**
@@ -378,9 +401,36 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * them by position reads this instead of STEP_DEFINITIONS directly, so a custom order
    * actually takes effect. A plain getter (not cached) since it's cheap to recompute and
    * always reflects the current setting, including a mid-session GM change.
+   *
+   * Level Up additionally drops every step that isn't meaningful for an *already*
+   * existing character: Ruleset/Species/Background (fixed at creation, never revisited),
+   * Abilities (this wizard's own base-score assignment step - irrelevant once scores are
+   * already set; a level's real Ability Score Improvement, if it grants one, is still
+   * resolved through the normal embedded Advancement flow on the Class step itself, same
+   * as any other class feature), and Equipment (no starting kit at level-up). Feats stays
+   * only when actually usable right now, reusing the exact same
+   * `areFeatsAllowedAtLevel` house-rule check the Feats step's own "Browse" toggle
+   * already gates on - not cached, so it naturally reflects the actor's level changing
+   * as the player levels up mid-flow. Identity/About/Review stay - a player leveling up
+   * may still want to add to their backstory or fix a typo.
    */
   get orderedSteps() {
-    return getOrderedStepDefinitions(STEP_DEFINITIONS);
+    const ordered = getOrderedStepDefinitions(STEP_DEFINITIONS);
+    if (!this.levelUp) return ordered;
+
+    const excluded = new Set(["ruleset", "species", "background", "abilities", "equipment"]);
+    if (!this._levelUpFeatsRelevant()) excluded.add("feats");
+    return ordered.filter((step) => !excluded.has(step.id));
+  }
+
+  /** @returns {boolean} whether the Feats step is worth showing during Level Up right now - see orderedSteps. */
+  _levelUpFeatsRelevant() {
+    const actor = this.draft?.actor ?? this._openedActor;
+    if (!actor) return false;
+    const totalLevel = actor.items
+      .filter((item) => item.type === "class")
+      .reduce((sum, item) => sum + item.system.levels, 0);
+    return areFeatsAllowedAtLevel(totalLevel);
   }
 
   /** Level Up / assisting modes already know the actor's name synchronously; no need to wait on this.draft. */
@@ -534,8 +584,6 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         return { partialPath: this._partialPath("step-abilities"), ...this._prepareAbilitiesContext() };
       case "feats":
         return { partialPath: this._partialPath("step-feats"), ...(await this._prepareFeatsContext()) };
-      case "skills":
-        return { partialPath: this._partialPath("step-skills"), ...(await this._prepareSkillsContext()) };
       case "spells":
         return { partialPath: this._partialPath("step-spells"), ...(await this._prepareSpellsContext()) };
       case "equipment":
@@ -622,8 +670,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * "Tiefling, Abyssal" / "Tiefling, Chthonic" / "Tiefling, Infernal") into one parent
    * card per base name, matching how a player actually thinks about picking a species
    * ("Elf, then which kind") rather than showing every lineage as an unrelated top-level
-   * card. The "Name, Lineage" naming is the real compendium convention dnd5e itself uses
-   * for pre-split species - not every species uses it (Dragonborn,
+   * card. "Name, Lineage" is the real compendium naming convention dnd5e itself uses for
+   * pre-split species - not every species uses it (Dragonborn,
    * Human, etc. are single un-split items and pass through untouched here). A base name
    * with only one surviving member (e.g. house-rules banned the other two lineages)
    * isn't a real group, so it's put back as a normal standalone card instead.
@@ -706,9 +754,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       }
       const missing = unresolvedAdvancementTitles(item, item.system.levels);
       // A class Item's primaryAbility.value is a real Set, not an array - a plain
-      // .length check silently reads undefined (=> always falsy) on it,
-      // the same Set-vs-array gotcha documented in choice-queue.mjs's countEntries.
-      // Array.from normalizes a Set, an Array, or nothing uniformly.
+      // .length check silently reads undefined (=> always falsy) on it, the same
+      // Set-vs-array gotcha handled by choice-queue.mjs's countEntries. Array.from
+      // normalizes a Set, an Array, or nothing uniformly.
       const primaryAbilityArray = Array.from(item.system.primaryAbility?.value ?? []);
       const primaryAbilities = primaryAbilityArray.length ? primaryAbilityArray : null;
       return {
@@ -731,6 +779,22 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         abilityMismatchHint: this._classAbilityMismatchHint(primaryAbilities)
       };
     });
+
+    // "Add Custom Subclass" only makes sense once a subclass pick is actually live -
+    // showing it unconditionally on the plain class-picking grid (before any class has
+    // even reached its subclass level) read as confusing clutter unrelated to what's
+    // being chosen there. A class item carries a real Subclass-type advancement with a
+    // trigger `level`; "pending" means that level has been reached but no subclass uuid
+    // has been recorded yet - the exact same condition the embedded native Subclass
+    // picker itself would be showing right now.
+    const canAddCustomSubclass = classItems.some((item) =>
+      Object.values(item.advancement?.byId ?? {}).some(
+        (advancement) => advancement.type === "Subclass"
+          && typeof advancement.level === "number"
+          && advancement.level <= item.system.levels
+          && !advancement.value?.uuid
+      )
+    );
 
     const existingNames = new Set(classItems.map((item) => item.name));
     const items = await getStepItems("class", this.rulesetVersions);
@@ -768,10 +832,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       canAddClass: totalLevel < MAX_CLASS_LEVEL,
       addableClasses,
       addableClassGroups: this._groupBySource(addableClasses),
+      canAddCustomSubclass,
       complexityOptions,
       compareMode: this.compareMode,
       compareCount: compareClasses.length,
       canCompare: compareClasses.length >= 2,
+      levelUp: this.levelUp,
+      showAddClassGrid: !this.levelUp || this._levelUpShowMulticlass,
       ...this._preparePartyAdvisorContext()
     };
   }
@@ -959,6 +1026,40 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         .sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    // A general "browse every real feat" grid, separate from the origin-feat swap above -
+    // lets the player add an extra feat outside the two fixed grants this wizard already
+    // covers (origin feat, and the level-4/8/... ASI-or-feat choice dnd5e's own embedded
+    // Advancement flow already handles). Only computed when the browser panel is
+    // actually open (this.showFeatBrowser, a plain UI-session flag like
+    // classComplexityFilter - not a character choice, so not a CharacterDraft flag) AND
+    // the GM's "Minimum Feat Level" house rule actually allows discretionary feats yet -
+    // reuses the exact same areFeatsAllowedAtLevel check the origin-feat swap dropdown
+    // already gates on, since adding an extra feat through Browse is exactly the kind of
+    // pick that house rule is meant to cover. Without this, a GM setting a minimum level
+    // (or turning feats off entirely, minFeatLevel <= 0) had no effect on this feature at
+    // all - it only ever gated the swap dropdown, since Browse didn't exist yet when that
+    // gating was originally built.
+    let browsableFeats = [];
+    if (this.showFeatBrowser && canSwapOriginFeat) {
+      const allFeats = await getStepItems("feat", this.rulesetVersions);
+      const alreadyHeld = new Set(featItems.map((item) => item.name));
+      browsableFeats = allFeats
+        .filter((item) => item.typeValue === "feat" && !alreadyHeld.has(item.name))
+        .map((item) => {
+          const prereqLevel = item.prerequisites?.level ?? null;
+          return {
+            uuid: item.uuid,
+            name: item.name,
+            img: item.img,
+            color: hashCardColor(item.name),
+            subtypeLabel: item.subtype ? (CONFIG.DND5E.featureTypes.feat?.subtypes[item.subtype] ?? null) : null,
+            prereqLevel,
+            qualifies: !prereqLevel || totalLevel >= prereqLevel
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     const feats = featItems.map((item) => {
       const subtype = item.system.type?.subtype ?? null;
       const isOrigin = subtype === ORIGIN_FEAT_SUBTYPE;
@@ -970,12 +1071,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
       return {
         id: item.id,
+        uuid: item.uuid,
         name: item.name,
+        // dnd5e's own real hover-preview card (full feat text, no content of our own
+        // written) - same content-link mechanism the rules-glossary terms already use.
+        nameLink: `<a class="content-link" data-link data-uuid="${item.uuid}" data-type="Item">${item.name}</a>`,
         img: item.img,
         color: hashCardColor(item.name),
         subtypeLabel: subtype ? (CONFIG.DND5E.featureTypes.feat?.subtypes[subtype] ?? null) : null,
         isOrigin,
         canSwap,
+        canRemove: item.getFlag(MODULE_ID, "addedViaBrowser") === true,
         missingHint: missingChoices.length
           ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missingChoices.join(", ") })
           : "",
@@ -989,7 +1095,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       };
     });
 
-    return { feats, originFeatTermLink };
+    return {
+      feats,
+      originFeatTermLink,
+      browsableFeats,
+      showFeatBrowser: this.showFeatBrowser ?? false,
+      canBrowseFeats: canSwapOriginFeat
+    };
   }
 
   /**
@@ -1013,7 +1125,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           abilityOrder: ABILITY_KEYS.indexOf(config.ability),
           proficiencyLabel: CONFIG.DND5E.proficiencyLevels[String(skill.value)] ?? CONFIG.DND5E.proficiencyLevels["0"],
           isProficient: skill.value > 0,
-          proficiencyTier: skill.value >= 2 ? "expertise" : skill.value >= 1 ? "prof" : skill.value > 0 ? "half" : "none",
+          proficiencyTier: proficiencyTier(skill.value),
           totalText: skill.total >= 0 ? `+${skill.total}` : `${skill.total}`,
           passive: skill.passive
         };
@@ -1045,6 +1157,28 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * technically permissive for which spell *levels* a given class's own known-spells
    * list should be limited to.
    */
+  /**
+   * The real spellcasting config to use for a spellcasting class - almost always just
+   * the class item's own `system.spellcasting`, but a third-caster subclass (Eldritch
+   * Knight, Arcane Trickster) grants spellcasting entirely through the *subclass*: the
+   * class item's own block stays at `progression: "none"` with `type`/`ability` blank
+   * and `preparation.max: 0`, while the
+   * subclass's own `system.spellcasting` carries the real, fully-resolved values
+   * (`progression: "third"`, `type: "spell"`, `ability: "int"`, `preparation.max: 3`).
+   * Reading the class-level block unconditionally in this situation silently produced
+   * an empty Spells step (no cantrip/spell group rendered at all, since both caps
+   * resolved to 0) and tagged any spell added anyway with `system.method: ""` instead
+   * of a real value - this resolves to whichever block actually defines a real
+   * progression, so callers never need to know which one applies.
+   * @param {Item5e} classItem
+   * @returns {object} a `system.spellcasting`-shaped object
+   */
+  _effectiveSpellcasting(classItem) {
+    const subclassCasting = classItem.subclass?.system?.spellcasting;
+    if (subclassCasting?.progression && subclassCasting.progression !== "none") return subclassCasting;
+    return classItem.system.spellcasting;
+  }
+
   async _prepareSpellsContext() {
     const actor = this.draft.actor;
     const spellcastingClasses = actor.spellcastingClasses ?? {};
@@ -1058,7 +1192,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const spellcastingGroups = identifiers.map((identifier) => {
       const classItem = spellcastingClasses[identifier];
-      const spellcasting = classItem.system.spellcasting;
+      const spellcasting = this._effectiveSpellcasting(classItem);
 
       const classSourceKey = `class:${identifier}`;
       const classSpellItems = actor.items.filter(
@@ -1067,7 +1201,18 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const cantripItems = classSpellItems.filter((item) => item.system.level === 0);
       const leveledItems = classSpellItems.filter((item) => item.system.level > 0);
 
-      const cantripsMax = rollData.scale?.[identifier]?.["cantrips-known"]?.value ?? 0;
+      // Cantrips-known is always a plain ScaleValue, for every caster type - unlike
+      // preparation.max (folded into _effectiveSpellcasting above), there's no
+      // class-vs-subclass object to prefer, just two possible identifiers/key spellings
+      // to check: a full/pact caster's own class identifier with "cantrips-known"
+      // (e.g. Wizard), or, for a third-caster subclass like Eldritch Knight, that
+      // subclass's own identifier with the plain key "cantrips" instead.
+      const subclassIdentifier = classItem.subclass?.system?.identifier;
+      const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
+      const cantripsMax = rollData.scale?.[identifier]?.["cantrips-known"]?.value
+        ?? subclassScale?.["cantrips-known"]?.value
+        ?? subclassScale?.cantrips?.value
+        ?? 0;
       const preparedMax = spellcasting.preparation?.max ?? 0;
 
       return {
@@ -1178,9 +1323,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         && (kind === "cantrip" ? item.system.level === 0 : item.system.level > 0)
     ).length;
     const rollData = actor.getRollData();
+    const subclassIdentifier = classItem.subclass?.system?.identifier;
+    const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
     const capForKind = kind === "cantrip"
-      ? (rollData.scale?.[identifier]?.["cantrips-known"]?.value ?? 0)
-      : (classItem.system.spellcasting.preparation?.max ?? 0);
+      ? (rollData.scale?.[identifier]?.["cantrips-known"]?.value ?? subclassScale?.["cantrips-known"]?.value ?? subclassScale?.cantrips?.value ?? 0)
+      : (this._effectiveSpellcasting(classItem).preparation?.max ?? 0);
     const freeSlots = Math.max(1, capForKind - existingOfKind);
 
     const filters = { locked: { additional: {}, documentClass: "Item", types: new Set(["spell"]) } };
@@ -1189,9 +1336,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       ? { min: 0, max: 0 }
       : { min: 1, max: this._maxSpellSlotLevel() };
 
-    const { CompendiumBrowser } = dnd5e.applications;
-    const result = await CompendiumBrowser.select({ filters, selection: { min: 1, max: freeSlots } });
-    if (!result?.size) return;
+    const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(this.rulesetVersions);
+    let result = null;
+    await this._runEmbeddedBrowser(async (host) => {
+      result = await runCompendiumBrowser({ filters, selection: { min: 1, max: freeSlots } }, host, excludedSourceSlugs);
+    });
+    if (!result?.size) {
+      this.render();
+      return;
+    }
 
     const toCreate = [];
     for (const uuid of result) {
@@ -1200,7 +1353,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       if (!(await this._confirmNotDuplicate(item.name))) continue;
 
       const data = item.toObject();
-      data.system.method = classItem.system.spellcasting.type;
+      data.system.method = this._effectiveSpellcasting(classItem).type;
       data.system.prepared = 1;
       // Set explicitly rather than relying on dnd5e's own auto-detection (Item#_preCreate
       // only infers sourceItem when exactly one of the actor's spellcasting classes could
@@ -1307,6 +1460,32 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
               ? Object.entries(CONFIG.DND5E.focusTypes[entry.key]?.itemIds ?? {}).map(([name, uuid]) => ({
                   uuid,
                   label: name.charAt(0).toUpperCase() + name.slice(1)
+                }))
+              : null,
+            // An "(a) Greataxe or (b) any martial melee weapon"-style pick is a real OR
+            // node with its own children (a fixed "linked" alternative plus a category
+            // one). Each child already has a real, correct `.label` getter (dnd5e's own
+            // EquipmentEntryData), so no label-building of our own is needed - just
+            // surface them as separate buttons.
+            // A child can itself be a "focus" alternative ("(a) a component pouch or
+            // (b) an arcane focus") - reachable on SRD-only Sorcerer/Warlock/Wizard
+            // kits when the PHB module isn't installed, confirmed by scanning every
+            // enabled class/background pack directly rather than guessing. Renders its
+            // own select (same focusOptions shape/handler as a standalone "focus"
+            // entry) instead of a plain button, since there's more than one concrete
+            // item to choose from.
+            alternatives: entry.type === "OR"
+              ? entry.children.map((child) => ({
+                  id: child._id,
+                  label: child.label,
+                  isLinked: child.type === "linked",
+                  isFocus: child.type === "focus",
+                  focusOptions: child.type === "focus"
+                    ? Object.entries(CONFIG.DND5E.focusTypes[child.key]?.itemIds ?? {}).map(([name, uuid]) => ({
+                        uuid,
+                        label: name.charAt(0).toUpperCase() + name.slice(1)
+                      }))
+                    : null
                 }))
               : null
           }));
@@ -1464,11 +1643,62 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const filters = { locked: { additional: {}, documentClass: "Item", types: new Set([itemType]) } };
     if (entry.key) filters.locked.additional.type = { [entry.key]: 1 };
 
-    const { CompendiumBrowser } = dnd5e.applications;
-    const result = await CompendiumBrowser.select({ filters, selection: { min: 1, max: 1 } });
-    if (!result?.size) return;
+    const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(this.rulesetVersions);
+    let result = null;
+    await this._runEmbeddedBrowser(async (host) => {
+      result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
+    });
+    if (!result?.size) {
+      this.render();
+      return;
+    }
 
     await this._grantEquipmentChoiceItem(source, branch._id, entry._id, Array.from(result)[0], entry.count ?? 1);
+  }
+
+  /**
+   * Resolve one alternative of an OR-type pending choice ("(a) Greataxe or (b) any
+   * martial melee weapon") - the player picked side (a) or (b) via its own button (see
+   * the `alternatives` array _prepareEquipmentContext builds). A "linked" alternative
+   * (a fixed item) grants directly; anything else (weapon/armor/tool) reuses the exact
+   * same embedded-browser category resolution _resolveEquipmentCategoryChoice already
+   * has, just filtered to that specific child instead of the OR node itself. Always
+   * tags the granted item with the *parent* OR entry's id, not the child's - that's
+   * what _prepareEquipmentContext's pendingChoices filter checks to know this choice
+   * has been resolved, so tagging the child's id instead would leave the whole "(a) or
+   * (b)" prompt incorrectly still showing as pending.
+   * @param {string} source
+   * @param {string} entryId - the parent OR entry's id
+   * @param {string} childId
+   */
+  async _resolveEquipmentAlternative(source, entryId, childId) {
+    const { entry, branch } = this._findPendingEquipmentEntry(source, entryId);
+    if (!entry || entry.type !== "OR") return;
+    const child = entry.children.find((candidate) => candidate._id === childId);
+    if (!child) return;
+
+    if (child.type === "linked") {
+      await this._grantEquipmentChoiceItem(source, branch._id, entry._id, child.key, child.count ?? 1);
+      return;
+    }
+
+    const itemType = { weapon: "weapon", armor: "equipment", tool: "tool" }[child.type];
+    if (!itemType) return;
+
+    const filters = { locked: { additional: {}, documentClass: "Item", types: new Set([itemType]) } };
+    if (child.key) filters.locked.additional.type = { [child.key]: 1 };
+
+    const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(this.rulesetVersions);
+    let result = null;
+    await this._runEmbeddedBrowser(async (host) => {
+      result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
+    });
+    if (!result?.size) {
+      this.render();
+      return;
+    }
+
+    await this._grantEquipmentChoiceItem(source, branch._id, entry._id, Array.from(result)[0], child.count ?? 1);
   }
 
   /**
@@ -1508,13 +1738,22 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * was spent - see _removeEquipmentItem.
    */
   async _addManualEquipmentItem() {
-    const { CompendiumBrowser } = dnd5e.applications;
     const filters = { locked: { documentClass: "Item", types: new Set(EQUIPMENT_ITEM_TYPES) } };
-    const result = await CompendiumBrowser.select({ filters, selection: { min: 1, max: 1 } });
-    if (!result?.size) return;
+    const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(this.rulesetVersions);
+    let result = null;
+    await this._runEmbeddedBrowser(async (host) => {
+      result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
+    }, { showBudget: true });
+    if (!result?.size) {
+      this.render();
+      return;
+    }
 
     const item = await fromUuid(Array.from(result)[0]);
-    if (!item) return;
+    if (!item) {
+      this.render();
+      return;
+    }
 
     const actor = this.draft.actor;
     const priceGp = itemPriceInGp(item);
@@ -1527,6 +1766,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           price: formatGp(priceGp),
           available: formatGp(availableGp)
         }));
+        this.render();
         return;
       }
       await actor.update({ "system.currency": redenominateGp(availableGp - priceGp) });
@@ -1536,6 +1776,74 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (priceGp > 0) foundry.utils.setProperty(data, `flags.${MODULE_ID}.purchasedPriceGp`, priceGp);
     await actor.createEmbeddedDocuments("Item", [data]);
     this.render();
+  }
+
+  /**
+   * Homebrew "Add Custom" for the Equipment step - a different shape from
+   * _showCustomItemForm's class/species/background/feat/spell/subclass flow, since
+   * equipment has no "pick one from a grid" step for a world-item stub to slot into;
+   * it goes straight onto the actor the same way a purchased item does. No currency is
+   * deducted (a freshly-created blank item has no real price yet to balance against,
+   * same "unpriced item is free" precedent the manual purchase path already uses) - a
+   * GM/player who wants to price it can do that afterward on the item's own native
+   * sheet, same as every other mechanical detail this form doesn't ask for directly.
+   */
+  _showCustomEquipmentForm() {
+    const esc = this._escapeHtml.bind(this);
+    const wrapper = document.createElement("div");
+    wrapper.className = "dnd-cc-detail-modal dnd-cc-custom-form";
+
+    const typeOptions = EQUIPMENT_ITEM_TYPES
+      .map((type) => `<option value="${type}">${esc(game.i18n.localize(CONFIG.Item.typeLabels[type]))}</option>`)
+      .join("");
+
+    wrapper.innerHTML = `
+      <div class="dnd-cc-detail-header">
+        <div class="dnd-cc-detail-title">
+          <span class="dnd-cc-detail-name">${esc(game.i18n.localize("DND-CC.AddCustom"))}</span>
+        </div>
+        <button type="button" class="dnd-cc-detail-close" data-overlay-close aria-label="${esc(game.i18n.localize("DND-CC.Close"))}">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="dnd-cc-detail-body">
+        <p class="dnd-cc-step-intro">${esc(game.i18n.localize("DND-CC.CustomForm.HintEquipment"))}</p>
+        <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.Name"))}</label>
+        <input type="text" class="dnd-cc-identity-name" data-custom-name placeholder="${esc(game.i18n.localize("DND-CC.CustomForm.NamePlaceholder"))}" />
+        <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.ItemType"))}</label>
+        <select data-custom-equipment-type>${typeOptions}</select>
+        <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.Description"))}</label>
+        <textarea class="dnd-cc-custom-description" data-custom-description rows="4"></textarea>
+        <button type="button" class="dnd-cc-detail-open-compendium" data-custom-create>
+          <i class="fa-solid fa-plus"></i> ${esc(game.i18n.localize("DND-CC.CustomForm.Create"))}
+        </button>
+      </div>
+    `;
+
+    wrapper.querySelector("[data-custom-create]").addEventListener("click", async () => {
+      const name = wrapper.querySelector("[data-custom-name]").value.trim();
+      if (!name) return;
+      const type = wrapper.querySelector("[data-custom-equipment-type]").value;
+      const description = wrapper.querySelector("[data-custom-description]").value.trim();
+
+      let created;
+      try {
+        [created] = await this.draft.actor.createEmbeddedDocuments("Item", [{
+          type,
+          name,
+          system: { description: { value: description ? `<p>${esc(description)}</p>` : "" } }
+        }]);
+      } catch (error) {
+        console.error(`${MODULE_ID} | Failed to create custom equipment item`, error);
+        ui.notifications.error(game.i18n.localize("DND-CC.CustomForm.CreateFailed"));
+        return;
+      }
+      this._hideOverlay();
+      this.render();
+      created.sheet.render(true);
+    });
+
+    this._showOverlay(wrapper);
   }
 
   async _removeEquipmentItem(itemId) {
@@ -1557,8 +1865,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * visually depending on it. A full `.dnd-cc-content` re-render on every blur used to
    * run right as the player clicked into the *next* field, landing that click during a
    * DOM swap and leaving its focus/selection in a broken state (typing in one field,
-   * then clicking a different one, misplaced the second
-   * field's cursor) before this was removed.
+   * then clicking a different one, misplaced the second field's cursor) - removed.
    */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
@@ -1661,10 +1968,39 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         })
       : [];
 
+    const actorAbilities = this.draft.actor.system.abilities;
+    const actorSkills = this.draft.actor.system.skills;
+
     const abilities = ABILITY_KEYS.map((key) => {
       const total = base[key] === null || base[key] === undefined ? null : base[key] + bonus[key];
       const mod = total === null ? null : Math.floor((total - 10) / 2);
       const hasValue = base[key] !== null && base[key] !== undefined;
+
+      // Saving Throw and the skills this ability governs, for the flip card's back -
+      // read straight from the actor's own derived data (system.abilities[key].save/
+      // saveProf, system.skills filtered by config.ability), the same source the
+      // Skills step's own table already reads, not a separate record of our own.
+      const saveProf = actorAbilities[key]?.saveProf?.multiplier ?? 0;
+      const saveTotal = actorAbilities[key]?.save?.value ?? 0;
+      const savingThrow = {
+        proficiencyTier: proficiencyTier(saveProf),
+        totalText: saveTotal >= 0 ? `+${saveTotal}` : `${saveTotal}`
+      };
+
+      const governedSkills = Object.entries(CONFIG.DND5E.skills)
+        .filter(([, config]) => config.ability === key)
+        .map(([skillKey, config]) => {
+          const skill = actorSkills[skillKey];
+          return {
+            key: skillKey,
+            label: config.label,
+            proficiencyTier: proficiencyTier(skill?.value ?? 0),
+            proficiencyLabel: CONFIG.DND5E.proficiencyLevels[String(skill?.value ?? 0)] ?? CONFIG.DND5E.proficiencyLevels["0"],
+            totalText: (skill?.total ?? 0) >= 0 ? `+${skill?.total ?? 0}` : `${skill?.total ?? 0}`,
+            passive: skill?.passive ?? 10
+          };
+        })
+        .sort((a, b) => a.label.localeCompare(b.label));
 
       const seen = {};
       const isUnassigned = assignments[key] === undefined;
@@ -1692,7 +2028,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
       return {
         key,
+        abbr: key.toUpperCase(),
         label: CONFIG.DND5E.abilities[key]?.label ?? key,
+        iconViewBox: ABILITY_ICONS[key]?.viewBox,
+        icon: ABILITY_ICONS[key]?.icon,
+        hint: ABILITY_HINTS[key],
         base: base[key],
         bonusText: bonus[key] > 0 ? `+${bonus[key]}` : `${bonus[key]}`,
         totalText: total === null ? "-" : `${total}`,
@@ -1700,7 +2040,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         poolOptions,
         // Roll only: this ability hasn't been rolled yet, so show a Roll button instead
         // of a value + reassignment select.
-        needsRoll: method === "roll" && !hasValue
+        needsRoll: method === "roll" && !hasValue,
+        savingThrow,
+        governedSkills
       };
     });
 
@@ -2053,9 +2395,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. For a non-GM player: Foundry's FilePicker requires
-   * the FILES_BROWSE permission, which the Player role
-   * doesn't have by default - same class of gap as Actor deletion (a world-level
+   * Change the character's portrait. Foundry's FilePicker requires the FILES_BROWSE
+   * permission, which the Player role doesn't have by default - same class of gap as
+   * Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
    * silently never opens for a user who lacks it, with no error to react to. Falls back
    * to a plain path/URL prompt for anyone without that permission - still can't browse
@@ -2376,6 +2718,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelector("[data-randomize-class]")?.addEventListener("click", () => this._randomizeClass());
 
+    root.querySelector("[data-show-multiclass]")?.addEventListener("click", () => {
+      this._levelUpShowMulticlass = true;
+      this.render();
+    });
+
     root.querySelectorAll("[data-remove-class]").forEach((el) => {
       el.addEventListener("click", async () => {
         await this._removeClass(el.dataset.removeClass);
@@ -2481,6 +2828,30 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    // Flip between the ability's assignment controls (front) and its Saving Throw +
+    // governed skills (back) - a plain class toggle, not a re-render, since flipping
+    // changes nothing about the draft itself. A render happening for any other reason
+    // (adjusting the score, changing method) rebuilds the grid from scratch and every
+    // card naturally lands back on its front face, which matches what a player would
+    // want anyway right after touching that card's own control.
+    root.querySelectorAll("[data-ability-flip-toggle]").forEach((el) => {
+      el.addEventListener("click", () => {
+        root.querySelector(`.dnd-cc-ability-flip[data-ability="${el.dataset.abilityFlipToggle}"]`)?.classList.toggle("is-flipped");
+      });
+    });
+
+    // Flips every ability card at once, toggling based on majority state (mirrors the
+    // Class step's "Flip All"-style toggles elsewhere) - if most cards are already
+    // flipped, the next click flips them all back, rather than a plain "always flip
+    // forward" that would leave some cards out of sync with the rest after a mixed
+    // starting state.
+    root.querySelector("[data-flip-all-abilities]")?.addEventListener("click", () => {
+      const cards = Array.from(root.querySelectorAll(".dnd-cc-ability-flip"));
+      const flippedCount = cards.filter((card) => card.classList.contains("is-flipped")).length;
+      const shouldFlip = flippedCount < cards.length / 2;
+      cards.forEach((card) => card.classList.toggle("is-flipped", shouldFlip));
+    });
+
     root.querySelector("[data-randomize-abilities]")?.addEventListener("click", async () => {
       await this._withBusy(async () => {
         await this._randomizeAbilities();
@@ -2493,6 +2864,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         if (!el.value) return;
         await this._changeOriginFeat(el.dataset.originFeatSelect, el.value);
       });
+    });
+
+    root.querySelector("[data-toggle-feat-browser]")?.addEventListener("click", () => {
+      this.showFeatBrowser = !this.showFeatBrowser;
+      this.render();
+    });
+
+    root.querySelectorAll("[data-add-feat]").forEach((el) => {
+      el.addEventListener("click", () => this._addExtraFeat(el.dataset.addFeat));
+    });
+
+    root.querySelectorAll("[data-remove-feat]").forEach((el) => {
+      el.addEventListener("click", () => this._removeFeat(el.dataset.removeFeat));
     });
 
     root.querySelectorAll("[data-add-cantrip]").forEach((el) => {
@@ -2525,6 +2909,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    root.querySelectorAll("[data-equipment-alternative]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const [source, entryId, childId] = el.dataset.equipmentAlternative.split(":");
+        this._resolveEquipmentAlternative(source, entryId, childId);
+      });
+    });
+
     root.querySelectorAll("[data-equipment-focus]").forEach((el) => {
       el.addEventListener("change", () => {
         if (!el.value) return;
@@ -2534,6 +2925,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
 
     root.querySelector("[data-add-equipment]")?.addEventListener("click", () => this._addManualEquipmentItem());
+    root.querySelector("[data-add-custom-equipment]")?.addEventListener("click", () => this._showCustomEquipmentForm());
 
     root.querySelectorAll("[data-remove-equipment]").forEach((el) => {
       el.addEventListener("click", () => this._removeEquipmentItem(el.dataset.removeEquipment));
@@ -2622,12 +3014,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    *
    * The host always includes its own Cancel button, since going frameless drops the
    * native popup's title-bar close (X) button along with the rest of the chrome -
-   * clicking it finds whichever `AdvancementManager` instance is currently live and
-   * calls `.close()` on it, which still shows dnd5e's own "Stop Advancement?"
-   * confirmation first, exactly like the native popup's close button always did.
+   * clicking it finds whichever matching instance (by class name - `AdvancementManager`
+   * by default, or `EmbeddedCompendiumBrowser` for the spell/equipment picker, see
+   * `_runEmbeddedBrowser` below) is currently live and calls `.close()` on it, which for
+   * an AdvancementManager still shows dnd5e's own "Stop Advancement?" confirmation
+   * first, exactly like the native popup's close button always did.
    * @param {(host: HTMLElement) => Promise<void>} operation
+   * @param {string[]} [appClassNames] - constructor names the Cancel button should close
    */
-  async _runEmbeddedAdvancement(operation) {
+  async _runEmbeddedAdvancement(operation, appClassNames = ["AdvancementManager"]) {
     const content = this.element.querySelector(".dnd-cc-content");
 
     const host = document.createElement("div");
@@ -2638,10 +3033,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     cancelButton.className = "dnd-cc-advancement-cancel";
     cancelButton.innerHTML = `<i class="fa-solid fa-xmark"></i> ${game.i18n.localize("DND-CC.Advancement.Cancel")}`;
     cancelButton.addEventListener("click", () => {
-      const manager = Array.from(foundry.applications.instances.values()).find(
-        (app) => app.constructor.name === "AdvancementManager"
+      const app = Array.from(foundry.applications.instances.values()).find(
+        (a) => appClassNames.includes(a.constructor.name)
       );
-      manager?.close();
+      app?.close();
     });
 
     const body = document.createElement("div");
@@ -2651,6 +3046,75 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     content.replaceChildren(host);
 
     await operation(body);
+  }
+
+  /**
+   * Same embedding as `_runEmbeddedAdvancement`, for dnd5e's CompendiumBrowser instead
+   * of the AdvancementManager - used by the Spells/Equipment steps' item pickers so they
+   * open inline in the wizard instead of as a separate popup window. Adds a second host
+   * class (`dnd-cc-browser-body`, see character-creator.css) on top of the shared
+   * `dnd-cc-advancement-body` one: an Advancement step's host is meant to grow to fit
+   * whatever small amount of content a given choice has, but the browser's own item grid
+   * can be hundreds of entries long, so it needs a bounded height with its own internal
+   * scroll instead - reusing `dnd-cc-advancement-body` unmodified would let that grid
+   * balloon out to its full natural height and blow past the wizard's own fixed-size
+   * window.
+   * @param {(host: HTMLElement) => Promise<void>} operation
+   * @param {object} [options]
+   * @param {boolean} [options.showBudget] - true for the Equipment step's manual "Add
+   *   Item" purchase specifically (the only embedded-browser use that actually spends
+   *   currency) - shows the actor's real available GP-equivalent budget above the
+   *   browser, plus a live running total of whatever's currently checked in the
+   *   results list, so a player sees what a pick costs before ever clicking Select.
+   */
+  async _runEmbeddedBrowser(operation, { showBudget = false } = {}) {
+    return this._runEmbeddedAdvancement(async (host) => {
+      host.classList.add("dnd-cc-browser-body");
+      if (showBudget) this._addBrowserBudgetBanner(host);
+      await operation(host);
+    }, ["EmbeddedCompendiumBrowser"]);
+  }
+
+  /**
+   * See `showBudget` on `_runEmbeddedBrowser` above. Assumes `dnd5e-checkbox` (a real
+   * custom element from dnd5e's own code) dispatches a standard bubbling `change`
+   * event on toggle, same as a native checkbox - one delegated listener on the host
+   * catches every result row's checkbox without needing to re-attach anything as the
+   * browser's own internal re-renders swap result rows in and out.
+   * @param {HTMLElement} host
+   */
+  _addBrowserBudgetBanner(host) {
+    const actor = this.draft.actor;
+    const availableGp = totalGpEquivalent(actor.system.currency);
+
+    const banner = document.createElement("div");
+    banner.className = "dnd-cc-browser-budget";
+    banner.innerHTML = `
+      <span>${game.i18n.format("DND-CC.Equipment.AvailableBudget", { available: formatGp(availableGp) })}</span>
+      <span class="dnd-cc-browser-budget-selection" data-browser-budget-selection></span>
+    `;
+    host.append(banner);
+
+    const selectionEl = banner.querySelector("[data-browser-budget-selection]");
+    const updateSelection = async () => {
+      const checked = Array.from(host.querySelectorAll('dnd5e-checkbox[name="selected"]')).filter((cb) => cb.checked);
+      if (!checked.length) {
+        selectionEl.textContent = "";
+        selectionEl.classList.remove("insufficient");
+        return;
+      }
+      const items = await Promise.all(checked.map((cb) => fromUuid(cb.value)));
+      const totalPriceGp = items.reduce((sum, item) => sum + (item ? itemPriceInGp(item) : 0), 0);
+      const remainingGp = availableGp - totalPriceGp;
+      selectionEl.textContent = game.i18n.format("DND-CC.Equipment.SelectionCost", {
+        price: formatGp(totalPriceGp),
+        remaining: formatGp(remainingGp)
+      });
+      selectionEl.classList.toggle("insufficient", remainingGp < -1e-6);
+    };
+    host.addEventListener("change", (event) => {
+      if (event.target?.matches?.('dnd5e-checkbox[name="selected"]')) updateSelection();
+    });
   }
 
   /** Minimal HTML-escape for the handful of real item strings (names, ruleset tags)
@@ -2997,8 +3461,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid was considered but not built this pass - this list
-   * picker covers the same "link something I already made" need with far less risk.
+   * drag-and-drop onto a card grid was considered but not built - this list picker
+   * covers the same "link something I already made" need with far less risk.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
   _showCustomItemForm(dnd5eType) {
@@ -3034,7 +3498,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         </div>
 
         <div data-custom-panel="create">
-          <p class="dnd-cc-step-intro">${esc(game.i18n.localize("DND-CC.CustomForm.Hint"))}</p>
+          <p class="dnd-cc-step-intro">${esc(game.i18n.localize(
+            dnd5eType === "subclass" ? "DND-CC.CustomForm.HintSubclass" : "DND-CC.CustomForm.Hint"
+          ))}</p>
           <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.Name"))}</label>
           <input type="text" class="dnd-cc-identity-name" data-custom-name placeholder="${esc(game.i18n.localize("DND-CC.CustomForm.NamePlaceholder"))}" />
           ${this._customFormExtraFields(dnd5eType)}
@@ -3135,6 +3601,28 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       `;
     }
 
+    if (dnd5eType === "subclass") {
+      // A subclass is only ever meaningful tied to a class identifier
+      // (system.classIdentifier) - offered as a dropdown of the draft actor's own
+      // current classes (the realistic case: homebrewing a subclass for a class
+      // already on this character) rather than every class in every compendium, with a
+      // free-text fallback if the actor has none yet.
+      const classItems = this.draft.actor.items.filter((item) => item.type === "class");
+      if (classItems.length) {
+        const options = classItems
+          .map((item) => `<option value="${esc(item.system.identifier)}">${esc(item.name)}</option>`)
+          .join("");
+        return `
+          <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.ParentClass"))}</label>
+          <select data-custom-class-identifier>${options}</select>
+        `;
+      }
+      return `
+        <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.ParentClassIdentifier"))}</label>
+        <input type="text" data-custom-class-identifier placeholder="${esc(game.i18n.localize("DND-CC.CustomForm.ParentClassIdentifierPlaceholder"))}" />
+      `;
+    }
+
     if (dnd5eType === "race") {
       return `
         <label class="dnd-cc-identity-label">${esc(game.i18n.localize("DND-CC.CustomForm.Speed"))}</label>
@@ -3179,13 +3667,16 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const primaryAbilities = Array.from(wrapper.querySelectorAll("[data-custom-primary-ability]:checked")).map(
         (el) => el.value
       );
-      // dnd5e's own schema wants the full "d#" string - a bare number
-      // fails validation with "must be a dice value in the format d#" - not the
-      // denomination as a number.
+      // dnd5e's own schema wants the full "d#" string (a bare number fails validation
+      // with "must be a dice value in the format d#"), not the denomination as a number.
       return {
         hd: { denomination: hitDie },
         primaryAbility: { value: primaryAbilities }
       };
+    }
+    if (dnd5eType === "subclass") {
+      const classIdentifier = wrapper.querySelector("[data-custom-class-identifier]")?.value.trim() ?? "";
+      return { classIdentifier };
     }
     if (dnd5eType === "race") {
       const speed = Number(wrapper.querySelector("[data-custom-speed]")?.value) || 30;
@@ -3215,8 +3706,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * gets cleaned up too instead of left behind as orphans - a plain
    * deleteEmbeddedDocuments would leave granted items like a species's feats behind.
    *
-   * The old item is removed *before* the new one is added - this is the
-   * only order that actually works: dnd5e itself rejects a second race/background item
+   * The old item is removed *before* the new one is added - this is the only order that
+   * actually works: dnd5e itself rejects a second race/background item
    * outright while one is already on the actor ("Only a single Species can be added to
    * a Player Character", logged straight from dnd5e's own validation) - a race/
    * background genuinely can't have both on the actor even briefly, unlike class,
@@ -3251,6 +3742,16 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       added = await triggerAdvancement(this.draft.actor, item.toObject(), host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
+
+    // A background's starting-equipment kit is granted through the Equipment step's own
+    // tagging (flags.<module>.equipmentSource), never through dnd5e's real Advancement -
+    // removeItemWithAdvancement above has no way to know it exists, so swapping
+    // backgrounds left the old kit sitting on the actor forever, tagged to a background
+    // that no longer exists. Species never grants equipment, so this only
+    // applies to background. Runs regardless of whether the new background's own
+    // Advancement flow completed or was cancelled, since the old background (and
+    // whatever it granted) is already gone either way once `existing` was removed above.
+    if (dnd5eType === "background" && existing) await this._clearEquipmentSource("background");
 
     // Auto-advance only on a genuinely completed pick, not just "some item of this type
     // exists" (which would also be true if the flow was cancelled and the old item was
@@ -3416,11 +3917,34 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
     if (!confirmed) return;
 
+    // Spells picked through our own Spells step (_addClassSpell) are plain items
+    // tagged only with our own system.sourceItem convention, not
+    // flags.dnd5e.advancementOrigin - dnd5e's own Advancement reversal below has no
+    // way to know about them, since they were never granted through an Advancement
+    // flow in the first place. Left alone, removing the class orphans them: they stay
+    // on the actor forever, tagged to a class identifier that no longer exists.
+    // Cleaned up explicitly here, the same way _clearEquipmentSource already handles
+    // the equivalent gap for equipment below.
+    const classSourceKey = `class:${classItem.system.identifier}`;
+    const orphanedSpells = this.draft.actor.items.filter(
+      (item) => item.type === "spell" && item.system.sourceItem === classSourceKey
+    );
+    if (orphanedSpells.length) {
+      await this.draft.actor.deleteEmbeddedDocuments("Item", orphanedSpells.map((item) => item.id));
+    }
+
+    // Only the character's original class ever grants a starting-equipment kit (see
+    // starting-equipment.mjs) - removing a second/third multiclass class never touched
+    // equipment to begin with, so this is a no-op for anything but the original class.
+    const wasOriginalClass = classItem.isOriginalClass;
+
     await this._runEmbeddedAdvancement(async (host) => {
       const before = snapshotAbilities(this.draft.actor);
       await removeItemWithAdvancement(this.draft.actor, itemId, host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
+
+    if (wasOriginalClass) await this._clearEquipmentSource("class");
 
     this.render();
   }
@@ -3571,10 +4095,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // instead of leaving the actor with no class at all. dnd5e only writes a
         // Trait/ItemGrant advancement's resolved value onto the actor's real derived
         // traits (armor/weapon proficiencies, etc.) as a side effect of a manager flow
-        // actually running - directly recreating an item from
-        // already-resolved data, with no manager involved, leaves those derived traits
-        // empty even though the item's own stored advancement values look complete. So
-        // this still has to go through a real flow, not a plain re-create - it's just a
+        // actually running - directly recreating an item from already-resolved data,
+        // with no manager involved, leaves those derived traits empty even though the
+        // item's own stored advancement values look complete. So this still has to go
+        // through a real flow, not a plain re-create - it's just a
         // much lighter one than the original redo, since every step already shows its
         // previous answer instead of asking again, and only needs Next clicked through.
         const beforeRestore = snapshotAbilities(this.draft.actor);
@@ -3598,6 +4122,101 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       // an already-partially-leveled copy - a real, valid class at the wrong level is a
       // safer state than juggling two reversals in a row, and the level dropdown can
       // always finish the job afterward.
+    });
+
+    this.render();
+  }
+
+  /**
+   * Add a feat found through the general "Browse Feats" grid - separate from
+   * _changeOriginFeat's swap, this is a plain add with nothing to remove automatically.
+   * Warns (does not block) on two things - without a guard, a character could otherwise
+   * pile up two Origin feats or two Fighting Style feats: the character's total level
+   * not meeting the feat's own real
+   * `system.prerequisites.level` yet, and already having another feat of the same
+   * "normally singular" subtype (`origin`/`fightingStyle` - the two subtypes a
+   * character's own granting sources, like a background or a Fighter's level-1 choice,
+   * only ever hand out one of). Same "warn, don't silently allow or silently block"
+   * pattern _confirmNotDuplicate already uses for a duplicate spell pick - a table that
+   * wants a second fighting style or a bonus feat early shouldn't be stopped by this
+   * wizard, just informed. dnd5e's `prerequisites.items` (e.g. a feat that needs an
+   * existing spellcasting feature) isn't checked here - only the plain numeric level
+   * requirement is reliably structured data; anything else risks guessing wrong.
+   *
+   * Tags the created item `flags.<module>.addedViaBrowser` so the Feats step can offer
+   * a real Remove button for it - unlike an origin feat (which the Feats step already
+   * lets the player swap, never delete-to-nothing, since a background's origin feat is
+   * a required grant) or a class/species/background-cascaded feat (removing those
+   * belongs to removing the class/species/background itself), a feat added this way has
+   * no other source to fall back on, so outright removal is the only sensible undo.
+   * @param {string} uuid
+   */
+  async _addExtraFeat(uuid) {
+    const item = await fromUuid(uuid);
+    if (!item) return;
+
+    const totalLevel = this.draft.actor.items
+      .filter((i) => i.type === "class")
+      .reduce((sum, i) => sum + i.system.levels, 0);
+
+    const prereqLevel = item.system.prerequisites?.level;
+    if (prereqLevel && totalLevel < prereqLevel) {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: game.i18n.localize("DND-CC.Feats.PrereqTitle") },
+        content: `<p>${game.i18n.format("DND-CC.Feats.PrereqWarning", { name: item.name, level: prereqLevel })}</p>`
+      });
+      if (!confirmed) return;
+    }
+
+    const subtype = item.system.type?.subtype;
+    if (["origin", "fightingStyle"].includes(subtype)) {
+      const existing = this.draft.actor.items.find(
+        (i) => i.system.type?.value === "feat" && i.system.type?.subtype === subtype
+      );
+      if (existing) {
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+          window: { title: game.i18n.localize("DND-CC.Feats.DuplicateSubtypeTitle") },
+          content: `<p>${game.i18n.format("DND-CC.Feats.DuplicateSubtypeWarning", {
+            name: item.name,
+            existing: existing.name,
+            subtype: CONFIG.DND5E.featureTypes.feat?.subtypes[subtype] ?? subtype
+          })}</p>`
+        });
+        if (!confirmed) return;
+      }
+    }
+
+    const data = item.toObject();
+    foundry.utils.setProperty(data, `flags.${MODULE_ID}.addedViaBrowser`, true);
+
+    await this._runEmbeddedAdvancement(async (host) => {
+      const before = snapshotAbilities(this.draft.actor);
+      await triggerAdvancement(this.draft.actor, data, host);
+      await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
+    });
+
+    this.showFeatBrowser = false;
+    this.render();
+  }
+
+  /**
+   * Remove a feat that was added through the general "Browse Feats" grid (see
+   * _addExtraFeat) - the Feats step only offers this for feats tagged
+   * `addedViaBrowser`, not for an origin feat (swap-only, since it's a required grant)
+   * or a class/species/background-cascaded one (removed by removing that source item
+   * instead). Goes through removeItemWithAdvancement like every other removal in this
+   * app, so anything the feat itself granted (e.g. Magic Initiate's spells) is reversed
+   * too, not left behind as an orphan.
+   * @param {string} itemId
+   */
+  async _removeFeat(itemId) {
+    const item = this.draft.actor.items.get(itemId);
+    if (!item) return;
+
+    await this._runEmbeddedAdvancement(async (host) => {
+      const before = snapshotAbilities(this.draft.actor);
+      await removeItemWithAdvancement(this.draft.actor, itemId, host);
+      await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
 
     this.render();
@@ -3689,9 +4308,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data (e.g. a
-    // Dwarf Fighter can show 10/13 at Review instead of 13/13). A brand new character
-    // should always start at full health regardless of pick order, so top it off here.
+    // afterward without current following, since current isn't derived data. A brand new
+    // character should always start at full health regardless of pick order, so top it
+    // off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }

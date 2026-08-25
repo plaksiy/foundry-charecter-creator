@@ -61,7 +61,8 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       abilityMethodOptions,
       alignmentOptions,
       minFeatLevel: rules.minFeatLevel,
-      speciesOptions
+      speciesOptions,
+      allowSelfLevelUp: rules.allowSelfLevelUp === true
     };
   }
 
@@ -87,7 +88,8 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       abilityMethods,
       disallowedAlignments,
       minFeatLevel: Number(data.minFeatLevel) || 0,
-      bannedSpecies
+      bannedSpecies,
+      allowSelfLevelUp: data.allowSelfLevelUp === true
     });
   }
 }

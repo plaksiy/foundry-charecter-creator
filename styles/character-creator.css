@@ -27,8 +27,8 @@
      accent-picker button (see _onRender) toggles one of the .dnd-cc-accent-* classes
      below, each of which is a complete, legible accent+contrast pair, not a single color
      swapped in isolation. --dcc-done deliberately stays green regardless of accent choice
-     (green still reads correctly as "complete", backed by a check
-     icon too, not color alone) - only the *other* uses of red (buttons, active states,
+     - it still reads correctly as "complete", backed by a check icon too, not color
+     alone - only the *other* uses of red (buttons, active states,
      card selection) move off red by default. */
   --dcc-accent: #e6e1d6;
   --dcc-accent-contrast: #141210;
@@ -120,9 +120,9 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them (e.g.
-   without this, a ruleset card computes to `height: 34px` while its own h3+p content spans
-   48.5px, overlapping the next card). `.header-control` (Foundry's native window titlebar
+   overflows the fixed box and visually overlaps whatever sits next to them - without this,
+   a ruleset card can compute to a fixed short height while its own h3+p content spans
+   noticeably taller, overlapping the next card. `.header-control` (Foundry's native window titlebar
    buttons) is excluded from the font-family override specifically - it broke the Font
    Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
    to the button element itself (not a child), and our font would otherwise clobber it. */
@@ -130,9 +130,9 @@
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity - which is exactly why a
-   plain (non-!important) override here loses to core's own button sizing despite being
-   more specific. `!important` on a layered declaration outranks a normal unlayered one,
+   selector specificity - which is why a plain (non-!important) override here loses to
+   core's own button sizing despite being more specific. `!important` on a layered
+   declaration outranks a normal unlayered one,
    which is the correct, spec-sanctioned way to override core chrome from here - not a
    hack. Every button/select override in this file that fights Foundry's own default
    sizing needs `!important` for the same reason, not just this shared base rule. */
@@ -766,29 +766,35 @@
   gap: 1.1rem;
 }
 
-/* Wraps one or more labeled per-source card groups (see _groupBySource in
-   character-creator-app.mjs) - the scroll region lives here so switching from a flat
-   grid to grouped sections doesn't turn into several independently-scrolling boxes. */
+/* One continuous grid holding every labeled per-source group (see _groupBySource in
+   character-creator-app.mjs) plus the trailing "Add Custom" card(s) - previously each
+   group and the custom-card row were separate <ul> grids stacked vertically, which
+   meant "Add Custom" always started its own new row (with a visible gap above it) no
+   matter how much empty space was left in the last group's last row. A single grid
+   with full-width group-label items (see grid-column below) still visually separates
+   groups while letting every card, including the custom ones, pack into the same
+   row-by-row flow - "Add Custom" now lands right next to the last real card whenever
+   there's room, instead of always dropping to a new row. The scroll region lives here
+   too, same as before. */
 .dnd-cc-card-groups {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding-right: 0.4rem;
 }
-.dnd-cc-card-group { margin-bottom: 1.4rem; }
-.dnd-cc-card-group:last-child { margin-bottom: 0; }
 .dnd-cc-card-group-label {
+  grid-column: 1 / -1;
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--dcc-text-muted);
-  margin: 0 0 0.6rem;
+  margin: 1.4rem 0 0.6rem;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--dcc-border);
 }
-.dnd-cc-card-grid-custom { margin-top: 1.4rem; }
+.dnd-cc-card-group-label:first-child { margin-top: 0; }
 
 /*
  * dnd5e's own class/species/background icon art is monochrome line art on a transparent
@@ -805,7 +811,19 @@
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
-  overflow: hidden;
+  /* `overflow: hidden` on a grid item with `aspect-ratio` makes Chromium's grid-row
+     auto-sizing treat this item's contribution to its row's height as 0 (per the CSS
+     Sizing spec's automatic-minimum-size carve-out for non-visible overflow), instead of
+     the aspect-ratio-derived height - harmless as long as *some* other item sharing that
+     row has a real minimum size to fall back on, but a row made up entirely of these
+     cards collapses to a few px with every card in it rendering stacked on top of each
+     other. An explicit `min-height` doesn't work as a fix either: Chromium uses that
+     exact number as the row's full contribution instead of a floor beneath the larger
+     aspect-ratio size, so a fixed number always either collapses the row back down or
+     clips a wider card short. `clip-path` achieves the exact same visual result
+     (clipping the art/gradient to the card's own rounded corners) without tripping this
+     spec rule at all, since it isn't the `overflow` property. */
+  clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
 /* Class cards specifically go fully square, per direct user feedback that the class
@@ -930,12 +948,16 @@
 .dnd-cc-card-edition-custom { background: rgba(217,178,63,0.35); border-color: var(--dcc-warn); }
 
 .dnd-cc-custom-card {
+  /* Matches its sibling .dnd-cc-card exactly (same grid, same aspect-ratio rules,
+     including the Class step's square override below) - left at a stale fixed
+     min-height: 190px from before the card redesign, so it visibly didn't match the
+     real card shape/size sitting right above it. */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 190px;
+  aspect-ratio: 3 / 4;
   border-radius: 10px;
   border: 1.5px dashed var(--dcc-border-strong);
   color: var(--dcc-text-muted);
@@ -947,6 +969,7 @@
   cursor: pointer;
   background: transparent;
 }
+.dnd-cc-step-class .dnd-cc-custom-card { aspect-ratio: 1 / 1; }
 .dnd-cc-custom-card:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
 .dnd-cc-custom-card i { font-size: 1.4rem; }
 
@@ -1409,16 +1432,75 @@
   color: var(--dcc-text-muted);
 }
 
-/* ---------------- Skills / Abilities tables ---------------- */
+/* ---------------- Feats step: general "Browse Feats" grid ---------------- */
 
-.dnd-cc-skills-table, .dnd-cc-ability-table {
+.dnd-cc-feat-browser {
+  margin-bottom: 1rem;
+}
+
+.dnd-cc-feat-browser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.6rem;
+}
+
+.dnd-cc-feat-browser-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 10px;
+}
+
+.dnd-cc-feat-browser-card-unqualified {
+  opacity: 0.55;
+}
+
+.dnd-cc-feat-browser-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dnd-cc-feat-browser-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.dnd-cc-pill-warn {
+  color: var(--dcc-warn);
+  border-color: var(--dcc-warn);
+}
+
+.dnd-cc-feat-browser-add {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  border-radius: 7px;
+  color: var(--dcc-text);
+  cursor: pointer;
+}
+.dnd-cc-feat-browser-add:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+
+/* ---------------- Abilities table (Review step only - the wizard's own Skills step
+   was removed, its live table folded into each Ability flip card's back face instead,
+   see .dnd-cc-ability-back-* further down) ---------------- */
+
+.dnd-cc-ability-table {
   border-collapse: collapse;
   width: 100%;
   max-width: 42rem;
   font-family: var(--dcc-font-ui);
 }
 
-.dnd-cc-skills-table th, .dnd-cc-ability-table th {
+.dnd-cc-ability-table th {
   font-weight: 700;
   font-size: 0.66rem;
   letter-spacing: 0.06em;
@@ -1429,110 +1511,180 @@
   border-bottom: 1.5px solid var(--dcc-border);
 }
 
-.dnd-cc-skills-table td, .dnd-cc-ability-table td {
+.dnd-cc-ability-table td {
   padding: 0.4rem 0.6rem;
   border-bottom: 1px solid var(--dcc-border);
   font-size: 0.88rem;
 }
 
-.dnd-cc-skills-table tr[data-ability], .dnd-cc-ability-table tr[data-ability] {
+.dnd-cc-ability-table tr[data-ability] {
   border-left: 3px solid transparent;
 }
-.dnd-cc-skills-table tr[data-ability="str"], .dnd-cc-ability-table tr[data-ability="str"] { border-left-color: var(--dcc-str); }
-.dnd-cc-skills-table tr[data-ability="dex"], .dnd-cc-ability-table tr[data-ability="dex"] { border-left-color: var(--dcc-dex); }
-.dnd-cc-skills-table tr[data-ability="con"], .dnd-cc-ability-table tr[data-ability="con"] { border-left-color: var(--dcc-con); }
-.dnd-cc-skills-table tr[data-ability="int"], .dnd-cc-ability-table tr[data-ability="int"] { border-left-color: var(--dcc-int); }
-.dnd-cc-skills-table tr[data-ability="wis"], .dnd-cc-ability-table tr[data-ability="wis"] { border-left-color: var(--dcc-wis); }
-.dnd-cc-skills-table tr[data-ability="cha"], .dnd-cc-ability-table tr[data-ability="cha"] { border-left-color: var(--dcc-cha); }
+.dnd-cc-ability-table tr[data-ability="str"] { border-left-color: var(--dcc-str); }
+.dnd-cc-ability-table tr[data-ability="dex"] { border-left-color: var(--dcc-dex); }
+.dnd-cc-ability-table tr[data-ability="con"] { border-left-color: var(--dcc-con); }
+.dnd-cc-ability-table tr[data-ability="int"] { border-left-color: var(--dcc-int); }
+.dnd-cc-ability-table tr[data-ability="wis"] { border-left-color: var(--dcc-wis); }
+.dnd-cc-ability-table tr[data-ability="cha"] { border-left-color: var(--dcc-cha); }
 
-.dnd-cc-skill-proficient td { color: var(--dcc-text); font-weight: 600; }
+/* ---------------- Abilities step: compact method picker + flip cards ---------------- */
 
-.dnd-cc-prof-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.6px solid var(--dcc-text-muted);
-  background: transparent;
-}
-.dnd-cc-skills-table tr[data-ability="str"] .dnd-cc-prof-dot { border-color: var(--dcc-str); }
-.dnd-cc-skills-table tr[data-ability="dex"] .dnd-cc-prof-dot { border-color: var(--dcc-dex); }
-.dnd-cc-skills-table tr[data-ability="con"] .dnd-cc-prof-dot { border-color: var(--dcc-con); }
-.dnd-cc-skills-table tr[data-ability="int"] .dnd-cc-prof-dot { border-color: var(--dcc-int); }
-.dnd-cc-skills-table tr[data-ability="wis"] .dnd-cc-prof-dot { border-color: var(--dcc-wis); }
-.dnd-cc-skills-table tr[data-ability="cha"] .dnd-cc-prof-dot { border-color: var(--dcc-cha); }
-.dnd-cc-prof-dot.dnd-cc-prof-half { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
-.dnd-cc-prof-dot.dnd-cc-prof-prof { background: currentColor; }
-.dnd-cc-prof-dot.dnd-cc-prof-expertise { background: currentColor; box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 3.5px currentColor; }
-.dnd-cc-skills-table tr[data-ability] .dnd-cc-prof-dot { color: inherit; border-color: currentColor; }
-
-/* ---------------- Abilities step: method cards + per-method controls ---------------- */
-
-.dnd-cc-ability-methods {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.8rem;
-  margin: 1rem 0 1.2rem;
-}
-
-.dnd-cc-ability-method-card {
-  text-align: left;
+/* Compact tabs replacing the old four big descriptive cards (each with its own h3+p,
+   ~85px tall shown all at once) - only the selected method's own hint prints, as one
+   line below the tab row, per the real 1370x850 window's limited vertical budget: the
+   old cards alone left too little room for the ability grid without the step body
+   needing to scroll. */
+.dnd-cc-ability-method-picker {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 9px;
+  gap: 0.5rem;
+  margin: 0.7rem 0 0.4rem;
+}
+/* height comes from padding + !important, not an explicit height value - Foundry's
+   own core button CSS loads unlayered while ours loads in layer(modules), so a plain
+   (non-!important) height here would lose to the base ".dnd-cc button" reset
+   regardless of selector specificity (documented precedent: .dnd-cc-seg-group
+   button uses the same padding+!important approach for the same reason). */
+.application.dnd-cc .dnd-cc-method-tab {
+  flex: 1;
+  padding: 0.6rem 0.7rem !important;
+  height: auto !important;
+  border-radius: 8px;
   border: 1.5px solid var(--dcc-border);
   background: var(--dcc-surface);
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
 }
-.dnd-cc-ability-method-card:hover { border-color: var(--dcc-accent); }
-.dnd-cc-ability-method-card.selected {
+.dnd-cc-method-tab:hover { border-color: var(--dcc-accent); color: var(--dcc-text); }
+.dnd-cc-method-tab.selected {
   border-color: var(--dcc-accent);
-  background: var(--dcc-surface-alt);
-  box-shadow: 0 0 0 1px var(--dcc-accent);
+  background: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
 }
-.dnd-cc-ability-method-card h3 { margin: 0; font-size: 0.92rem; color: var(--dcc-text); }
-.dnd-cc-ability-method-card p { margin: 0; font-family: var(--dcc-font-ui); font-size: 0.76rem; color: var(--dcc-text-muted); }
 
-.dnd-cc-ability-body { margin-top: 0.5rem; }
+.dnd-cc-method-caption {
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  color: var(--dcc-text-muted);
+  margin: 0 0 0.6rem;
+}
 
-/* One color-keyed card per ability, replacing the old plain table - the same
-   --dcc-str/dex/con/int/wis/cha tokens the Skills table already keys its rows off. */
+.dnd-cc-ability-body { margin-top: 0.3rem; }
+
+/* One color-keyed flip card per ability - the same --dcc-str/dex/con/int/wis/cha
+   tokens the Skills table already keys its rows off. Fixed height, identical in every
+   state (flipped or not): front and back are both absolutely positioned to this one
+   box, so neither face can ever stretch it - a stray row of content on one card
+   growing the whole grid row (and every card in it) taller than its neighbors was a
+   real bug caught in the design pass, not a hypothetical one. */
+/* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
+   cramped row of six, per direct feedback after seeing it live. */
 .dnd-cc-ability-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
+  align-items: start;
   gap: 0.85rem;
 }
+@media (max-width: 760px) { .dnd-cc-ability-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.dnd-cc-ability-card {
+.dnd-cc-ability-flip {
   --card-accent: var(--dcc-text-muted);
+  height: 230px;
+  min-height: 230px;
+  max-height: 230px;
+  align-self: start;
+  perspective: 1600px;
+}
+.dnd-cc-ability-flip[data-ability="str"] { --card-accent: var(--dcc-str); }
+.dnd-cc-ability-flip[data-ability="dex"] { --card-accent: var(--dcc-dex); }
+.dnd-cc-ability-flip[data-ability="con"] { --card-accent: var(--dcc-con); }
+.dnd-cc-ability-flip[data-ability="int"] { --card-accent: var(--dcc-int); }
+.dnd-cc-ability-flip[data-ability="wis"] { --card-accent: var(--dcc-wis); }
+.dnd-cc-ability-flip[data-ability="cha"] { --card-accent: var(--dcc-cha); }
+
+.dnd-cc-ability-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 230px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(.4,.15,.2,1);
+}
+.dnd-cc-ability-flip.is-flipped .dnd-cc-ability-flip-inner { transform: rotateY(180deg); }
+
+.dnd-cc-ability-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   border-top: 3px solid var(--card-accent);
   background: var(--dcc-surface);
-  padding: 0.85rem 0.75rem;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
   text-align: center;
+  padding: 0.6rem 0.7rem 0.35rem;
 }
-.dnd-cc-ability-card[data-ability="str"] { --card-accent: var(--dcc-str); }
-.dnd-cc-ability-card[data-ability="dex"] { --card-accent: var(--dcc-dex); }
-.dnd-cc-ability-card[data-ability="con"] { --card-accent: var(--dcc-con); }
-.dnd-cc-ability-card[data-ability="int"] { --card-accent: var(--dcc-int); }
-.dnd-cc-ability-card[data-ability="wis"] { --card-accent: var(--dcc-wis); }
-.dnd-cc-ability-card[data-ability="cha"] { --card-accent: var(--dcc-cha); }
+.dnd-cc-ability-face-back {
+  transform: rotateY(180deg);
+  padding: 0;
+}
+
+/* A small always-visible corner control makes "this flips" obvious without relying
+   on the player discovering that the icon/name header itself is clickable - a plain
+   icon-only circle still wasn't obviously a "flip this card" affordance on its own
+   (direct feedback), so it now also carries a short visible label, not just a hover
+   title. `height`/`padding` need `!important` for the same reason documented on the
+   shared `.application.dnd-cc button:not(.header-control)` reset above - that rule's
+   own `height: auto !important` otherwise always wins over a plain (non-!important)
+   size here regardless of specificity, which is exactly why this control used to
+   render smaller than authored and clip its own icon. */
+.application.dnd-cc button.dnd-cc-ability-flip-corner {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 1;
+  width: auto;
+  height: auto !important;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.55rem !important;
+  border-radius: 999px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  color: var(--dcc-text-muted);
+  cursor: pointer;
+}
+.dnd-cc-ability-flip-corner:hover { border-color: var(--card-accent); color: var(--card-accent); }
+.dnd-cc-ability-flip-corner-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.dnd-cc-ability-flip-corner i { font-size: 0.72rem; }
 
 .dnd-cc-ability-card-header {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.1rem;
+  cursor: pointer;
+}
+.dnd-cc-ability-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--card-accent);
+  fill: currentColor;
+  margin-bottom: 0.2rem;
 }
 .dnd-cc-ability-card-abbr {
   font-family: var(--dcc-font-display);
@@ -1552,26 +1704,27 @@
   align-items: baseline;
   justify-content: center;
   gap: 0.5rem;
+  margin-top: 0.2rem;
 }
 .dnd-cc-ability-card-total {
   font-family: var(--dcc-font-display);
   font-weight: 900;
-  font-size: 1.8rem;
+  font-size: 2rem;
   line-height: 1;
   color: var(--dcc-text);
 }
 .dnd-cc-ability-card-mod {
   font-family: var(--dcc-font-ui);
   font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.15rem 0.55rem;
+  font-size: 0.9rem;
+  padding: 0.16rem 0.6rem;
   border-radius: 999px;
   background: var(--dcc-surface-alt);
   border: 1px solid var(--card-accent);
   color: var(--card-accent);
 }
 
-.dnd-cc-ability-card-control { width: 100%; margin-top: 0.1rem; }
+.dnd-cc-ability-card-control { width: 100%; margin-top: 0.3rem; }
 .dnd-cc-ability-card-control .dnd-cc-point-buy-control,
 .dnd-cc-ability-card-control .dnd-cc-ability-pool-control {
   display: flex;
@@ -1583,26 +1736,120 @@
 .dnd-cc-ability-card-control select { width: 100%; }
 .dnd-cc-ability-card-control .dnd-cc-ability-roll-button { width: 100%; justify-content: center; }
 
-.dnd-cc-ability-card-breakdown {
-  margin: 0;
-  font-family: var(--dcc-font-ui);
+/* Smaller field, bigger score/mod above - direct feedback that the dropdown/roll
+   button read as too dominant next to the now-larger total/modifier. Needs the
+   `.application.dnd-cc` prefix to actually beat the generic `.application.dnd-cc
+   select`/input rule (2 classes + 1 type) on padding - a bare `.dnd-cc-ability-card-
+   control select` (1 class + 1 type) loses that fight on specificity alone even
+   though neither side uses `!important` here. */
+.application.dnd-cc .dnd-cc-ability-card-control select {
+  padding: 0.2rem 0.35rem;
   font-size: 0.72rem;
+}
+.application.dnd-cc .dnd-cc-ability-card-control .dnd-cc-ability-roll-button {
+  padding: 0.3rem 0.6rem !important;
+  font-size: 0.7rem;
+}
+.application.dnd-cc .dnd-cc-ability-card-control .dnd-cc-ability-manual-input {
+  padding: 0.2rem 0.35rem;
+  font-size: 0.72rem;
+}
+
+.dnd-cc-ability-card-breakdown {
+  margin: 0.25rem 0 0;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.6rem;
   color: var(--dcc-text-muted);
 }
 
-.dnd-cc-point-buy-remaining {
-  font-family: var(--dcc-font-ui);
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--dcc-text);
-  margin: 0 0 0.9rem;
+/* Per-ability detail hint - short, factual, always visible in small italic text
+   (a hover-triggered info icon was tried first and dropped: harder to discover, and
+   the icon itself read as an unrelated warning glyph rather than an info affordance). */
+.dnd-cc-ability-card-hint {
+  margin: 0.2rem 0 0;
+  font-family: var(--dcc-font-body);
+  font-style: italic;
+  font-size: 0.58rem;
+  line-height: 1.15;
+  color: var(--dcc-text-muted);
 }
-.dnd-cc-point-buy-remaining::before {
-  content: "\f5cd";
-  font-family: "Font Awesome 6 Free";
-  font-weight: 900;
-  color: var(--dcc-warn);
-  margin-right: 0.4rem;
+
+/* Back face: Saving Throw plus every skill this ability governs, grouped the same
+   way the real 2024 character sheet groups them (Saving Throw directly under
+   Score/Modifier, skills below) - confirmed against the sheet PDF directly. */
+.dnd-cc-ability-face-back .dnd-cc-ability-card-header {
+  padding: 0.65rem 0.75rem 0.5rem;
+  width: 100%;
+  flex-direction: row;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--dcc-surface-alt);
+  border-bottom: 2px solid var(--card-accent);
+}
+.dnd-cc-ability-face-back .dnd-cc-ability-icon { width: 1.1rem; height: 1.1rem; margin-bottom: 0; }
+.dnd-cc-ability-face-back .dnd-cc-ability-card-label { font-weight: 700; color: var(--dcc-text); }
+
+.dnd-cc-ability-back-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem 0;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+}
+.dnd-cc-ability-back-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border-left: 3px solid transparent;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.76rem;
+  text-align: left;
+}
+.dnd-cc-ability-back-name { flex: 1; color: var(--dcc-text-muted); }
+.dnd-cc-ability-back-passive {
+  flex: none;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.66rem;
+  color: var(--dcc-text-muted);
+  opacity: 0.75;
+}
+.dnd-cc-ability-back-num {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-ability-back-save .dnd-cc-ability-back-name { font-weight: 700; color: var(--dcc-text); }
+.dnd-cc-ability-back-save { background: color-mix(in srgb, var(--card-accent) 8%, transparent); }
+
+/* None stays quiet (no ability tint) so a glance across the list shows only what
+   actually has proficiency - same convention as the Skills step's own table. */
+.dnd-cc-ability-back-row.is-half,
+.dnd-cc-ability-back-row.is-prof,
+.dnd-cc-ability-back-row.is-expertise {
+  border-left-color: var(--card-accent);
+}
+.dnd-cc-ability-back-row.is-half .dnd-cc-ability-back-name,
+.dnd-cc-ability-back-row.is-prof .dnd-cc-ability-back-name,
+.dnd-cc-ability-back-row.is-expertise .dnd-cc-ability-back-name { color: var(--dcc-text); font-weight: 600; }
+.dnd-cc-ability-back-row.is-half .dnd-cc-ability-back-num,
+.dnd-cc-ability-back-row.is-prof .dnd-cc-ability-back-num,
+.dnd-cc-ability-back-row.is-expertise .dnd-cc-ability-back-num,
+.dnd-cc-ability-back-row.is-half.dnd-cc-ability-back-save .dnd-cc-ability-back-num,
+.dnd-cc-ability-back-row.is-prof.dnd-cc-ability-back-save .dnd-cc-ability-back-num,
+.dnd-cc-ability-back-row.is-expertise.dnd-cc-ability-back-save .dnd-cc-ability-back-num {
+  color: var(--card-accent);
+}
+
+.dnd-cc-ability-back-empty {
+  padding: 1rem 1rem 0;
+  text-align: center;
+  font-family: var(--dcc-font-body);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--dcc-text-muted);
 }
 
 .dnd-cc-ability-roll-button {
@@ -1668,12 +1915,17 @@
   align-items: center;
   gap: 0.4rem;
 }
-.dnd-cc-ability-reroll-button {
+/* Same `!important` requirement as `.dnd-cc-ability-flip-corner` above - without it,
+   the shared `.application.dnd-cc button:not(.header-control)` reset's own
+   `height: auto !important` always won over a plain `width`/`height` here, rendering
+   this smaller than authored and clipping the icon inside it. */
+.application.dnd-cc button.dnd-cc-ability-reroll-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
   border-radius: 999px;
   background: var(--dcc-surface-alt);
   border: 1px solid var(--dcc-border);
@@ -1682,6 +1934,7 @@
   flex: none;
 }
 .dnd-cc-ability-reroll-button:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); }
+.dnd-cc-ability-reroll-button i { font-size: 0.95rem; }
 
 .dnd-cc-point-buy-control {
   display: inline-flex;
@@ -1869,6 +2122,13 @@
   font-size: 0.82rem;
 }
 
+.dnd-cc-equipment-alternatives {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
 .dnd-cc-equipment-summary {
   display: flex;
   flex-wrap: wrap;
@@ -1923,6 +2183,12 @@
   font-family: var(--dcc-font-ui);
   font-size: 0.74rem;
   color: var(--dcc-text-muted);
+}
+
+.dnd-cc-equipment-add-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .dnd-cc-add-item-btn {
@@ -2126,8 +2392,14 @@
 
 /* A chosen entry's own remove/trash control (e.g. unpicking a skill from a repeating
    "choose N" select) - left at the default muted icon color it was easy to miss
-   entirely; red matches this app's convention for every other destructive action. */
+   entirely; red matches this app's convention for every other destructive action.
+   `.item-control` sits in dnd5e's own `li.item.flexrow` alongside `.item-name` (which
+   takes its own natural width), and without an explicit flex-basis a plain button
+   picks up `flex: 1 1 0%` from that flex row and stretches to fill all the row's
+   remaining width. `flex: none` keeps it sized to its icon content only, so the hover fill below
+   paints a small icon-sized box instead of a giant one spanning most of the row. */
 .dnd-cc-advancement-body .item-control:has(.fa-trash) {
+  flex: none;
   color: var(--dcc-accent);
   font-size: 1.1rem;
 }
@@ -2164,9 +2436,8 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input. The two look visually
-   identical without this (same box, same weight), making it hard to tell at a glance which
-   scores can actually still be raised. */
+   min!=max input. The two look visually identical by default (same box, same weight),
+   making it hard to tell at a glance which scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
 }
@@ -2182,6 +2453,178 @@
 .dnd-cc-advancement-body .ability-scores .delta .fa-lock {
   color: var(--dcc-text-muted);
 }
+
+/*
+ * Embedded CompendiumBrowser (Spells/Equipment steps' item picker, see
+ * _runEmbeddedBrowser in character-creator-app.mjs) - unlike an Advancement step's host,
+ * which is left to size naturally around a small amount of content, the browser's own
+ * item grid can be hundreds of entries long and needs a bounded height with its own
+ * internal scroll, the same way it behaves inside its normal floating 850x700 window.
+ * `.dnd-cc-browser-body` layers on top of the shared `.dnd-cc-advancement-body` class
+ * (still applied alongside it), so the same oath-palette color repointing above still
+ * applies here too - only sizing differs.
+ */
+.dnd-cc-browser-body {
+  /* dnd5e's own CompendiumBrowser relies on ApplicationV2's `.window-content` (bounded
+     height, `overflow-y: auto`) to constrain and scroll its content in its normal
+     floating window - frameless embedding skips `.window-content` entirely (see the
+     comment on EMBEDDED_WINDOW_OPTIONS in choice-queue.mjs). Rather than just replicate
+     that (which scrolls the whole panel - header, filters, results, and the Select
+     button footer - as one block, so the footer scrolls out of view), this makes the
+     browser's own root a bounded flex column and gives only its `.results` section its
+     own internal scroll, so the search/filter sidebar and the Select button stay
+     visible while the results list scrolls independently - the same layout a real
+     floating CompendiumBrowser window would want, just made explicit here instead of
+     inherited implicitly from `.window-content`. */
+  height: min(60vh, 600px);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dnd-cc-browser-body .compendium-browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-shadow: none;
+  background: none;
+}
+.dnd-cc-browser-body .compendium-browser > [data-application-part="header"],
+.dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"],
+.dnd-cc-browser-body .compendium-browser > .footer {
+  flex: none;
+}
+/* dnd5e's own footer "Select" button - a bare `<button type="submit">` with no class of
+   its own - reads as barely-there against the dark theme (a thin outline the same shade
+   as the surrounding surface) and, like every other custom button in this file, gets
+   its real authored height collapsed by the shared `.application.dnd-cc button:not(
+   .header-control)` reset's own `height: auto !important` unless matched with the same
+   `!important` + specificity bump. Filled with the real accent color so it reads as the
+   step's actual primary action, matching every other "confirm this pick" button
+   elsewhere in the app. */
+.application.dnd-cc .dnd-cc-browser-body .footer button[type="submit"] {
+  height: auto !important;
+  padding: 0.55rem 1.2rem !important;
+  border-radius: 6px;
+  border: 1px solid var(--dcc-accent);
+  background: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.application.dnd-cc .dnd-cc-browser-body .footer button[type="submit"]:disabled {
+  background: var(--dcc-surface-alt);
+  border-color: var(--dcc-border);
+  color: var(--dcc-text-muted);
+  opacity: 0.8;
+}
+.application.dnd-cc .dnd-cc-browser-body .footer button[type="submit"]:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+/* The filter sidebar collapses to its header rows by default (see
+   collapseFiltersByDefault in choice-queue.mjs), but if the player expands a group
+   with a lot of options, the sidebar itself scrolls instead of pushing the results
+   list (and the Select button below it) out of view. dnd5e's own core CSS
+   (.dnd5e2.compendium-browser .sidebar) sets a bare `height: 100%` - inside our flex
+   column that resolves to the full container height regardless of how little content
+   the sidebar actually has, so a plain `max-height` cap alone just clamped that same
+   fixed 100% down to a fixed 45%, leaving a large empty gap above the results whenever
+   the collapsed search row didn't need anywhere near that much room. `height: auto !important`
+   makes it size to its real content again, with max-height still capping it once a
+   player expands a filter group with a lot of options. */
+.dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"] {
+  height: auto !important;
+  max-height: 45%;
+  overflow-y: auto;
+}
+.dnd-cc-browser-body .compendium-browser > .results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Search + Price share one row by default, everything else the sidebar would
+   otherwise always show (Attunement, Weapon Mastery, Rarity, Properties, Source, ...)
+   moves behind one "Filters" toggle - see arrangeEmbeddedBrowserFilters in
+   choice-queue.mjs, which physically relocates the real dnd5e elements into this
+   layout rather than us re-implementing the filter controls ourselves. */
+.dnd-cc-browser-search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem 0.4rem;
+}
+.dnd-cc-browser-search-row [data-application-part="search"] { flex: 1; min-width: 0; }
+/* The app-wide `.application.dnd-cc input[type="text"]` rule above (a generic reset for
+   our own form fields) has no way to know this particular input sits inside dnd5e's own
+   `<search>` control, which reserves 2.25rem of left padding for a real search-icon
+   pseudo-element it draws itself (`.filter-element search::before`, at `left: 0.75rem`) -
+   our flat 0.55rem padding collapsed that reserved space, so the icon ended up drawn
+   directly over the first character or two of typed/placeholder text. Restoring dnd5e's
+   own padding (and letting its wrapper keep drawing the background/border, not the
+   input) fixes the overlap without touching the icon or wrapper styling at all. */
+.dnd-cc-browser-search-row [data-application-part="search"] search input[type="text"] {
+  padding: 0.75rem 0.5rem 0.75rem 2.25rem;
+  background: none;
+  border: none;
+}
+.dnd-cc-browser-search-row .filter.filter-range {
+  flex: none;
+  width: auto;
+  margin: 0;
+}
+.dnd-cc-browser-search-row .filter.filter-range .form-fields { width: 11rem; }
+
+.application.dnd-cc .dnd-cc-browser-filters-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  margin: 0;
+  padding: 0.5rem 0.7rem !important;
+  height: auto !important;
+  width: auto;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.application.dnd-cc .dnd-cc-browser-filters-toggle:hover { border-color: var(--dcc-accent); color: var(--dcc-text); }
+
+.dnd-cc-browser-more-filters {
+  display: none;
+  padding: 0 0.75rem;
+}
+.dnd-cc-browser-more-filters.is-open { display: flex; }
+
+/* A live "what does this pick cost" readout, injected above the embedded browser for
+   the Equipment step's manual "Add Item" purchase specifically (see
+   _runEmbeddedBrowser's showBudget option in character-creator-app.mjs) - not shown
+   for the Spells step's picker, which never spends currency. */
+.dnd-cc-browser-budget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0.85rem;
+  margin-bottom: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.8rem;
+  color: var(--dcc-text-muted);
+  flex-shrink: 0;
+}
+.dnd-cc-browser-budget b { color: var(--dcc-text); }
+.dnd-cc-browser-budget .dnd-cc-browser-budget-selection { color: var(--dcc-accent); }
+.dnd-cc-browser-budget .dnd-cc-browser-budget-selection.insufficient { color: var(--dcc-danger); font-weight: 700; }
 
 .dnd-cc-feat-subtype {
   margin-left: 0.6rem;
@@ -2220,6 +2663,7 @@
   margin-bottom: 0.8rem;
 }
 .dnd-cc-step-header-row .dnd-cc-step-intro { margin-bottom: 0; }
+.dnd-cc-step-header-actions { display: flex; gap: 0.5rem; flex: none; }
 
 .dnd-cc-randomize-button {
   display: inline-flex;
@@ -2727,19 +3171,14 @@
 .dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
 .dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
 
-/* display: flex/flex-direction: column - NOT block. This is the real fix for the
-   long-reported "can't see the cursor or text while typing in Backstory" bug: dnd5e's
-   own <prose-mirror> internally needs to be a flex column so its toolbar
-   (.menu-container > menu.editor-menu) and its editable content area stack vertically.
-   `display: block` (what this rule used to say) breaks that - the toolbar's own wrapper
-   collapses to 0 height in block flow while the menu itself still renders at full size
-   via internal positioning, and the editable content area's text then starts at that
-   same collapsed y-offset, landing directly underneath/behind the toolbar buttons.
-   Confirmed via `document.elementFromPoint` on the actual typed text's own
-   bounding-box center: under `display: block` the topmost element there is a toolbar
-   button, not the text; under `display: flex; flex-direction: column`, it's the real
-   text node. The text was never actually invisible
-   or uncolored - it was being visually covered by the toolbar the whole time. */
+/* display: flex/flex-direction: column - NOT block. dnd5e's own <prose-mirror>
+   internally needs to be a flex column so its toolbar (.menu-container > menu.editor-menu)
+   and its editable content area stack vertically. `display: block` breaks that - the
+   toolbar's own wrapper collapses to 0 height in block flow while the menu itself still
+   renders at full size via internal positioning, and the editable content area's text
+   then starts at that same collapsed y-offset, landing directly underneath/behind the
+   toolbar buttons - the text isn't actually invisible or uncolored, it's being visually
+   covered by the toolbar. */
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;
@@ -2802,15 +3241,26 @@
 
 .dnd-cc-review-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-items: stretch;
+  /* 4 columns (not 3) so all 4 always-present sections (Abilities/Skills/Feats/
+     Equipment) share one row instead of the 4th - previously Equipment - dropping to a
+     mostly-empty row of its own below. `align-items: start` (not the grid default
+     `stretch`) is the other half of that same fix: a sparse card (an empty "No feats
+     yet" Feats section, most often) no longer gets force-stretched to match its
+     tallest row-mate (usually Abilities' fixed 6-row table) - direct feedback that a
+     short section reading as artificially tall, with a large empty gap below its real
+     content, looked broken. */
+  grid-template-columns: repeat(4, 1fr);
+  align-items: start;
   gap: 0.7rem;
   margin-bottom: 0.9rem;
 }
 .dnd-cc-review-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  /* A long list (many proficient skills, a big spell list) scrolls internally instead
+     of growing the card - and therefore its whole grid row - without bound. */
+  max-height: 280px;
+  overflow-y: auto;
   padding: 0.7rem 0.9rem;
   background: var(--dcc-surface);
   border: 1px solid var(--dcc-border);

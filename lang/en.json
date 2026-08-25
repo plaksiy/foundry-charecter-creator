@@ -15,6 +15,7 @@
     "RandomizeButton": "Randomize",
     "LearnMore": "Learn More",
     "AddCustom": "Add Custom",
+    "AddCustomSubclass": "Add Custom Subclass",
     "Homebrew": "Homebrew",
     "Diagnostics": {
       "ButtonLabel": "Copy Diagnostic Report",
@@ -38,7 +39,7 @@
       "NameExamples": "Need inspiration? Kaelith Duskbane · Torvin Ironbeard · Sable Nightwhisper · Bram Thistlewood",
       "RandomizeName": "Randomize name",
       "Alignment": "Alignment",
-      "Pronoun": "Pronoun",
+      "Pronoun": "Pronouns",
       "TipName": "A name doesn't have to be final - you can rename your character at any time, even after finishing the wizard.",
       "TipAlignment": "Alignment is a starting point, not a cage. What your character actually does at the table is what defines them.",
       "TipBackstory": "Nothing here is set in stone - come back and expand your backstory any time, even after the character is finished."
@@ -60,7 +61,11 @@
       "SheetButtonLabel": "Level Up",
       "SheetButtonTitle": "Level up this character using the character creator wizard",
       "WindowTitle": "Level Up: {name}",
-      "Done": "Done"
+      "Done": "Done",
+      "XpReadyMessage": "<strong>{name}</strong> has earned enough XP to level up ({value} / {max}).",
+      "OpenButton": "Open Level Up",
+      "MulticlassPrompt": "Want to branch into a different class instead?",
+      "MulticlassButton": "Multiclass into a New Class"
     },
     "Accessibility": {
       "StepNavLabel": "Character creation steps",
@@ -83,12 +88,6 @@
       "ButtonLabel": "Progress",
       "Title": "Character Creation Progress",
       "Intro": "Every player's in-progress character, at a glance. Click Open to jump into a draft and help directly.",
-      "Column": {
-        "Player": "Player",
-        "Character": "Character",
-        "Step": "Current Step",
-        "Status": "Status"
-      },
       "Ready": "Ready to finish",
       "Abandoned": "Abandoned (Start Over)",
       "Open": "Open",
@@ -98,7 +97,24 @@
       "Refresh": "Refresh",
       "NoDrafts": "No characters are currently in progress.",
       "NoOwner": "Unowned",
-      "ActorMissing": "That draft no longer exists."
+      "ActorMissing": "That draft no longer exists.",
+      "FinishedTitle": "Finished Characters",
+      "FinishedIntro": "Every finished player character in this world - class/level, species, background, and (if your world tracks XP) whether they've earned enough to level up.",
+      "Column": {
+        "Player": "Player",
+        "Character": "Character",
+        "Step": "Current Step",
+        "Status": "Status",
+        "ClassLevel": "Class / Level",
+        "Species": "Species",
+        "Background": "Background",
+        "HP": "HP",
+        "XP": "XP"
+      },
+      "NoFinished": "No finished characters yet.",
+      "XpReady": "Ready to level up",
+      "XpNotTracked": "Not tracked",
+      "LevelUp": "Level Up"
     },
     "ReplaceItem": {
       "Title": "Replace This Pick?",
@@ -113,12 +129,18 @@
       "TabCreate": "Create New",
       "TabExisting": "Use Existing",
       "Hint": "Creates a placeholder you can finish authoring on its own item sheet afterward (proficiencies, advancement, etc.).",
+      "HintSubclass": "Creates a placeholder you can finish authoring on its own item sheet afterward. Once it's ready, drag it from the Items sidebar onto the native subclass choice screen when your class reaches its subclass level - a custom subclass isn't offered automatically the way compendium ones are.",
+      "HintEquipment": "Creates a blank item directly in your inventory, which you can then finish authoring on its own item sheet (price, weight, damage, armor class, and so on).",
+      "ItemType": "Item Type",
       "Name": "Name",
       "NamePlaceholder": "Enter a name...",
       "Description": "Description",
       "HitDie": "Hit Die",
       "PrimaryAbility": "Primary Ability",
       "Speed": "Speed (ft)",
+      "ParentClass": "Parent Class",
+      "ParentClassIdentifier": "Parent Class Identifier",
+      "ParentClassIdentifierPlaceholder": "e.g. fighter, wizard...",
       "FeatType": "Feat Type",
       "SpellLevel": "Spell Level",
       "SpellSchool": "School",
@@ -179,7 +201,17 @@
       "Intro": "Feats granted by your class, species, or background show up here. If a source grants a specific origin feat, you can swap it for a different one.",
       "NoneYet": "No feats yet. Feats granted by your background, species, or a higher starting level will appear here.",
       "OriginFeat": "Origin Feat",
-      "Granted": "Granted"
+      "Granted": "Granted",
+      "BrowseToggle": "Browse Feats",
+      "BrowseBlockedByHouseRule": "Your GM has set a minimum character level for picking feats, and this character isn't there yet.",
+      "NoneToBrowse": "No feats are available for the selected ruleset and enabled compendiums.",
+      "LevelPill": "Level {level}+",
+      "Add": "Add",
+      "PrereqTitle": "Level Requirement Not Met",
+      "PrereqWarning": "{name} normally requires character level {level}. Add it anyway?",
+      "DuplicateSubtypeTitle": "Already Have One",
+      "DuplicateSubtypeWarning": "You already have {existing} as your {subtype}. Add {name} as well?",
+      "Remove": "Remove"
     },
     "Skills": {
       "Intro": "Every skill proficiency granted so far, from your class, species, background, and feats, is aggregated here. Skill choices themselves are made where they're granted, not on this step.",
@@ -188,7 +220,8 @@
       "Proficiency": "Proficiency",
       "Expertise": "Expertise",
       "Modifier": "Modifier",
-      "Passive": "Passive"
+      "Passive": "Passive",
+      "PassiveAbbr": "Pass."
     },
     "Spells": {
       "Intro": "Pick your class's cantrips and known spells here. Spells granted by a feat or background (like Magic Initiate) are already resolved and just shown for reference.",
@@ -214,6 +247,7 @@
       "Intro": "Choose your class's and background's starting equipment kit, or clear a source and pick a different one. You can also add items of your own directly.",
       "Clear": "Clear",
       "Choose": "Choose",
+      "Take": "Take",
       "WealthOption": "Take {amount} GP instead, and buy your own equipment",
       "Inventory": "Inventory",
       "Currency": "Currency",
@@ -223,7 +257,10 @@
       "BudgetHint": "Currency only comes from your class/background starting kit or the \"take gold instead\" option - there's no other source at creation, so a first-level character can't overspend on gear no matter what's added here.",
       "CannotAfford": "You can't afford {item} ({price}) - you only have {available}.",
       "Remove": "Remove",
-      "NoneYet": "No equipment yet. Pick a starting kit above, or add your own items."
+      "NoneYet": "No equipment yet. Pick a starting kit above, or add your own items.",
+      "MoreFilters": "Filters",
+      "AvailableBudget": "Available: {available}",
+      "SelectionCost": "Selected: {price} - {remaining} left after buying"
     },
     "Species": {
       "Intro": "Choose a species to see its traits and choices. You can change your mind and pick a different species before moving on.",
@@ -258,7 +295,13 @@
       "RerollButton": "Reroll",
       "RollLogMessage": "{name} rolls {ability}",
       "Incomplete": "Assign a value to every ability score before continuing.",
-      "ChoosePlaceholder": "Choose a value..."
+      "ChoosePlaceholder": "Choose a value...",
+      "SkillsSuffix": "skills",
+      "SavingThrow": "Saving Throw",
+      "NoSkills": "No skills use this ability directly.",
+      "FlipAll": "Flip All",
+      "FlipHint": "Flip to see Saving Throw and skills",
+      "FlipLabel": "Flip"
     },
     "Ruleset": {
       "Title": "Choose a ruleset",
@@ -411,6 +454,9 @@
       "MinFeatLevelHint": "The level a character needs to reach before an origin feat can be swapped on the Feats step. Set to 0 to disable feat swapping entirely.",
       "BannedSpecies": "Banned Species",
       "BannedSpeciesHint": "Checked species won't be offered on the Species step, regardless of ruleset.",
+      "Leveling": "Leveling",
+      "AllowSelfLevelUp": "Allow players to level up their own characters",
+      "AllowSelfLevelUpHint": "When a character earns enough XP to level up, always notify you (the GM). If this is also checked, the player is notified too and can open Level Up themselves instead of waiting on you.",
       "Save": "Save"
     },
     "StepOrder": {

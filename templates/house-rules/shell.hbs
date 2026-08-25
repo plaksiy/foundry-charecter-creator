@@ -47,6 +47,17 @@
     </div>
   </section>
 
+  <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.Leveling"}}</h3>
+    <div class="dnd-cc-house-rules-checkgrid">
+      <label>
+        <input type="checkbox" name="allowSelfLevelUp" {{#if allowSelfLevelUp}}checked{{/if}}>
+        {{localize "DND-CC.HouseRules.AllowSelfLevelUp"}}
+      </label>
+    </div>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.AllowSelfLevelUpHint"}}</p>
+  </section>
+
   <footer class="dnd-cc-house-rules-footer">
     <button type="submit" class="dnd-cc-save-button">
       <i class="fa-solid fa-floppy-disk"></i> {{localize "DND-CC.HouseRules.Save"}}

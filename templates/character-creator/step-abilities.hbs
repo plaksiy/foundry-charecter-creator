@@ -5,35 +5,36 @@
       <p class="dnd-cc-step-intro">{{localize "DND-CC.Abilities.Intro"}}</p>
     </div>
     {{#if abilityMethod}}
-    <button type="button" class="dnd-cc-randomize-button" data-randomize-abilities>
-      <i class="fa-solid fa-dice" aria-hidden="true"></i> {{localize "DND-CC.RandomizeButton"}}
-    </button>
+    <div class="dnd-cc-step-header-actions">
+      <button type="button" class="dnd-cc-randomize-button" data-flip-all-abilities>
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i> {{localize "DND-CC.Abilities.FlipAll"}}
+      </button>
+      <button type="button" class="dnd-cc-randomize-button" data-randomize-abilities>
+        <i class="fa-solid fa-dice" aria-hidden="true"></i> {{localize "DND-CC.RandomizeButton"}}
+      </button>
+    </div>
     {{/if}}
   </div>
 
-  <div class="dnd-cc-ability-methods">
+  <div class="dnd-cc-ability-method-picker">
     {{#if allowedAbilityMethods.standardArray}}
-    <button type="button" class="dnd-cc-ability-method-card {{#if (eq abilityMethod "standardArray")}}selected{{/if}}" data-ability-method="standardArray">
-      <h3>{{localize "DND-CC.Abilities.StandardArray"}}</h3>
-      <p>{{localize "DND-CC.Abilities.StandardArrayHint"}}</p>
+    <button type="button" class="dnd-cc-method-tab {{#if (eq abilityMethod "standardArray")}}selected{{/if}}" data-ability-method="standardArray">
+      {{localize "DND-CC.Abilities.StandardArray"}}
     </button>
     {{/if}}
     {{#if allowedAbilityMethods.pointBuy}}
-    <button type="button" class="dnd-cc-ability-method-card {{#if (eq abilityMethod "pointBuy")}}selected{{/if}}" data-ability-method="pointBuy">
-      <h3>{{localize "DND-CC.Abilities.PointBuy"}}</h3>
-      <p>{{localize "DND-CC.Abilities.PointBuyHint"}}</p>
+    <button type="button" class="dnd-cc-method-tab {{#if (eq abilityMethod "pointBuy")}}selected{{/if}}" data-ability-method="pointBuy">
+      {{localize "DND-CC.Abilities.PointBuy"}}
     </button>
     {{/if}}
     {{#if allowedAbilityMethods.roll}}
-    <button type="button" class="dnd-cc-ability-method-card {{#if (eq abilityMethod "roll")}}selected{{/if}}" data-ability-method="roll">
-      <h3>{{localize "DND-CC.Abilities.Roll"}}</h3>
-      <p>{{localize "DND-CC.Abilities.RollHint"}}</p>
+    <button type="button" class="dnd-cc-method-tab {{#if (eq abilityMethod "roll")}}selected{{/if}}" data-ability-method="roll">
+      {{localize "DND-CC.Abilities.Roll"}}
     </button>
     {{/if}}
     {{#if allowedAbilityMethods.manual}}
-    <button type="button" class="dnd-cc-ability-method-card {{#if (eq abilityMethod "manual")}}selected{{/if}}" data-ability-method="manual">
-      <h3>{{localize "DND-CC.Abilities.Manual"}}</h3>
-      <p>{{localize "DND-CC.Abilities.ManualHint"}}</p>
+    <button type="button" class="dnd-cc-method-tab {{#if (eq abilityMethod "manual")}}selected{{/if}}" data-ability-method="manual">
+      {{localize "DND-CC.Abilities.Manual"}}
     </button>
     {{/if}}
   </div>
@@ -41,10 +42,17 @@
   {{#if abilityMethod}}
   <div class="dnd-cc-ability-body">
 
-    {{#if (eq abilityMethod "pointBuy")}}
-    <p class="dnd-cc-point-buy-remaining">
+    {{#if (eq abilityMethod "standardArray")}}
+    <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.StandardArrayHint"}}</p>
+    {{else if (eq abilityMethod "pointBuy")}}
+    <p class="dnd-cc-method-caption">
+      {{localize "DND-CC.Abilities.PointBuyHint"}}
       {{localize "DND-CC.Abilities.PointBuyRemaining" remaining=pointBuyRemaining budget=pointBuyBudget}}
     </p>
+    {{else if (eq abilityMethod "roll")}}
+    <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.RollHint"}}</p>
+    {{else if (eq abilityMethod "manual")}}
+    <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.ManualHint"}}</p>
     {{/if}}
 
     {{#if poolSummary.length}}
@@ -61,48 +69,91 @@
     {{#if showAbilityTable}}
     <ul class="dnd-cc-ability-grid">
       {{#each abilities}}
-      <li class="dnd-cc-ability-card" data-ability="{{this.key}}">
-        <div class="dnd-cc-ability-card-header">
-          <span class="dnd-cc-ability-card-abbr">{{this.key}}</span>
-          <span class="dnd-cc-ability-card-label">{{this.label}}</span>
-        </div>
-        <div class="dnd-cc-ability-card-score">
-          <span class="dnd-cc-ability-card-total">{{this.totalText}}</span>
-          <span class="dnd-cc-ability-card-mod">{{this.modText}}</span>
-        </div>
+      <li class="dnd-cc-ability-flip" data-ability="{{this.key}}">
+        <div class="dnd-cc-ability-flip-inner">
 
-        <div class="dnd-cc-ability-card-control">
-          {{#if (eq ../abilityMethod "pointBuy")}}
-          <div class="dnd-cc-point-buy-control">
-            <button type="button" data-ability-adjust="{{this.key}}:-1">-</button>
-            <span class="dnd-cc-point-buy-value">{{this.base}}</span>
-            <button type="button" data-ability-adjust="{{this.key}}:1">+</button>
-          </div>
-          {{else if (eq ../abilityMethod "manual")}}
-          <input type="number" class="dnd-cc-ability-manual-input" data-ability-manual="{{this.key}}" value="{{this.base}}" />
-          {{else if this.needsRoll}}
-          <button type="button" class="dnd-cc-ability-roll-button" data-ability-roll="{{this.key}}">
-            {{localize "DND-CC.Abilities.RollButton"}}
-          </button>
-          {{else}}
-          <div class="dnd-cc-ability-pool-control">
-            <select data-ability-pool="{{this.key}}">
-              {{#each this.poolOptions}}
-              <option value="{{this.index}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-              {{/each}}
-            </select>
-            {{#if (eq ../abilityMethod "roll")}}
-            <button type="button" class="dnd-cc-ability-reroll-button" data-ability-roll="{{this.key}}" title="{{localize 'DND-CC.Abilities.RerollButton'}}">
-              <i class="fa-solid fa-arrow-rotate-right"></i>
+          <div class="dnd-cc-ability-face dnd-cc-ability-face-front">
+            <button type="button" class="dnd-cc-ability-flip-corner" data-ability-flip-toggle="{{this.key}}" title="{{localize 'DND-CC.Abilities.FlipHint'}}" aria-label="{{localize 'DND-CC.Abilities.FlipHint'}}">
+              <span class="dnd-cc-ability-flip-corner-label">{{localize "DND-CC.Abilities.FlipLabel"}}</span>
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             </button>
-            {{/if}}
-          </div>
-          {{/if}}
-        </div>
+            <div class="dnd-cc-ability-card-header" data-ability-flip-toggle="{{this.key}}">
+              {{#if this.icon}}
+              <svg class="dnd-cc-ability-icon" viewBox="{{this.iconViewBox}}" aria-hidden="true">{{{this.icon}}}</svg>
+              {{/if}}
+              <span class="dnd-cc-ability-card-abbr">{{this.abbr}}</span>
+              <span class="dnd-cc-ability-card-label">{{this.label}}</span>
+            </div>
+            <div class="dnd-cc-ability-card-score">
+              <span class="dnd-cc-ability-card-total">{{this.totalText}}</span>
+              <span class="dnd-cc-ability-card-mod">{{this.modText}}</span>
+            </div>
 
-        <p class="dnd-cc-ability-card-breakdown">
-          {{localize "DND-CC.Abilities.Base"}} {{this.base}} {{localize "DND-CC.Abilities.Bonus"}} {{this.bonusText}}
-        </p>
+            <div class="dnd-cc-ability-card-control">
+              {{#if (eq ../abilityMethod "pointBuy")}}
+              <div class="dnd-cc-point-buy-control">
+                <button type="button" data-ability-adjust="{{this.key}}:-1">-</button>
+                <span class="dnd-cc-point-buy-value">{{this.base}}</span>
+                <button type="button" data-ability-adjust="{{this.key}}:1">+</button>
+              </div>
+              {{else if (eq ../abilityMethod "manual")}}
+              <input type="number" class="dnd-cc-ability-manual-input" data-ability-manual="{{this.key}}" value="{{this.base}}" />
+              {{else if this.needsRoll}}
+              <button type="button" class="dnd-cc-ability-roll-button" data-ability-roll="{{this.key}}">
+                {{localize "DND-CC.Abilities.RollButton"}}
+              </button>
+              {{else}}
+              <div class="dnd-cc-ability-pool-control">
+                <select data-ability-pool="{{this.key}}">
+                  {{#each this.poolOptions}}
+                  <option value="{{this.index}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                  {{/each}}
+                </select>
+                {{#if (eq ../abilityMethod "roll")}}
+                <button type="button" class="dnd-cc-ability-reroll-button" data-ability-roll="{{this.key}}" title="{{localize 'DND-CC.Abilities.RerollButton'}}">
+                  <i class="fa-solid fa-dice-d20"></i>
+                </button>
+                {{/if}}
+              </div>
+              {{/if}}
+            </div>
+
+            <p class="dnd-cc-ability-card-breakdown">
+              {{localize "DND-CC.Abilities.Base"}} {{this.base}} {{localize "DND-CC.Abilities.Bonus"}} {{this.bonusText}}
+            </p>
+            <p class="dnd-cc-ability-card-hint">{{this.hint}}</p>
+          </div>
+
+          <div class="dnd-cc-ability-face dnd-cc-ability-face-back">
+            <button type="button" class="dnd-cc-ability-flip-corner" data-ability-flip-toggle="{{this.key}}" title="{{localize 'DND-CC.Abilities.FlipHint'}}" aria-label="{{localize 'DND-CC.Abilities.FlipHint'}}">
+              <span class="dnd-cc-ability-flip-corner-label">{{localize "DND-CC.Abilities.FlipLabel"}}</span>
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            </button>
+            <div class="dnd-cc-ability-card-header" data-ability-flip-toggle="{{this.key}}">
+              {{#if this.icon}}
+              <svg class="dnd-cc-ability-icon" viewBox="{{this.iconViewBox}}" aria-hidden="true">{{{this.icon}}}</svg>
+              {{/if}}
+              <span class="dnd-cc-ability-card-label">{{this.label}} {{localize "DND-CC.Abilities.SkillsSuffix"}}</span>
+            </div>
+            <ul class="dnd-cc-ability-back-list">
+              <li class="dnd-cc-ability-back-row dnd-cc-ability-back-save is-{{this.savingThrow.proficiencyTier}}">
+                <span class="dnd-cc-ability-back-name">{{localize "DND-CC.Abilities.SavingThrow"}}</span>
+                <span class="dnd-cc-ability-back-num">{{this.savingThrow.totalText}}</span>
+              </li>
+              {{#each this.governedSkills}}
+              <li class="dnd-cc-ability-back-row is-{{this.proficiencyTier}}" title="{{this.proficiencyLabel}}">
+                <span class="dnd-cc-ability-back-name">{{this.label}}</span>
+                <span class="dnd-cc-ability-back-passive">{{localize "DND-CC.Skills.PassiveAbbr"}} {{this.passive}}</span>
+                <span class="dnd-cc-ability-back-num">{{this.totalText}}</span>
+              </li>
+              {{/each}}
+              {{#unless this.governedSkills.length}}
+              <li class="dnd-cc-ability-back-empty">{{localize "DND-CC.Abilities.NoSkills"}}</li>
+              {{/unless}}
+            </ul>
+          </div>
+
+        </div>
       </li>
       {{/each}}
     </ul>

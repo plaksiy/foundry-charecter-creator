@@ -3,7 +3,8 @@ import { CompendiumSourcesConfig } from "./apps/compendium-sources-config.mjs";
 import { HouseRulesConfig } from "./apps/house-rules-config.mjs";
 import { GmProgressDashboard } from "./apps/gm-progress-dashboard.mjs";
 import { StepOrderConfig } from "./apps/step-order-config.mjs";
-import { CharacterDraft } from "./models/character-draft.mjs";
+import { CharacterDraft, getNonGmOwners } from "./models/character-draft.mjs";
+import { isSelfLevelUpAllowed } from "./services/house-rules.mjs";
 import { MODULE_ID } from "./constants.mjs";
 
 Hooks.once("init", () => {
@@ -131,7 +132,6 @@ Hooks.once("init", () => {
     `modules/${MODULE_ID}/templates/character-creator/step-background.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-abilities.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-feats.hbs`,
-    `modules/${MODULE_ID}/templates/character-creator/step-skills.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-spells.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-equipment.hbs`,
     `modules/${MODULE_ID}/templates/character-creator/step-about.hbs`,
@@ -201,7 +201,14 @@ Hooks.on("renderActorDirectory", (_app, html) => {
 // copyUuid/toggleControls buttons already in this header) rather than going through
 // ApplicationV2's own header-controls option, since that's a static per-class option list
 // on dnd5e's own sheet class, not something a hook can append to.
-Hooks.on("renderCharacterActorSheet", (app, _html) => {
+//
+// Registered on the native sheet's own render hook *and* both of Tidy 5e Sheets' own
+// class-specific render hooks (`Tidy5eCharacterSheet`, the legacy skin, and
+// `Tidy5eCharacterSheetQuadrone`, its current one) - Tidy5e's own header uses the
+// exact same `.header-control`/`[data-action="close"]` convention as the
+// native sheet (both ultimately extend ApplicationV2's own header), so one shared handler
+// covers all three without needing sheet-specific styling or markup.
+function addLevelUpHeaderButton(app) {
   const actor = app.actor;
   if (!actor?.isOwner || CharacterDraft.isDraft(actor)) return;
 
@@ -216,6 +223,53 @@ Hooks.on("renderCharacterActorSheet", (app, _html) => {
   button.addEventListener("click", () => new CharacterCreatorApp({ actor }).render(true));
 
   header.insertBefore(button, header.querySelector('[data-action="close"]'));
+}
+Hooks.on("renderCharacterActorSheet", addLevelUpHeaderButton);
+Hooks.on("renderTidy5eCharacterSheet", addLevelUpHeaderButton);
+Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
+
+// XP-threshold level-up notification: whenever a finished character's XP changes and
+// crosses into "enough to level up," whisper the GM an actionable chat card - and, if the
+// `allowSelfLevelUp` house rule is on, whisper the player too so they don't have to wait
+// on the GM to notice. `xp.max` is dnd5e's own real derived "XP needed for the *next*
+// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`), so
+// eligibility is a plain `value >= max` read off the actor's own already-computed data -
+// no separate threshold table of our own needed.
+// `game.user.isActiveGM` (not a plain isGM check) ensures exactly one connected client
+// fires this, even if more than one GM happens to be online - `updateActor` fires on every
+// client, and a plain isGM guard would send one duplicate chat card per online GM.
+Hooks.on("updateActor", async (actor, changes) => {
+  if (!game.user.isActiveGM) return;
+  if (actor.type !== "character" || CharacterDraft.isDraft(actor)) return;
+  if (!foundry.utils.hasProperty(changes, "system.details.xp.value")) return;
+  if (game.settings.get("dnd5e", "levelingMode") === "noxp") return;
+
+  const xp = actor.system.details.xp;
+  if (!xp || xp.max === Infinity || xp.value < xp.max) return;
+
+  // Notify once per threshold, not once per unrelated actor update after that - re-fires
+  // naturally once the GM actually levels the character (xp.max moves to the next
+  // threshold, which no longer matches the stored flag).
+  if (actor.getFlag(MODULE_ID, "xpNotifiedThreshold") === xp.max) return;
+  await actor.setFlag(MODULE_ID, "xpNotifiedThreshold", xp.max);
+
+  const whisperIds = new Set(ChatMessage.getWhisperRecipients("GM").map((u) => u.id));
+  if (isSelfLevelUpAllowed()) {
+    for (const owner of getNonGmOwners(actor)) whisperIds.add(owner.id);
+  }
+
+  await ChatMessage.create({
+    whisper: Array.from(whisperIds),
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content: `
+      <div class="dnd-cc-review-chat-card">
+        <p>${game.i18n.format("DND-CC.LevelUp.XpReadyMessage", { name: actor.name, value: xp.value, max: xp.max })}</p>
+        <button type="button" data-action="dnd-cc-open-levelup" data-actor-id="${actor.id}">
+          <i class="fa-solid fa-angles-up"></i> ${game.i18n.localize("DND-CC.LevelUp.OpenButton")}
+        </button>
+      </div>
+    `
+  });
 });
 
 // GM co-review gate (see `requireGmReview` setting): a player's "Build Character" whispers
@@ -225,28 +279,45 @@ Hooks.on("renderCharacterActorSheet", (app, _html) => {
 // so a player can never self-approve their own submission.
 Hooks.on("renderChatMessageHTML", (_message, html) => {
   const root = html instanceof HTMLElement ? html : html[0];
-  const button = root.querySelector('[data-action="dnd-cc-approve-review"]');
-  if (!button) return;
 
-  if (!game.user.isGM) {
-    button.disabled = true;
-    return;
+  const approveButton = root.querySelector('[data-action="dnd-cc-approve-review"]');
+  if (approveButton) {
+    if (!game.user.isGM) {
+      approveButton.disabled = true;
+    } else {
+      approveButton.addEventListener("click", async () => {
+        const actor = game.actors.get(approveButton.dataset.actorId);
+        if (!actor) {
+          ui.notifications.warn(game.i18n.localize("DND-CC.Review.ApproveActorMissing"));
+          return;
+        }
+
+        approveButton.disabled = true;
+        await new CharacterDraft(actor).finalize();
+        ui.actors.render();
+        approveButton.innerHTML = `<i class="fa-solid fa-check-double"></i> ${game.i18n.localize("DND-CC.Review.ApprovedLabel")}`;
+        ui.notifications.info(game.i18n.format("DND-CC.Review.FinalizeSuccess", { name: actor.name }));
+        actor.sheet.render(true);
+      });
+    }
   }
 
-  button.addEventListener("click", async () => {
-    const actor = game.actors.get(button.dataset.actorId);
-    if (!actor) {
-      ui.notifications.warn(game.i18n.localize("DND-CC.Review.ApproveActorMissing"));
-      return;
-    }
-
-    button.disabled = true;
-    await new CharacterDraft(actor).finalize();
-    ui.actors.render();
-    button.innerHTML = `<i class="fa-solid fa-check-double"></i> ${game.i18n.localize("DND-CC.Review.ApprovedLabel")}`;
-    ui.notifications.info(game.i18n.format("DND-CC.Review.FinalizeSuccess", { name: actor.name }));
-    actor.sheet.render(true);
-  });
+  // XP-ready level-up card - unlike the approval button above, this one just opens the
+  // wizard locally (no shared data mutation to gate), so it's live for anyone who
+  // actually received the whisper (the GM always, and the owning player too if the
+  // `allowSelfLevelUp` house rule sent it to them) - Foundry's own actor-update
+  // permission checks still apply once the wizard itself tries to change anything.
+  const levelUpButton = root.querySelector('[data-action="dnd-cc-open-levelup"]');
+  if (levelUpButton) {
+    levelUpButton.addEventListener("click", () => {
+      const actor = game.actors.get(levelUpButton.dataset.actorId);
+      if (!actor) {
+        ui.notifications.warn(game.i18n.localize("DND-CC.Review.ApproveActorMissing"));
+        return;
+      }
+      new CharacterCreatorApp({ actor }).render(true);
+    });
+  }
 });
 
 globalThis.dndCharacterCreator = { CharacterCreatorApp, MODULE_ID };

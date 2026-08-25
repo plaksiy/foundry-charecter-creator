@@ -47,6 +47,55 @@
   <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.NoDrafts"}}</p>
   {{/if}}
 
+  <h3>{{localize "DND-CC.GmProgress.FinishedTitle"}}</h3>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.FinishedIntro"}}</p>
+
+  {{#if hasFinishedRows}}
+  <div class="dnd-cc-compendium-table-scroll">
+    <table class="dnd-cc-compendium-table dnd-cc-gm-progress-table">
+      <thead>
+        <tr>
+          <th>{{localize "DND-CC.GmProgress.Column.Player"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Character"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.ClassLevel"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Species"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.Background"}}</th>
+          <th>{{localize "DND-CC.GmProgress.Column.HP"}}</th>
+          {{#if tracksXp}}<th>{{localize "DND-CC.GmProgress.Column.XP"}}</th>{{/if}}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each finishedRows}}
+        <tr>
+          <td>{{this.ownerName}}</td>
+          <td class="col-name">{{this.name}}</td>
+          <td>{{this.classLevel}}</td>
+          <td>{{this.species}}</td>
+          <td>{{this.background}}</td>
+          <td>{{this.hpText}}</td>
+          {{#if this.tracksXp}}
+          <td>
+            {{this.xpText}}
+            {{#if this.xpReady}}
+            <span class="dnd-cc-gm-progress-status ready"><i class="fa-solid fa-circle-check"></i> {{localize "DND-CC.GmProgress.XpReady"}}</span>
+            {{/if}}
+          </td>
+          {{/if}}
+          <td>
+            <button type="button" class="dnd-cc-gm-progress-open" data-levelup-actor="{{this.id}}">
+              <i class="fa-solid fa-angles-up"></i> {{localize "DND-CC.GmProgress.LevelUp"}}
+            </button>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.NoFinished"}}</p>
+  {{/if}}
+
   <footer class="dnd-cc-compendium-sources-footer">
     <button type="button" class="dnd-cc-save-button" data-refresh>
       <i class="fa-solid fa-rotate"></i> {{localize "DND-CC.GmProgress.Refresh"}}

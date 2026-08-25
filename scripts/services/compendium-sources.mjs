@@ -51,7 +51,7 @@ export async function setPlayerSourceVisibility(packId, visible) {
 }
 
 /**
- * Every Item pack the GM has actually enabled, with the current player's own visibility
+ * Every Item pack the GM has actually enabled, with the current user's own visibility
  * preference - the option list for the in-wizard "Sources" filter panel. A pack the GM
  * disabled entirely never appears here, so a player can only narrow, never expand,
  * what's actually available.
@@ -145,6 +145,12 @@ export async function getStepItems(stepType, rulesetVersions) {
         img: entry.img,
         type: entry.type,
         subtype: entry.system?.type?.subtype ?? null,
+        // Distinguishes a real Feat from a class feature - both are stored as the same
+        // Item type "feat", only system.type.value tells them apart. Only meaningful
+        // for feat-type items; harmless undefined for every other type this function
+        // returns.
+        typeValue: doc?.system?.type?.value ?? null,
+        prerequisites: doc?.system?.prerequisites ?? null,
         ruleset: itemRuleset,
         book: bookLabel,
         pack: pack.collection,
@@ -173,6 +179,8 @@ export async function getStepItems(stepType, rulesetVersions) {
       img: item.img,
       type: item.type,
       subtype: item.system?.type?.subtype ?? null,
+      typeValue: item.system?.type?.value ?? null,
+      prerequisites: item.system?.prerequisites ?? null,
       ruleset: null,
       book: null,
       pack: "world",
@@ -212,13 +220,90 @@ function deduplicateByNameAndRuleset(items) {
   return Array.from(bestByKey.values());
 }
 
+/**
+ * Source-book slugs (dnd5e's own `system.source.slug`, e.g. "phb-2024", "srd-51") worth
+ * excluding by default from the embedded CompendiumBrowser's own Source filter (see
+ * runCompendiumBrowser in choice-queue.mjs). Two independent reasons a slug ends up
+ * here, both reusing the exact same per-item ruleset resolution getStepItems already
+ * applies (system.source.rules first, falling back to the GM's per-pack ruleset tag):
+ *
+ * 1. Ruleset mismatch - the slug never matches the wizard's currently selected
+ *    ruleset(s) from any GM-enabled, player-visible pack. "Both" rulesets selected
+ *    naturally excludes nothing here, since every real ruleset-tagged slug matches one
+ *    side or the other. A slug provided by two packs, one matching and one not (e.g. a
+ *    2014-tagged homebrew pack re-using a slug a real 2024 pack also uses), stays
+ *    visible - matching still beats non-matching rather than being averaged away.
+ *
+ * 2. Redundant generic content - a system-bundled book (SRD 5.1, SRD 5.2, ...) whose
+ *    ruleset a *real, named* module (Player's Handbook, Forge of the Artificer, ...)
+ *    also covers - hide the generic duplicate, not just narrow it by ruleset, for a GM
+ *    who owns the real book. Deliberately keyed off
+ *    the package type (`system` vs anything else - matches the same signal
+ *    `categorizePack` already uses to sort the Compendium Sources screen), not a
+ *    hardcoded slug list - a GM with *only* the bundled SRD content for a given ruleset
+ *    (no real book installed) still sees it normally, since nothing else covers that
+ *    ruleset to make it redundant.
+ *
+ * Does NOT attempt to also exclude a GM-disabled pack's own slugs from the browser's
+ * results entirely - the embedded CompendiumBrowser reads dnd5e's own separate native
+ * pack toggle (`packSourceConfiguration`, its own "Configure Sources" cog), not this
+ * module's Compendium Sources setting, and there's no way to make it search a narrower
+ * pack universe per-embedding from in here. A real, disclosed limitation, not something
+ * this function silently pretends to solve.
+ * @param {("2014"|"2024")[]} rulesetVersions
+ * @returns {Promise<string[]>}
+ */
+export async function getRulesetMismatchedSourceSlugs(rulesetVersions) {
+  const config = getPackConfig();
+  const allowed = new Set();
+  const seen = new Set();
+  // Per-ruleset slug sets, split by whether the *providing pack* is a system-bundled
+  // one (dnd5e's own generic SRD content) or a real named module - independent of
+  // rulesetVersions, since "is this ruleset redundantly covered" is a fact about the
+  // GM's install, not about what the current wizard happens to have selected.
+  const systemSlugsByRuleset = new Map();
+  const namedSlugsByRuleset = new Map();
+
+  for (const pack of game.packs) {
+    if (pack.documentName !== "Item") continue;
+    if (!isPackEnabled(pack, config) || !isPackVisibleToPlayer(pack)) continue;
+
+    const packRulesetTag = config[pack.collection]?.ruleset ?? "auto";
+    const isSystemPack = pack.metadata.packageType === "system";
+    const index = await pack.getIndex({ fields: ["system.source"] });
+    for (const entry of index) {
+      const slug = entry.system?.source?.slug;
+      if (!slug) continue;
+      seen.add(slug);
+
+      const itemRuleset = resolveItemRuleset(entry, packRulesetTag);
+      if (matchesRuleset(itemRuleset, rulesetVersions)) allowed.add(slug);
+
+      if (itemRuleset) {
+        const bucket = isSystemPack ? systemSlugsByRuleset : namedSlugsByRuleset;
+        if (!bucket.has(itemRuleset)) bucket.set(itemRuleset, new Set());
+        bucket.get(itemRuleset).add(slug);
+      }
+    }
+  }
+
+  const excluded = new Set(Array.from(seen).filter((slug) => !allowed.has(slug)));
+
+  for (const ruleset of rulesetVersions) {
+    if (!namedSlugsByRuleset.get(ruleset)?.size) continue;
+    for (const slug of systemSlugsByRuleset.get(ruleset) ?? []) excluded.add(slug);
+  }
+
+  return Array.from(excluded);
+}
+
 export const PACK_CATEGORIES = ["core", "expanded", "homebrew", "legacy"];
 
 /**
  * Which of the 4 GM-facing groups a pack belongs to, purely from Foundry's own package
- * metadata plus the one already-documented dnd5e naming convention (see "Compendium
- * structure" in CLAUDE.md): 2024 system packs are suffixed "24" (`classes24`,
- * `origins24`, ...), 2014 ones aren't. No new guessing involved - `packageType` already
+ * metadata plus one dnd5e naming convention: 2024 system packs are suffixed "24"
+ * (`classes24`, `origins24`, ...), 2014 ones aren't. No new guessing involved -
+ * `packageType` already
  * tells world/module apart natively, and the "24" suffix is a stable convention this
  * codebase already relies on elsewhere (getStepItems' ruleset resolution).
  * @param {CompendiumCollection} pack

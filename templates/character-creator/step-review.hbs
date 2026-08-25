@@ -57,9 +57,9 @@
     <section class="dnd-cc-review-card">
       <h3>{{localize "DND-CC.Steps.Feats"}}</h3>
       {{#if feats.length}}
-      <div class="dnd-cc-review-taglist">
-        {{#each feats}}<span class="dnd-cc-pill">{{this.name}}</span>{{/each}}
-      </div>
+      {{#each feats}}
+      <div class="dnd-cc-review-line"><span>{{{this.nameLink}}}</span><span>{{#if this.subtypeLabel}}{{this.subtypeLabel}}{{/if}}</span></div>
+      {{/each}}
       {{else}}
       <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
       {{/if}}

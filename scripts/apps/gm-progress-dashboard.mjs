@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.mjs";
-import { CharacterDraft } from "../models/character-draft.mjs";
+import { CharacterDraft, getNonGmOwners } from "../models/character-draft.mjs";
 import { isStepComplete } from "../models/choice-queue.mjs";
 import { CharacterCreatorApp, REQUIRED_STEPS, STEP_DEFINITIONS } from "./character-creator-app.mjs";
 
@@ -20,6 +20,12 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
  * and skips the ability/ruleset bootstrap that only makes sense for a finished
  * character (see _resolveDraft).
  */
+/** @returns {string} the real, non-GM owner's name, or a localized "Unowned" fallback. */
+function ownerNameFor(actor) {
+  const owner = getNonGmOwners(actor)[0] ?? null;
+  return owner ? owner.name : game.i18n.localize("DND-CC.GmProgress.NoOwner");
+}
+
 export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "dnd-cc-gm-progress",
@@ -31,8 +37,8 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       resizable: true
     },
     position: {
-      width: 760,
-      height: 560
+      width: 860,
+      height: 760
     }
   };
 
@@ -41,6 +47,38 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       template: `modules/${MODULE_ID}/templates/gm-progress/shell.hbs`
     }
   };
+
+  /**
+   * Live-updating: re-renders itself whenever a player's draft (or a finished PC) actor
+   * changes, instead of requiring the GM to click Refresh - a GM watching this while
+   * several players build characters at once wants the rows to move on their own.
+   * Debounced (a single advancement step can fire several rapid actor updates in a row,
+   * e.g. during a Trait/ItemGrant cascade) and scoped to `type === "character"`
+   * so an unrelated NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
+   * Registered in `_onFirstRender` (once per open dashboard, not per render) and torn
+   * down in `_onClose` so a closed-and-reopened dashboard never accumulates duplicate
+   * listeners across its own lifetime.
+   */
+  #hookIds = [];
+
+  async _onFirstRender(context, options) {
+    await super._onFirstRender?.(context, options);
+    const scheduleRender = foundry.utils.debounce(() => this.render(), 200);
+    const onActorChange = (actor) => {
+      if (actor.type === "character") scheduleRender();
+    };
+    this.#hookIds = [
+      ["updateActor", Hooks.on("updateActor", onActorChange)],
+      ["createActor", Hooks.on("createActor", onActorChange)],
+      ["deleteActor", Hooks.on("deleteActor", onActorChange)]
+    ];
+  }
+
+  _onClose(options) {
+    super._onClose?.(options);
+    for (const [hook, id] of this.#hookIds) Hooks.off(hook, id);
+    this.#hookIds = [];
+  }
 
   async _prepareContext(_options) {
     const drafts = game.actors.filter((actor) => CharacterDraft.isDraft(actor));
@@ -51,11 +89,7 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       // grant that, but nothing stops a GM from adding themselves via the actor's own
       // permissions sheet), and attributing it to "Gamemaster" in that case would be
       // actively misleading on a screen whose whole point is "who does this belong to."
-      const ownerUsers = Object.entries(actor.ownership)
-        .filter(([, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER)
-        .map(([userId]) => game.users.get(userId))
-        .filter(Boolean);
-      const ownerUser = ownerUsers.find((user) => !user.isGM) ?? ownerUsers[0] ?? null;
+      const ownerName = ownerNameFor(actor);
 
       const draft = new CharacterDraft(actor);
       const currentStepDef = STEP_DEFINITIONS.find((step) => step.id === draft.currentStepId) ?? STEP_DEFINITIONS[0];
@@ -66,7 +100,7 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       return {
         id: actor.id,
         name: actor.name,
-        ownerName: ownerUser ? ownerUser.name : game.i18n.localize("DND-CC.GmProgress.NoOwner"),
+        ownerName,
         currentStepLabel: game.i18n.localize(currentStepDef.label),
         missingLabels,
         missingText: missingLabels.join(", "),
@@ -82,7 +116,41 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
 
     rows.sort((a, b) => a.ownerName.localeCompare(b.ownerName) || a.name.localeCompare(b.name));
 
-    return { rows, hasRows: rows.length > 0 };
+    const levelingMode = game.settings.get("dnd5e", "levelingMode");
+    const tracksXp = levelingMode !== "noxp";
+
+    const finished = game.actors.filter((actor) => actor.type === "character" && !CharacterDraft.isDraft(actor));
+    const finishedRows = finished.map((actor) => {
+      const classItems = actor.items.filter((item) => item.type === "class");
+      const classLevel = classItems.length
+        ? classItems.map((item) => `${item.name} ${item.system.levels}`).join(" / ")
+        : "-";
+      const species = actor.items.find((item) => item.type === "race")?.name ?? "-";
+      const background = actor.items.find((item) => item.type === "background")?.name ?? "-";
+      const hp = actor.system.attributes?.hp;
+      const xp = actor.system.details?.xp;
+      // xp.max is dnd5e's own real derived "XP needed for the *next* level" (confirmed
+      // live reading Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`) -
+      // no separate threshold lookup of our own needed. Infinity at the world's max
+      // level, so a plain >= comparison naturally never reports "ready" there.
+      const xpReady = tracksXp && xp && xp.max !== Infinity && xp.value >= xp.max;
+
+      return {
+        id: actor.id,
+        name: actor.name,
+        ownerName: ownerNameFor(actor),
+        classLevel,
+        species,
+        background,
+        hpText: hp ? `${hp.value} / ${hp.max}` : "-",
+        tracksXp,
+        xpText: xp ? `${xp.value} / ${xp.max === Infinity ? "-" : xp.max}` : "-",
+        xpReady
+      };
+    });
+    finishedRows.sort((a, b) => a.ownerName.localeCompare(b.ownerName) || a.name.localeCompare(b.name));
+
+    return { rows, hasRows: rows.length > 0, finishedRows, hasFinishedRows: finishedRows.length > 0, tracksXp };
   }
 
   _onRender(context, options) {
@@ -91,9 +159,12 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelector("[data-refresh]")?.addEventListener("click", () => this.render());
 
-    root.querySelectorAll("[data-open-draft]").forEach((el) => {
+    // Level Up reuses the exact same open call as a draft's "Open" - CharacterCreatorApp
+    // itself already tells the two cases apart (CharacterDraft.isDraft(actor)) and opens
+    // in Level Up mode automatically for a real, finished character.
+    root.querySelectorAll("[data-open-draft], [data-levelup-actor]").forEach((el) => {
       el.addEventListener("click", () => {
-        const actor = game.actors.get(el.dataset.openDraft);
+        const actor = game.actors.get(el.dataset.openDraft ?? el.dataset.levelupActor);
         if (!actor) {
           ui.notifications.warn(game.i18n.localize("DND-CC.GmProgress.ActorMissing"));
           this.render();

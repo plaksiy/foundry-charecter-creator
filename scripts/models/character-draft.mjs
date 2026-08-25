@@ -386,8 +386,8 @@ export class CharacterDraft {
 
   /**
    * Discard the draft entirely (e.g. the player cancels character creation). Real,
-   * permanent deletion - only ever safe to call as a GM. A non-GM user
-   * cannot delete an Actor document at all in Foundry's default permission model, even
+   * permanent deletion - only ever safe to call as a GM. A non-GM user cannot delete an
+   * Actor document at all in Foundry's default permission model, even
    * with full Owner-level ownership on that specific actor ("User player lacks
    * permission to delete Actor", straight from Foundry's own access check) - Actor
    * deletion is gated by role, not by per-document ownership. See abandon() for the
@@ -437,4 +437,22 @@ export class CharacterDraft {
   async setPendingReview(value) {
     await this.actor.setFlag(MODULE_ID, PENDING_REVIEW_FLAG, value);
   }
+}
+
+/**
+ * Every real, non-GM User with OWNER-level access on `actor` - "who does this character
+ * actually belong to," as opposed to `actor.isOwner` (checks only the *current* user) or
+ * a bare permissions dump (which can't tell a genuine player owner from a GM who happens
+ * to also hold OWNER, e.g. from opening the actor's own permissions sheet). Shared by the
+ * GM Progress Dashboard's "owner" column and the XP-threshold level-up notification
+ * (main.mjs), both of which need the real player(s) a character belongs to, not just
+ * whoever is online right now.
+ * @param {Actor} actor
+ * @returns {User[]}
+ */
+export function getNonGmOwners(actor) {
+  return Object.entries(actor.ownership)
+    .filter(([, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER)
+    .map(([userId]) => game.users.get(userId))
+    .filter((user) => user && !user.isGM);
 }

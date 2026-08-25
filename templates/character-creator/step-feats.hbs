@@ -1,6 +1,51 @@
 <div class="dnd-cc-step-body dnd-cc-step-feats">
-  <h2>{{localize "DND-CC.Steps.Feats"}}</h2>
-  <p class="dnd-cc-step-intro">{{localize "DND-CC.Feats.Intro"}}</p>
+  <div class="dnd-cc-step-header-row">
+    <div>
+      <h2>{{localize "DND-CC.Steps.Feats"}}</h2>
+      <p class="dnd-cc-step-intro">{{localize "DND-CC.Feats.Intro"}}</p>
+    </div>
+    {{#if canBrowseFeats}}
+    <button type="button" class="dnd-cc-randomize-button" data-toggle-feat-browser>
+      <i class="fa-solid fa-magnifying-glass"></i> {{localize "DND-CC.Feats.BrowseToggle"}}
+    </button>
+    {{/if}}
+  </div>
+
+  {{#unless canBrowseFeats}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.BrowseBlockedByHouseRule"}}</p>
+  {{/unless}}
+
+  {{#if showFeatBrowser}}
+  {{#if canBrowseFeats}}
+  <div class="dnd-cc-feat-browser">
+    {{#if browsableFeats.length}}
+    <div class="dnd-cc-feat-browser-grid">
+      {{#each browsableFeats}}
+      <div class="dnd-cc-feat-browser-card {{#unless this.qualifies}}dnd-cc-feat-browser-card-unqualified{{/unless}}">
+        <div class="dnd-cc-feat-icon" style="background-color:{{this.color}}"><img src="{{this.img}}" alt="" /></div>
+        <div class="dnd-cc-feat-browser-info">
+          <span class="dnd-cc-feat-name">{{this.name}}</span>
+          <div class="dnd-cc-feat-browser-pills">
+            {{#if this.subtypeLabel}}<span class="dnd-cc-pill">{{this.subtypeLabel}}</span>{{/if}}
+            {{#if this.prereqLevel}}
+            <span class="dnd-cc-pill {{#unless this.qualifies}}dnd-cc-pill-warn{{/unless}}">
+              {{localize "DND-CC.Feats.LevelPill" level=this.prereqLevel}}
+            </span>
+            {{/if}}
+          </div>
+        </div>
+        <button type="button" class="dnd-cc-feat-browser-add" data-add-feat="{{this.uuid}}">
+          {{localize "DND-CC.Feats.Add"}}
+        </button>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneToBrowse"}}</p>
+    {{/if}}
+  </div>
+  {{/if}}
+  {{/if}}
 
   {{#if feats.length}}
   <ul class="dnd-cc-feat-list">
@@ -22,6 +67,11 @@
           <option value="{{this.uuid}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
           {{/each}}
         </select>
+        {{else if this.canRemove}}
+        <span class="dnd-cc-feat-static-tag">{{localize "DND-CC.Feats.Granted"}}</span>
+        <button type="button" class="dnd-cc-class-row-remove" data-remove-feat="{{this.id}}" aria-label="{{localize 'DND-CC.Feats.Remove'}}" title="{{localize 'DND-CC.Feats.Remove'}}">
+          <i class="fa-solid fa-trash"></i>
+        </button>
         {{else}}
         <span class="dnd-cc-feat-static-tag">{{localize "DND-CC.Feats.Granted"}}</span>
         {{/if}}

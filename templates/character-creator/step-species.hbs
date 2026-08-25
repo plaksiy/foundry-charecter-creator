@@ -23,69 +23,63 @@
   {{#unless speciesItems.length}}
   <p class="dnd-cc-empty-state">{{localize "DND-CC.Species.NoneAvailable"}}</p>
   {{/unless}}
-  <div class="dnd-cc-card-groups">
+  <ul class="dnd-cc-card-groups dnd-cc-card-grid">
     {{#each speciesItemsGroups}}
-    <div class="dnd-cc-card-group">
-      <h3 class="dnd-cc-card-group-label">{{this.label}}</h3>
-      <ul class="dnd-cc-card-grid">
-        {{#each this.entries}}
-        <li class="dnd-cc-card {{#if this.selected}}selected{{/if}}" style="background-color:{{this.color}}">
-          {{#if this.custom}}
-          <span class="dnd-cc-card-edition dnd-cc-card-edition-custom">{{localize "DND-CC.Homebrew"}}</span>
-          {{else if this.book}}
-          <span class="dnd-cc-card-edition">{{this.book}}</span>
-          {{else if this.ruleset}}
-          <span class="dnd-cc-card-edition">{{this.ruleset}}</span>
-          {{/if}}
-          <div class="dnd-cc-card-icon"><img src="{{this.img}}" alt="" /></div>
-          <div class="dnd-cc-card-content">
-            <span class="dnd-cc-card-name">{{this.name}}</span>
-            {{#if this.isLineageGroup}}
-            <div class="dnd-cc-pill-row">
-              <span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Lineage.Count" count=this.lineageCount}}</span>
-            </div>
-            {{#if this.selected}}
-            <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Lineage.SelectedRibbon" lineage=this.selectedLineageLabel}}</div>
-            {{else}}
-            <div class="dnd-cc-card-actions">
-              <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.learnMoreUuid}}">
-                {{localize "DND-CC.LearnMore"}}
-              </button>
-              <button type="button" class="dnd-cc-card-select" data-choose-lineage="{{this.name}}">
-                {{localize "DND-CC.Lineage.ChooseButton"}} <i class="fa-solid fa-arrow-right"></i>
-              </button>
-            </div>
-            {{/if}}
-            {{else}}
-            {{#if this.pills.length}}
-            <div class="dnd-cc-pill-row">
-              {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
-            </div>
-            {{/if}}
-            {{#if this.selected}}
-            <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
-            {{else}}
-            <div class="dnd-cc-card-actions">
-              <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">
-                {{localize "DND-CC.LearnMore"}}
-              </button>
-              <button type="button" class="dnd-cc-card-select" data-uuid="{{this.uuid}}">
-                {{localize "DND-CC.Select"}} <i class="fa-solid fa-arrow-right"></i>
-              </button>
-            </div>
-            {{/if}}
-            {{/if}}
-          </div>
-        </li>
-        {{/each}}
-      </ul>
-    </div>
+    <li class="dnd-cc-card-group-label">{{this.label}}</li>
+    {{#each this.entries}}
+    <li class="dnd-cc-card {{#if this.selected}}selected{{/if}}" style="background-color:{{this.color}}">
+      {{#if this.custom}}
+      <span class="dnd-cc-card-edition dnd-cc-card-edition-custom">{{localize "DND-CC.Homebrew"}}</span>
+      {{else if this.book}}
+      <span class="dnd-cc-card-edition">{{this.book}}</span>
+      {{else if this.ruleset}}
+      <span class="dnd-cc-card-edition">{{this.ruleset}}</span>
+      {{/if}}
+      <div class="dnd-cc-card-icon"><img src="{{this.img}}" alt="" /></div>
+      <div class="dnd-cc-card-content">
+        <span class="dnd-cc-card-name">{{this.name}}</span>
+        {{#if this.isLineageGroup}}
+        <div class="dnd-cc-pill-row">
+          <span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Lineage.Count" count=this.lineageCount}}</span>
+        </div>
+        {{#if this.selected}}
+        <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Lineage.SelectedRibbon" lineage=this.selectedLineageLabel}}</div>
+        {{else}}
+        <div class="dnd-cc-card-actions">
+          <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.learnMoreUuid}}">
+            {{localize "DND-CC.LearnMore"}}
+          </button>
+          <button type="button" class="dnd-cc-card-select" data-choose-lineage="{{this.name}}">
+            {{localize "DND-CC.Lineage.ChooseButton"}} <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        {{/if}}
+        {{else}}
+        {{#if this.pills.length}}
+        <div class="dnd-cc-pill-row">
+          {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
+        </div>
+        {{/if}}
+        {{#if this.selected}}
+        <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
+        {{else}}
+        <div class="dnd-cc-card-actions">
+          <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">
+            {{localize "DND-CC.LearnMore"}}
+          </button>
+          <button type="button" class="dnd-cc-card-select" data-uuid="{{this.uuid}}">
+            {{localize "DND-CC.Select"}} <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        {{/if}}
+        {{/if}}
+      </div>
+    </li>
     {{/each}}
-    <ul class="dnd-cc-card-grid dnd-cc-card-grid-custom">
-      <li class="dnd-cc-custom-card" data-add-custom="race">
-        <i class="fa-solid fa-plus"></i>
-        <span>{{localize "DND-CC.AddCustom"}}</span>
-      </li>
-    </ul>
-  </div>
+    {{/each}}
+    <li class="dnd-cc-custom-card" data-add-custom="race">
+      <i class="fa-solid fa-plus"></i>
+      <span>{{localize "DND-CC.AddCustom"}}</span>
+    </li>
+  </ul>
 </div>

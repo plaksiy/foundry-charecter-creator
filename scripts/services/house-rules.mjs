@@ -9,7 +9,8 @@ const DEFAULT_HOUSE_RULES = {
   abilityMethods: { standardArray: true, pointBuy: true, roll: true, manual: true },
   disallowedAlignments: [],
   minFeatLevel: 1,
-  bannedSpecies: []
+  bannedSpecies: [],
+  allowSelfLevelUp: false
 };
 
 /** @returns {typeof DEFAULT_HOUSE_RULES} */
@@ -44,4 +45,16 @@ export function areFeatsAllowedAtLevel(level) {
   const { minFeatLevel } = getHouseRules();
   if (minFeatLevel <= 0) return false;
   return level >= minFeatLevel;
+}
+
+/**
+ * Whether a player is allowed to open Level Up on their own finished character once
+ * they've earned enough XP, rather than always waiting on the GM. Off by default - the
+ * XP-threshold notification (see main.mjs's updateActor hook) always reaches the GM
+ * either way; this only controls whether the *player* is also whispered their own
+ * actionable "Open Level Up" chat card.
+ * @returns {boolean}
+ */
+export function isSelfLevelUpAllowed() {
+  return getHouseRules().allowSelfLevelUp === true;
 }

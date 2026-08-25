@@ -30,6 +30,23 @@
           <option value="{{this.uuid}}">{{this.label}}</option>
           {{/each}}
         </select>
+        {{else if this.alternatives}}
+        <div class="dnd-cc-equipment-alternatives">
+          {{#each this.alternatives}}
+          {{#if this.isFocus}}
+          <select data-equipment-focus="{{../key}}:{{../id}}">
+            <option value="">{{{this.label}}}</option>
+            {{#each this.focusOptions}}
+            <option value="{{this.uuid}}">{{this.label}}</option>
+            {{/each}}
+          </select>
+          {{else}}
+          <button type="button" data-equipment-alternative="{{../key}}:{{../id}}:{{this.id}}">
+            {{#if this.isLinked}}{{localize "DND-CC.Equipment.Take"}}{{else}}{{localize "DND-CC.Equipment.Choose"}}{{/if}} {{{this.label}}}
+          </button>
+          {{/if}}
+          {{/each}}
+        </div>
         {{else}}
         <button type="button" data-equipment-choose="{{this.key}}:{{this.id}}">{{localize "DND-CC.Equipment.Choose"}}</button>
         {{/if}}
@@ -64,8 +81,13 @@
   <p class="dnd-cc-empty-state">{{localize "DND-CC.Equipment.NoneYet"}}</p>
   {{/if}}
 
-  <button type="button" class="dnd-cc-add-item-btn" data-add-equipment>
-    <i class="fa-solid fa-plus"></i> {{localize "DND-CC.Equipment.AddItem"}}
-  </button>
+  <div class="dnd-cc-equipment-add-row">
+    <button type="button" class="dnd-cc-add-item-btn" data-add-equipment>
+      <i class="fa-solid fa-plus"></i> {{localize "DND-CC.Equipment.AddItem"}}
+    </button>
+    <button type="button" class="dnd-cc-add-item-btn" data-add-custom-equipment>
+      <i class="fa-solid fa-plus"></i> {{localize "DND-CC.AddCustom"}}
+    </button>
+  </div>
   <p class="dnd-cc-add-item-hint">{{localize "DND-CC.Equipment.AddItemHint" available=availableGpText}}</p>
 </div>
