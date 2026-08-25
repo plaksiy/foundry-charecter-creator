@@ -79,6 +79,7 @@
       "AccentRed": "Red",
       "AccentBlue": "Blue",
       "AccentViolet": "Violet",
+      "AccentGreen": "Green",
       "AccentAmber": "Amber"
     },
     "GmAssist": {
@@ -121,6 +122,7 @@
       "Warning": "Switching from {old} to {incoming} will remove {old} and everything it granted, including:"
     },
     "Detail": {
+      "Description": "Description",
       "Features": "Features",
       "AbilityScoreImprovement": "Ability Score Improvement",
       "OpenInCompendium": "Open in Compendium"

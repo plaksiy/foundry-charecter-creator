@@ -171,6 +171,7 @@ function decorateCardPills(item) {
     pills.push(item.primaryAbilities.map((key) => CONFIG.DND5E.abilities[key]?.label ?? key).join(" / "));
   }
   if (item.speed) pills.push(`${item.speed} ft Speed`);
+  if (item.darkvision) pills.push(`Darkvision ${item.darkvision} ft`);
   return { ...item, pills };
 }
 
@@ -286,6 +287,7 @@ const ACCENT_COLOR_OPTIONS = [
   { value: "red", labelKey: "DND-CC.Accessibility.AccentRed", swatch: "#df0000" },
   { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#4f7fd9" },
   { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
+  { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#2f9e44" },
   { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" }
 ];
 
@@ -3294,11 +3296,23 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const pills = decorateCardPills({
       hitDie: item.system.hd?.denomination ?? null,
       primaryAbilities: item.system.primaryAbility?.value?.length ? item.system.primaryAbility.value : null,
-      speed: item.system.movement?.walk ?? null
+      speed: item.system.movement?.walk ?? null,
+      darkvision: item.system.senses?.ranges?.darkvision ?? null
     }).pills;
     const features = await this._getItemGrantFeatureNames(item);
     const abilityScoreHint = this._abilityScoreImprovementHint(item);
     const ruleset = item.system.source?.label ?? item.system.source?.rules ?? null;
+    // The item's own real compendium description - dnd5e's own class/species/background
+    // entries carry the full official traits/features text here, which pills and
+    // granted-feature names alone don't surface. Enriched rather than injected raw,
+    // since this text commonly contains real Foundry enrichers (@Embed, @UUID, ...) that
+    // need to resolve into actual content/links, not show as literal bracket syntax.
+    const description = item.system.description?.value
+      ? await foundry.applications.ux.TextEditor.implementation.enrichHTML(item.system.description.value, {
+          relativeTo: item,
+          async: true
+        })
+      : null;
     const esc = this._escapeHtml.bind(this);
 
     const wrapper = document.createElement("div");
@@ -3321,6 +3335,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       </div>
       <div class="dnd-cc-detail-body">
         ${pills.length ? `<div class="dnd-cc-pill-row">${pills.map((p) => `<span class="dnd-cc-pill">${esc(p)}</span>`).join("")}</div>` : ""}
+        ${description ? `
+          <div class="dnd-cc-section-label">${esc(game.i18n.localize("DND-CC.Detail.Description"))}</div>
+          <div class="dnd-cc-detail-description">${description}</div>
+        ` : ""}
         ${abilityScoreHint ? `
           <div class="dnd-cc-section-label">${esc(game.i18n.localize("DND-CC.Detail.AbilityScoreImprovement"))}</div>
           <p class="dnd-cc-detail-asi-hint">${esc(abilityScoreHint)}</p>

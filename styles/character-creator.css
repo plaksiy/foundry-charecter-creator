@@ -60,6 +60,11 @@
   --dcc-accent-contrast: #ffffff;
   --dcc-border-strong: #9a63d1;
 }
+.application.dnd-cc.dnd-cc-accent-green {
+  --dcc-accent: #2f9e44;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #2f9e44;
+}
 .application.dnd-cc.dnd-cc-accent-amber {
   --dcc-accent: #d99a2b;
   --dcc-accent-contrast: #141210;
@@ -995,7 +1000,7 @@
 .dnd-cc-overlay-panel {
   position: relative;
   z-index: 1;
-  width: min(480px, 90%);
+  width: min(560px, 90%);
   max-height: 80%;
   overflow-y: auto;
   border-radius: 12px;
@@ -1059,6 +1064,34 @@
   color: var(--dcc-text);
   font-family: var(--dcc-font-body);
 }
+/* The item's own real compendium description (dnd5e's official class/species/
+   background text, enriched via TextEditor so @Embed/@UUID resolve into real content
+   instead of literal bracket syntax) - untrusted-looking rich HTML we don't author
+   ourselves, so it gets its own scoped resets rather than inheriting whatever the rest
+   of the panel assumes about spacing. */
+.dnd-cc-detail-description {
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-body);
+  line-height: 1.5;
+  font-size: 0.92rem;
+}
+.dnd-cc-detail-description :is(p, ul, ol, table) { margin: 0 0 0.6rem; }
+.dnd-cc-detail-description :last-child { margin-bottom: 0; }
+.dnd-cc-detail-description strong { color: var(--dcc-text); }
+.dnd-cc-detail-description table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  display: block;
+  overflow-x: auto;
+}
+.dnd-cc-detail-description th,
+.dnd-cc-detail-description td {
+  border: 1px solid var(--dcc-border);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+.dnd-cc-detail-description img { max-width: 100%; }
 .dnd-cc-detail-asi-hint {
   margin: 0;
   color: var(--dcc-text);
