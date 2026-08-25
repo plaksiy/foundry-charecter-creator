@@ -997,29 +997,38 @@
   background: rgba(0,0,0,0.72);
   cursor: pointer;
 }
+/* Two grid rows - header sized to content (`auto`), body taking whatever's left
+   (`minmax(0, 1fr)`, the `0` minimum is what actually lets it shrink below its content
+   size instead of pushing the panel taller) - only the body scrolls, so its scrollbar
+   only ever runs alongside the body, never behind the header. Grid handles this "cap the
+   whole box's height, but still shrink to content when short" sizing far more reliably
+   than a nested flex column does here: the panel's own height is intrinsic (its parent
+   centers it with `align-items: center` rather than stretching it), and a flex chain
+   through the panel's content wrapper collapses a growing child to near-zero in that
+   situation instead of the available space - `1fr` in an intrinsically-sized grid
+   container falls back to behaving like `auto`, so a short overlay still shrinks to fit
+   without this row wanting to claim space that doesn't exist yet. `display: contents` on
+   the wrapper (`_showOverlay`'s `contentEl`, see `.dnd-cc-detail-modal` below) is what
+   lets its header/body children become direct grid rows here, instead of the wrapper
+   itself being one opaque row that breaks the whole layout. */
 .dnd-cc-overlay-panel {
   position: relative;
   z-index: 1;
   width: min(560px, 90%);
   max-height: 80%;
-  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   border-radius: 12px;
   border: 1.5px solid var(--dcc-border-strong);
   background: var(--dcc-surface);
   box-shadow: 0 12px 40px rgba(0,0,0,0.5);
 }
-
-/* The panel above is what actually scrolls (kept as plain block flow - a flex/auto-height
-   chain fighting `max-height` here is exactly the kind of flexbox auto-sizing trap that
-   quietly collapses a growing child to near-zero instead of the available space, since
-   the panel's parent centers it with `align-items: center` rather than stretching it).
-   `position: sticky` keeps the header in view as the panel scrolls, without needing the
-   panel's own height to be a definite, distributable value at all - simpler and doesn't
-   fight that trap. */
+.dnd-cc-detail-modal {
+  display: contents;
+}
 .dnd-cc-detail-header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1027,7 +1036,6 @@
   border-radius: 12px 12px 0 0;
   border-bottom: 1px solid var(--dcc-border);
   color: #fff;
-  background-color: var(--dcc-surface);
   background-image: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(0,0,0,0.3));
 }
 .dnd-cc-detail-icon {
@@ -1067,6 +1075,8 @@
   flex-direction: column;
   gap: 0.8rem;
   padding: 1.1rem;
+  overflow-y: auto;
+  min-height: 0;
 }
 .dnd-cc-detail-features {
   margin: 0;
