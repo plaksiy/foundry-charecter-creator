@@ -58,6 +58,7 @@
           <th>{{localize "DND-CC.GmProgress.Column.Player"}}</th>
           <th>{{localize "DND-CC.GmProgress.Column.Character"}}</th>
           <th>{{localize "DND-CC.GmProgress.Column.ClassLevel"}}</th>
+          <th title="{{localize 'DND-CC.GmProgress.LevelControlTitle'}}">{{localize "DND-CC.GmProgress.Column.Level"}}</th>
           <th>{{localize "DND-CC.GmProgress.Column.Species"}}</th>
           <th>{{localize "DND-CC.GmProgress.Column.Background"}}</th>
           <th>{{localize "DND-CC.GmProgress.Column.HP"}}</th>
@@ -71,6 +72,20 @@
           <td>{{this.ownerName}}</td>
           <td class="col-name">{{this.name}}</td>
           <td>{{this.classLevel}}</td>
+          <td class="dnd-cc-level-control">
+            <div class="dnd-cc-level-control-row">
+              <button type="button" class="dnd-cc-level-step" data-level-adjust="{{this.id}}" data-delta="-1" {{#unless this.canLevelDown}}disabled{{/unless}} title="{{localize 'DND-CC.GmProgress.LevelDecrease'}}">-</button>
+              <div class="dnd-cc-level-bar" title="{{this.totalLevel}} / 20">
+                <div class="dnd-cc-level-bar-fill" style="width:{{this.levelPercent}}%"></div>
+                <span class="dnd-cc-level-bar-label">{{this.totalLevel}}</span>
+              </div>
+              <button type="button" class="dnd-cc-level-step" data-level-adjust="{{this.id}}" data-delta="1" {{#unless this.canLevelUp}}disabled{{/unless}} title="{{localize 'DND-CC.GmProgress.LevelIncrease'}}">+</button>
+            </div>
+            <div class="dnd-cc-level-add-row">
+              <input type="number" min="1" max="19" placeholder="{{localize 'DND-CC.GmProgress.LevelAddPlaceholder'}}" data-level-add-input="{{this.id}}" {{#unless this.canLevelUp}}disabled{{/unless}} />
+              <button type="button" class="dnd-cc-gm-progress-open" data-level-add-apply="{{this.id}}" {{#unless this.canLevelUp}}disabled{{/unless}} title="{{localize 'DND-CC.GmProgress.LevelAddTitle'}}">{{localize "DND-CC.GmProgress.LevelAddApply"}}</button>
+            </div>
+          </td>
           <td>{{this.species}}</td>
           <td>{{this.background}}</td>
           <td>{{this.hpText}}</td>

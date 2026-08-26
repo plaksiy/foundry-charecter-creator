@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../constants.mjs";
+import { MAX_CLASS_LEVEL, MODULE_ID } from "../constants.mjs";
 import { CharacterDraft, getNonGmOwners } from "../models/character-draft.mjs";
 import { isStepComplete } from "../models/choice-queue.mjs";
 import { CharacterCreatorApp, REQUIRED_STEPS, STEP_DEFINITIONS } from "./character-creator-app.mjs";
@@ -37,7 +37,7 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       resizable: true
     },
     position: {
-      width: 860,
+      width: 980,
       height: 760
     }
   };
@@ -53,8 +53,8 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
    * changes, instead of requiring the GM to click Refresh - a GM watching this while
    * several players build characters at once wants the rows to move on their own.
    * Debounced (a single advancement step can fire several rapid actor updates in a row,
-   * e.g. during a Trait/ItemGrant cascade) and scoped to `type === "character"`
-   * so an unrelated NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
+   * e.g. a Trait/ItemGrant cascade) and scoped to `type === "character"` so an unrelated
+   * NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
    * Registered in `_onFirstRender` (once per open dashboard, not per render) and torn
    * down in `_onClose` so a closed-and-reopened dashboard never accumulates duplicate
    * listeners across its own lifetime.
@@ -122,6 +122,7 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
     const finished = game.actors.filter((actor) => actor.type === "character" && !CharacterDraft.isDraft(actor));
     const finishedRows = finished.map((actor) => {
       const classItems = actor.items.filter((item) => item.type === "class");
+      const totalLevel = classItems.reduce((sum, item) => sum + item.system.levels, 0);
       const classLevel = classItems.length
         ? classItems.map((item) => `${item.name} ${item.system.levels}`).join(" / ")
         : "-";
@@ -129,10 +130,10 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       const background = actor.items.find((item) => item.type === "background")?.name ?? "-";
       const hp = actor.system.attributes?.hp;
       const xp = actor.system.details?.xp;
-      // xp.max is dnd5e's own real derived "XP needed for the *next* level" (confirmed
-      // live reading Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`) -
-      // no separate threshold lookup of our own needed. Infinity at the world's max
-      // level, so a plain >= comparison naturally never reports "ready" there.
+      // xp.max is dnd5e's own real derived "XP needed for the *next* level"
+      // (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`) - no separate
+      // threshold lookup of our own needed. Infinity at the world's max level, so a
+      // plain >= comparison naturally never reports "ready" there.
       const xpReady = tracksXp && xp && xp.max !== Infinity && xp.value >= xp.max;
 
       return {
@@ -145,7 +146,16 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
         hpText: hp ? `${hp.value} / ${hp.max}` : "-",
         tracksXp,
         xpText: xp ? `${xp.value} / ${xp.max === Infinity ? "-" : xp.max}` : "-",
-        xpReady
+        xpReady,
+        // The quick level control below (see shell.hbs / _onRender's own
+        // [data-level-adjust] handler) always opens a fresh Level Up session with the
+        // change already queued rather than mutating the actor here directly - applying
+        // a level change needs the real embedded Advancement flow rendered somewhere
+        // (HP roll, ASI, subclass pick, ...), which this table row has nowhere to show.
+        totalLevel,
+        levelPercent: Math.round((totalLevel / MAX_CLASS_LEVEL) * 100),
+        canLevelDown: classItems.length > 0 && totalLevel > 1,
+        canLevelUp: classItems.length > 0 && totalLevel < MAX_CLASS_LEVEL
       };
     });
     finishedRows.sort((a, b) => a.ownerName.localeCompare(b.ownerName) || a.name.localeCompare(b.name));
@@ -171,6 +181,40 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
           return;
         }
         new CharacterCreatorApp({ actor }).render(true);
+      });
+    });
+
+    // Quick level control (the finished-characters table's own progress bar + +/- + "add
+    // N" controls) - opens a fresh Level Up session with the requested delta already
+    // queued (see CharacterCreatorApp's pendingLevelDelta option/_applyPendingLevelDelta),
+    // rather than mutating the actor from here directly, so the GM lands in whatever real
+    // embedded Advancement flow that change triggers instead of it happening silently.
+    root.querySelectorAll("[data-level-adjust]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const actor = game.actors.get(el.dataset.levelAdjust);
+        if (!actor) {
+          ui.notifications.warn(game.i18n.localize("DND-CC.GmProgress.ActorMissing"));
+          this.render();
+          return;
+        }
+        new CharacterCreatorApp({ actor, pendingLevelDelta: Number(el.dataset.delta) }).render(true);
+      });
+    });
+
+    root.querySelectorAll("[data-level-add-apply]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const actorId = el.dataset.levelAddApply;
+        const input = root.querySelector(`[data-level-add-input="${actorId}"]`);
+        const amount = Number(input?.value);
+        if (!Number.isInteger(amount) || amount < 1) return;
+
+        const actor = game.actors.get(actorId);
+        if (!actor) {
+          ui.notifications.warn(game.i18n.localize("DND-CC.GmProgress.ActorMissing"));
+          this.render();
+          return;
+        }
+        new CharacterCreatorApp({ actor, pendingLevelDelta: amount }).render(true);
       });
     });
 

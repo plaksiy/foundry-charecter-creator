@@ -3,9 +3,9 @@
  * rather than reproducing any rules text ourselves. `dnd5e.rules` holds the 2014 SRD
  * chapters (most single-concept terms live in "Appendix E: Rules"), `dnd5e.content24`
  * holds the 2024 free-rules content (most single-concept terms live in a proper
- * "Rules Glossary" entry). A plain `<a class="content-link" data-uuid="...">`
- * pointing at a JournalEntryPage is enough for dnd5e's own tooltip manager to render its
- * real "rule-tooltip" hover preview - no custom tooltip UI needed on our side at all.
+ * "Rules Glossary" entry). A plain `<a class="content-link" data-uuid="...">` pointing at
+ * a JournalEntryPage is enough for dnd5e's own tooltip manager to render its real
+ * "rule-tooltip" hover preview - no custom tooltip UI needed on our side at all.
  */
 
 const GLOSSARY_PACKS = {
@@ -15,10 +15,10 @@ const GLOSSARY_PACKS = {
 
 /**
  * key -> { "2014": {entry, page} | null, "2024": {entry, page} | null }.
- * `entry` is the JournalEntry name, `page` the JournalEntryPage name inside it - both
- * verified against the real installed dnd5e system content. A null side means the term has no
- * dedicated glossary page under that ruleset (e.g. 2024-only mechanics) - callers get a
- * plain, unlinked label back for that side instead of a broken link.
+ * `entry` is the JournalEntry name, `page` the JournalEntryPage name inside it. A null
+ * side means the term has no dedicated glossary page under that ruleset (e.g. 2024-only
+ * mechanics) - callers get a plain, unlinked label back for that side instead of a
+ * broken link.
  */
 const TERMS = {
   advantage: {
@@ -58,8 +58,7 @@ const TERMS = {
     2024: { entry: "Character Creation", page: "Multiclassing" }
   },
   alignment: {
-    // Only present in the 2024 Rules Glossary - not worth guessing a 2014 chapter/
-    // page name for this one, the graceful plain-label fallback covers it either way.
+    // No dedicated 2014 chapter/page for this term - the plain-label fallback covers it.
     2014: null,
     2024: { entry: "Rules Glossary", page: "Alignment" }
   }

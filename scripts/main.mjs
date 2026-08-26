@@ -204,10 +204,10 @@ Hooks.on("renderActorDirectory", (_app, html) => {
 //
 // Registered on the native sheet's own render hook *and* both of Tidy 5e Sheets' own
 // class-specific render hooks (`Tidy5eCharacterSheet`, the legacy skin, and
-// `Tidy5eCharacterSheetQuadrone`, its current one) - Tidy5e's own header uses the
-// exact same `.header-control`/`[data-action="close"]` convention as the
-// native sheet (both ultimately extend ApplicationV2's own header), so one shared handler
-// covers all three without needing sheet-specific styling or markup.
+// `Tidy5eCharacterSheetQuadrone`, its current one) - Tidy5e's own header uses the exact
+// same `.header-control`/`[data-action="close"]` convention as the native sheet (both
+// ultimately extend ApplicationV2's own header), so one shared handler covers all three
+// without needing sheet-specific styling or markup.
 function addLevelUpHeaderButton(app) {
   const actor = app.actor;
   if (!actor?.isOwner || CharacterDraft.isDraft(actor)) return;
@@ -229,12 +229,13 @@ Hooks.on("renderTidy5eCharacterSheet", addLevelUpHeaderButton);
 Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
 
 // XP-threshold level-up notification: whenever a finished character's XP changes and
-// crosses into "enough to level up," whisper the GM an actionable chat card - and, if the
-// `allowSelfLevelUp` house rule is on, whisper the player too so they don't have to wait
-// on the GM to notice. `xp.max` is dnd5e's own real derived "XP needed for the *next*
-// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`), so
-// eligibility is a plain `value >= max` read off the actor's own already-computed data -
-// no separate threshold table of our own needed.
+// crosses into "enough to level up," whisper both the GM and the character's own player
+// an actionable chat card - being informed doesn't grant any new power, only the button
+// itself does (see renderChatMessageHTML below, which disables it for a non-GM viewer
+// unless the `allowSelfLevelUp` house rule allows self-service). `xp.max` is dnd5e's own
+// real derived "XP needed for the *next* level" (Actor5e#prepareDerivedData:
+// `xp.max = getLevelExp(currentLevel)`), so eligibility is a plain `value >= max` read
+// off the actor's own already-computed data - no separate threshold table of our own needed.
 // `game.user.isActiveGM` (not a plain isGM check) ensures exactly one connected client
 // fires this, even if more than one GM happens to be online - `updateActor` fires on every
 // client, and a plain isGM guard would send one duplicate chat card per online GM.
@@ -254,9 +255,7 @@ Hooks.on("updateActor", async (actor, changes) => {
   await actor.setFlag(MODULE_ID, "xpNotifiedThreshold", xp.max);
 
   const whisperIds = new Set(ChatMessage.getWhisperRecipients("GM").map((u) => u.id));
-  if (isSelfLevelUpAllowed()) {
-    for (const owner of getNonGmOwners(actor)) whisperIds.add(owner.id);
-  }
+  for (const owner of getNonGmOwners(actor)) whisperIds.add(owner.id);
 
   await ChatMessage.create({
     whisper: Array.from(whisperIds),
@@ -302,21 +301,26 @@ Hooks.on("renderChatMessageHTML", (_message, html) => {
     }
   }
 
-  // XP-ready level-up card - unlike the approval button above, this one just opens the
-  // wizard locally (no shared data mutation to gate), so it's live for anyone who
-  // actually received the whisper (the GM always, and the owning player too if the
-  // `allowSelfLevelUp` house rule sent it to them) - Foundry's own actor-update
-  // permission checks still apply once the wizard itself tries to change anything.
+  // XP-ready level-up card - now always whispered to both the GM and the character's own
+  // player (see the updateActor hook above), but the button itself only opens the wizard
+  // for the GM, or for the owning player when the `allowSelfLevelUp` house rule allows
+  // self-service - otherwise it's an inert, visibly disabled button, same pattern as the
+  // GM co-review approval button above, so the player is informed without being able to
+  // act on it themselves unless the table's rules actually allow that.
   const levelUpButton = root.querySelector('[data-action="dnd-cc-open-levelup"]');
   if (levelUpButton) {
-    levelUpButton.addEventListener("click", () => {
-      const actor = game.actors.get(levelUpButton.dataset.actorId);
-      if (!actor) {
-        ui.notifications.warn(game.i18n.localize("DND-CC.Review.ApproveActorMissing"));
-        return;
-      }
-      new CharacterCreatorApp({ actor }).render(true);
-    });
+    if (!game.user.isGM && !isSelfLevelUpAllowed()) {
+      levelUpButton.disabled = true;
+    } else {
+      levelUpButton.addEventListener("click", () => {
+        const actor = game.actors.get(levelUpButton.dataset.actorId);
+        if (!actor) {
+          ui.notifications.warn(game.i18n.localize("DND-CC.Review.ApproveActorMissing"));
+          return;
+        }
+        new CharacterCreatorApp({ actor }).render(true);
+      });
+    }
   }
 });
 

@@ -40,10 +40,6 @@ export const ABILITY_HINTS = {
 
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
-export const POINT_BUY_BUDGET = 27;
-
-export const POINT_BUY_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
-
 export const MAX_CLASS_LEVEL = 20;
 
 export const ORIGIN_FEAT_SUBTYPE = "origin";
@@ -51,10 +47,10 @@ export const ORIGIN_FEAT_SUBTYPE = "origin";
 export const EQUIPMENT_ITEM_TYPES = ["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"];
 
 /**
- * 100 invented, generic fantasy character names for the Identity step's "Randomize"
- * button - a mix of short single names and two-part names. None of these are drawn
- * from any book, setting, or media property - safe, structural placeholder data the
- * same way LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
+ * Invented, generic fantasy character names for the Identity step's "Randomize" button -
+ * a mix of short single names and two-part names. None of these are drawn from any
+ * book, setting, or media property - safe, structural placeholder data the same way
+ * LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
  */
 export const NAME_EXAMPLES = [
   "Finn", "Vex", "Orin", "Sable", "Bram", "Lyra", "Dax", "Wren", "Kael", "Rue",
@@ -120,10 +116,9 @@ export const CLASS_COMPLEXITY = {
  * keyed to the actual dominant non-neutral color in that class's real dnd5e/PHB icon art
  * (e.g. Cleric's icon background is a bright blue starfield, Sorcerer's is electric-blue
  * lightning, Wizard's is gold-lit), not a generic per-class stereotype. Fighter/Monk/
- * Paladin/Ranger were kept as explicit prior user choices even where they diverge from
- * their icon's own dominant tone - a deliberate design decision from an earlier round,
- * not an oversight. A class not listed here (homebrew, third-party) falls back to the
- * deterministic name-hash color every other card type uses (hashCardColor).
+ * Paladin/Ranger intentionally diverge from their icon's own dominant tone by design. A
+ * class not listed here (homebrew, third-party) falls back to the deterministic
+ * name-hash color every other card type uses (hashCardColor).
  */
 export const CLASS_THEME_COLORS = {
   Barbarian: "#b25a2f",

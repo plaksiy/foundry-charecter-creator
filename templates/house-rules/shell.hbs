@@ -15,6 +15,31 @@
   </section>
 
   <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.PointBuySettings"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.PointBuySettingsHint"}}</p>
+    <div class="dnd-cc-house-rules-numgrid">
+      <label>
+        {{localize "DND-CC.HouseRules.PointBuyMinLabel"}}
+        <input type="number" name="pointBuyMin" value="{{pointBuyMin}}">
+      </label>
+      <label>
+        {{localize "DND-CC.HouseRules.PointBuyMaxLabel"}}
+        <input type="number" name="pointBuyMax" value="{{pointBuyMax}}">
+      </label>
+      <label>
+        {{localize "DND-CC.HouseRules.PointBuyBudgetLabel"}}
+        <input type="number" name="pointBuyBudget" min="0" value="{{pointBuyBudget}}">
+      </label>
+    </div>
+    <div class="dnd-cc-house-rules-checkgrid">
+      <label>
+        <input type="checkbox" name="allowRerolls" {{#if allowRerolls}}checked{{/if}}>
+        {{localize "DND-CC.HouseRules.AllowRerolls"}}
+      </label>
+    </div>
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
     <h3>{{localize "DND-CC.HouseRules.DisallowedAlignments"}}</h3>
     <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.DisallowedAlignmentsHint"}}</p>
     <div class="dnd-cc-house-rules-checkgrid">

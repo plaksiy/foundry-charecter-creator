@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0
+
+### New
+
+- **Level Up redesigned**: the Class step now shows a big "Level Up" card (with a preview of what the next level actually grants) alongside a "Multiclass into a New Class" card, replacing the plain level dropdown. Picking either takes you straight into the resulting choices, and once they're resolved the wizard automatically moves on to the next step instead of leaving you on Class.
+- **Quick level control on the GM Progress Dashboard**: a small progress bar with +1/-1 buttons and an "add several levels at once" option lets a game master raise or lower a finished character's level directly from the dashboard, opening a guided Level Up session for whatever choices that change requires.
+- **Level-change notifications**: a character's own player is now whispered a chat message when their level changes without them doing it themselves (for example, a game master leveling up their character from the dashboard). The existing "ready to level up" notification now always reaches the player too, not only the game master.
+- **Point Buy and reroll house rules**: a game master can now customize Point Buy's minimum/maximum ability score and point budget, and allow or disallow rerolling a rolled ability score, from the House Rules settings screen. Defaults match the standard rules (8-15 range, 27 points, rerolls allowed).
+- The Abilities step now highlights whichever ability your current class (or classes, if multiclassed) actually relies on, updating automatically as classes are added, swapped, or removed.
+
+### Fixed
+
+- Artificer showed no cantrips at all on the Spells step during creation - its cantrip count is tracked under a different internal key than every other spellcasting class, which the lookup didn't account for.
+- The embedded spell/item browser could show duplicate, unfiltered results from generic SRD sourcebooks the very first time it was opened in a session, correcting itself only after closing and reopening it - the underlying source filter needed a moment to finish loading that a single, non-retrying check could miss.
+- Closing the embedded spell/item browser (Cancel or a confirmed selection) could briefly show a visibly collapsed, broken-looking panel before the wizard's normal content reappeared.
+
 ## 0.7.3
 
 ### New

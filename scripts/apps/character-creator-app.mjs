@@ -16,10 +16,9 @@ import {
   NEUTRAL_CARD_COLOR,
   ORIGIN_FEAT_SUBTYPE,
   PARTY_ROLES,
-  POINT_BUY_BUDGET,
   SPECIES_THEME_COLORS
 } from "../constants.mjs";
-import { CharacterDraft } from "../models/character-draft.mjs";
+import { CharacterDraft, notifyLevelChange } from "../models/character-draft.mjs";
 import {
   changeClassLevel,
   diffAbilities,
@@ -28,6 +27,7 @@ import {
   isStepComplete,
   itemsAtRiskFromLevelDecrease,
   itemsGrantedBy,
+  previewClassLevelGains,
   removeItemWithAdvancement,
   runCompendiumBrowser,
   snapshotAbilities,
@@ -43,8 +43,10 @@ import {
 import { formatGp, itemPriceInGp, redenominateGp, totalGpEquivalent } from "../services/currency.mjs";
 import {
   areFeatsAllowedAtLevel,
+  getPointBuyRange,
   isAbilityGenerationMethodAllowed,
   isAlignmentKeyAllowed,
+  isRerollAllowed,
   isSpeciesBanned
 } from "../services/house-rules.mjs";
 import { ruleLinkHtml } from "../services/rules-glossary.mjs";
@@ -395,6 +397,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
      * Pure UI-session state, same reasoning as classComplexityFilter/compareMode above.
      */
     this._levelUpShowMulticlass = false;
+    /**
+     * A level delta to apply automatically the moment this Level Up session's Class step
+     * first renders - set by the GM Progress Dashboard's quick level control (a "+1"/
+     * "-1"/"add N" action there opens a fresh wizard instead of mutating the actor
+     * silently, since actually applying a level change needs the real embedded
+     * Advancement flow rendered somewhere for whoever's driving it to resolve). Consumed
+     * once by _applyPendingLevelDelta (see _onRender) and then cleared, so a later
+     * re-render of the same session never re-applies it.
+     */
+    this._pendingLevelDelta = this.levelUp ? (options.pendingLevelDelta ?? null) : null;
+    this._pendingLevelDeltaApplied = false;
   }
 
   /**
@@ -672,8 +685,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * "Tiefling, Abyssal" / "Tiefling, Chthonic" / "Tiefling, Infernal") into one parent
    * card per base name, matching how a player actually thinks about picking a species
    * ("Elf, then which kind") rather than showing every lineage as an unrelated top-level
-   * card. "Name, Lineage" is the real compendium naming convention dnd5e itself uses for
-   * pre-split species - not every species uses it (Dragonborn,
+   * card. Confirmed live this "Name, Lineage" naming is the real compendium convention
+   * dnd5e itself uses for pre-split species - not every species uses it (Dragonborn,
    * Human, etc. are single un-split items and pass through untouched here). A base name
    * with only one surviving member (e.g. house-rules banned the other two lineages)
    * isn't a real group, so it's put back as a normal standalone card instead.
@@ -755,12 +768,18 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         levelOptions.push({ value, selected: value === item.system.levels });
       }
       const missing = unresolvedAdvancementTitles(item, item.system.levels);
-      // A class Item's primaryAbility.value is a real Set, not an array - a plain
-      // .length check silently reads undefined (=> always falsy) on it, the same
-      // Set-vs-array gotcha handled by choice-queue.mjs's countEntries. Array.from
-      // normalizes a Set, an Array, or nothing uniformly.
+      // A live class Item's primaryAbility.value is a real Set, not an array - a plain
+      // .length check silently reads undefined (=> always falsy) on it,
+      // the same Set-vs-array gotcha documented in choice-queue.mjs's countEntries.
+      // Array.from normalizes a Set, an Array, or nothing uniformly.
       const primaryAbilityArray = Array.from(item.system.primaryAbility?.value ?? []);
       const primaryAbilities = primaryAbilityArray.length ? primaryAbilityArray : null;
+      // Level Up's own big "Level Up" card (see step-class.hbs) previews the next level
+      // directly instead of making the player pick it from the dropdown blind - only
+      // offered while there's real room left under this class's own share of
+      // MAX_CLASS_LEVEL, same cap the dropdown's own levelOptions already respect.
+      const canLevelUp = item.system.levels < maxForThisClass;
+      const nextLevel = item.system.levels + 1;
       return {
         ...decorateCardPills({
           hitDie: item.system.hd?.denomination ?? null,
@@ -774,6 +793,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         isOriginalClass: item.isOriginalClass,
         level: item.system.levels,
         levelOptions,
+        canLevelUp,
+        nextLevel,
+        levelUpGains: canLevelUp ? previewClassLevelGains(item, nextLevel) : [],
         missingChoices: missing,
         missingHint: missing.length
           ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") })
@@ -868,6 +890,26 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const abilityLabels = mismatched.map((key) => CONFIG.DND5E.abilities[key]?.label ?? key).join("/");
     return game.i18n.format("DND-CC.ClassExtras.AbilityMismatch", { abilities: abilityLabels, score: minScore });
+  }
+
+  /**
+   * Every primary ability across every class currently on the draft actor (a plain
+   * Set, deduped - a multiclass character can have more than one, e.g. Fighter's
+   * STR-or-DEX plus Wizard's INT), for the Abilities step's own primary-ability
+   * highlight. Read fresh from `item.system.primaryAbility.value` (a real Set, not an
+   * array - the same Set-vs-array gotcha _prepareClassesContext already normalizes via
+   * Array.from) rather than cached anywhere, so it naturally reflects the current class
+   * list on every render: adding, swapping, or removing a class - or having none at all,
+   * in which case this resolves to an empty set and no card is highlighted.
+   * @returns {Set<string>}
+   */
+  _currentPrimaryAbilities() {
+    const keys = new Set();
+    for (const item of this.draft.actor.items) {
+      if (item.type !== "class") continue;
+      for (const key of Array.from(item.system.primaryAbility?.value ?? [])) keys.add(key);
+    }
+    return keys;
   }
 
   /**
@@ -1164,7 +1206,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the class item's own `system.spellcasting`, but a third-caster subclass (Eldritch
    * Knight, Arcane Trickster) grants spellcasting entirely through the *subclass*: the
    * class item's own block stays at `progression: "none"` with `type`/`ability` blank
-   * and `preparation.max: 0`, while the
+   * and `preparation.max: 0` (a real Eldritch Knight, for example), while the
    * subclass's own `system.spellcasting` carries the real, fully-resolved values
    * (`progression: "third"`, `type: "spell"`, `ability: "int"`, `preparation.max: 3`).
    * Reading the class-level block unconditionally in this situation silently produced
@@ -1181,6 +1223,33 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     return classItem.system.spellcasting;
   }
 
+  /**
+   * Cantrips-known cap for a spellcasting class - always a plain ScaleValue, but the key
+   * spelling and which item actually carries it varies by caster type, so every shape
+   * has to be checked rather than assumed: a full/pact caster's own class-identifier
+   * scale entry uses `cantrips-known` (Wizard, Sorcerer, Warlock, ...); Artificer's own
+   * class scale entry instead uses the plain key `cantrips`; and a third-caster
+   * subclass like Eldritch Knight defines it on the *subclass's* own scale
+   * instead of the class's, under either key spelling. Checked in that order so every
+   * real shape resolves without needing to know in advance which one a given
+   * class/subclass actually uses. Shared by the Spells step's own group cap
+   * (_prepareSpellsContext) and the "Add Cantrip" picker's free-slot count
+   * (_addClassSpell), so this class of bug only has one place left to hide.
+   * @param {string} identifier - class identifier
+   * @param {Item5e} classItem
+   * @returns {number}
+   */
+  _cantripsMax(identifier, classItem) {
+    const rollData = this.draft.actor.getRollData();
+    const subclassIdentifier = classItem.subclass?.system?.identifier;
+    const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
+    return rollData.scale?.[identifier]?.["cantrips-known"]?.value
+      ?? rollData.scale?.[identifier]?.cantrips?.value
+      ?? subclassScale?.["cantrips-known"]?.value
+      ?? subclassScale?.cantrips?.value
+      ?? 0;
+  }
+
   async _prepareSpellsContext() {
     const actor = this.draft.actor;
     const spellcastingClasses = actor.spellcastingClasses ?? {};
@@ -1189,7 +1258,6 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
 
-    const rollData = actor.getRollData();
     const classSourceKeys = new Set(identifiers.map((identifier) => `class:${identifier}`));
 
     const spellcastingGroups = identifiers.map((identifier) => {
@@ -1203,18 +1271,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const cantripItems = classSpellItems.filter((item) => item.system.level === 0);
       const leveledItems = classSpellItems.filter((item) => item.system.level > 0);
 
-      // Cantrips-known is always a plain ScaleValue, for every caster type - unlike
-      // preparation.max (folded into _effectiveSpellcasting above), there's no
-      // class-vs-subclass object to prefer, just two possible identifiers/key spellings
-      // to check: a full/pact caster's own class identifier with "cantrips-known"
-      // (e.g. Wizard), or, for a third-caster subclass like Eldritch Knight, that
-      // subclass's own identifier with the plain key "cantrips" instead.
-      const subclassIdentifier = classItem.subclass?.system?.identifier;
-      const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
-      const cantripsMax = rollData.scale?.[identifier]?.["cantrips-known"]?.value
-        ?? subclassScale?.["cantrips-known"]?.value
-        ?? subclassScale?.cantrips?.value
-        ?? 0;
+      const cantripsMax = this._cantripsMax(identifier, classItem);
       const preparedMax = spellcasting.preparation?.max ?? 0;
 
       return {
@@ -1324,11 +1381,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       (item) => item.type === "spell" && item.system.sourceItem === classSourceKey
         && (kind === "cantrip" ? item.system.level === 0 : item.system.level > 0)
     ).length;
-    const rollData = actor.getRollData();
-    const subclassIdentifier = classItem.subclass?.system?.identifier;
-    const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
     const capForKind = kind === "cantrip"
-      ? (rollData.scale?.[identifier]?.["cantrips-known"]?.value ?? subclassScale?.["cantrips-known"]?.value ?? subclassScale?.cantrips?.value ?? 0)
+      ? this._cantripsMax(identifier, classItem)
       : (this._effectiveSpellcasting(classItem).preparation?.max ?? 0);
     const freeSlots = Math.max(1, capForKind - existingOfKind);
 
@@ -1466,9 +1520,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
               : null,
             // An "(a) Greataxe or (b) any martial melee weapon"-style pick is a real OR
             // node with its own children (a fixed "linked" alternative plus a category
-            // one). Each child already has a real, correct `.label` getter (dnd5e's own
-            // EquipmentEntryData), so no label-building of our own is needed - just
-            // surface them as separate buttons.
+            // one) - a shape the original resolveBranch implementation anticipated but
+            // never actually got UI for, so it silently did nothing when picked. Each
+            // child already has a real, correct
+            // `.label` getter (dnd5e's own EquipmentEntryData), so no label-building of
+            // our own is needed - just surface them as separate buttons.
             // A child can itself be a "focus" alternative ("(a) a component pouch or
             // (b) an arcane focus") - reachable on SRD-only Sorcerer/Warlock/Wizard
             // kits when the PHB module isn't installed, confirmed by scanning every
@@ -1867,7 +1923,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * visually depending on it. A full `.dnd-cc-content` re-render on every blur used to
    * run right as the player clicked into the *next* field, landing that click during a
    * DOM swap and leaving its focus/selection in a broken state (typing in one field,
-   * then clicking a different one, misplaced the second field's cursor) - removed.
+   * then clicking a different one, misplaced the second field's cursor) before this
+   * re-render was removed.
    */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
@@ -1902,9 +1959,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * Array/Roll get a real shuffle across all six abilities via the same
    * assignAbilityPoolValue swap logic the pool <select>s already use one at a time; Point
    * Buy spends the real budget through the same adjustPointBuy validation the +/- buttons
-   * use (so it can never overspend or go out of range); Manual picks a random value in
-   * the same 8-15 band Point Buy allows, since manual has no rules-defined range of its
-   * own to sample from otherwise.
+   * use (so it can never overspend or go out of the GM's configured range - see
+   * getPointBuyRange); Manual picks a random value in that same range, since manual has
+   * no rules-defined range of its own to sample from otherwise.
    */
   async _randomizeAbilities() {
     const method = this.draft.abilityMethod ?? "standardArray";
@@ -1924,13 +1981,18 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       }
     } else if (method === "pointBuy") {
       await this.draft.setAbilityMethod("pointBuy");
-      for (let attempt = 0; attempt < 60 && this.draft.pointBuyRemaining > 0; attempt++) {
+      // Scaled to the GM's own configured budget (not a fixed 60) so a much larger
+      // custom budget still gets a real chance to be substantially spent.
+      const { budget } = getPointBuyRange();
+      const maxAttempts = Math.max(60, budget * 4);
+      for (let attempt = 0; attempt < maxAttempts && this.draft.pointBuyRemaining > 0; attempt++) {
         const key = ABILITY_KEYS[Math.floor(Math.random() * ABILITY_KEYS.length)];
         await this.draft.adjustPointBuy(key, 1);
       }
     } else {
+      const { min, max } = getPointBuyRange();
       for (const key of ABILITY_KEYS) {
-        await this.draft.setAbilityBaseScore(key, 8 + Math.floor(Math.random() * 8));
+        await this.draft.setAbilityBaseScore(key, min + Math.floor(Math.random() * (max - min + 1)));
       }
     }
   }
@@ -1972,6 +2034,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const actorAbilities = this.draft.actor.system.abilities;
     const actorSkills = this.draft.actor.system.skills;
+    const primaryAbilities = this._currentPrimaryAbilities();
 
     const abilities = ABILITY_KEYS.map((key) => {
       const total = base[key] === null || base[key] === undefined ? null : base[key] + bonus[key];
@@ -2044,16 +2107,26 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // of a value + reassignment select.
         needsRoll: method === "roll" && !hasValue,
         savingThrow,
-        governedSkills
+        governedSkills,
+        // Highlights this card when the current class(es) actually care about this
+        // ability - naturally empty (no highlight anywhere) once no class is picked,
+        // and recomputed fresh every render so swapping or removing a class updates it
+        // without any extra event wiring.
+        isPrimary: primaryAbilities.has(key)
       };
     });
+
+    const pointBuyRange = getPointBuyRange();
 
     return {
       abilityMethod: method,
       abilities,
       poolSummary,
       pointBuyRemaining: this.draft.pointBuyRemaining,
-      pointBuyBudget: POINT_BUY_BUDGET,
+      pointBuyBudget: pointBuyRange.budget,
+      pointBuyMin: pointBuyRange.min,
+      pointBuyMax: pointBuyRange.max,
+      allowRerolls: isRerollAllowed(),
       showAbilityTable: !!method,
       isAbilityStepComplete: this.draft.isAbilityAssignmentComplete,
       allowedAbilityMethods: Object.fromEntries(ABILITY_METHODS.map((key) => [key, isAbilityGenerationMethodAllowed(key)]))
@@ -2397,9 +2470,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. Foundry's FilePicker requires the FILES_BROWSE
-   * permission, which the Player role doesn't have by default - same class of gap as
-   * Actor deletion (a world-level
+   * Change the character's portrait. Confirmed live as a real non-GM "player" user:
+   * Foundry's FilePicker requires the FILES_BROWSE permission, which the Player role
+   * doesn't have by default - same class of gap as Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
    * silently never opens for a user who lacks it, with no error to react to. Falls back
    * to a plain path/URL prompt for anyone without that permission - still can't browse
@@ -2653,6 +2726,20 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     this._renderHeaderToolbar();
 
+    // A GM Progress Dashboard quick level control opened this session with a level
+    // change already queued up - apply it once the draft/actor is actually ready rather
+    // than mutating anything from the dashboard itself, so the GM lands directly in
+    // whatever embedded Advancement flow that change triggers (HP roll, ASI, subclass
+    // pick, ...) instead of it happening silently in the background. Deferred to a fresh
+    // macrotask (not called directly here) since _runEmbeddedAdvancement mutates
+    // `.dnd-cc-content` synchronously up to its own first await, and that's documented
+    // as safe only once this render pass has fully finished, not while _onRender itself
+    // is still running the rest of its own DOM wiring below.
+    if (this._pendingLevelDelta && !this._pendingLevelDeltaApplied && this.draft) {
+      this._pendingLevelDeltaApplied = true;
+      setTimeout(() => this._applyPendingLevelDelta(), 0);
+    }
+
     // See the matching capture in _prepareContext - restores scroll position after
     // Handlebars has rebuilt `.dnd-cc-content`, only when this render kept the player on
     // the same step.
@@ -2723,6 +2810,21 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     root.querySelector("[data-show-multiclass]")?.addEventListener("click", () => {
       this._levelUpShowMulticlass = true;
       this.render();
+    });
+
+    root.querySelectorAll("[data-class-level-up]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const classItem = this.draft.actor.items.get(el.dataset.classLevelUp);
+        if (!classItem) return;
+        const completed = await this._applyClassLevel(classItem.id, classItem.system.levels + 1);
+        // Once the level-up's own Advancement flow actually finishes, keep moving
+        // forward instead of parking the player back on Class - matches _addClass's own
+        // "advancement done, go to the next step" behavior for a Level Up multiclass
+        // pick just below. A cancelled flow (Stop Advancement) just re-renders in place,
+        // same as everywhere else in this app.
+        if (completed && this.levelUp) this._goToStep(this.stepIndex + 1);
+        else this.render();
+      });
     });
 
     root.querySelectorAll("[data-remove-class]").forEach((el) => {
@@ -3251,8 +3353,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * one, read straight from its real `hint` text - dnd5e itself already writes a full,
    * accurate sentence there ("Your background allows you to increase your Intelligence,
    * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
-   * increase all three by 1."). Reading this instead of computing our own summary from
-   * `configuration.locked`/`points`/`cap`
+   * increase all three by 1."). Reading
+   * this instead of computing our own summary from `configuration.locked`/`points`/`cap`
    * means the preview can never drift out of sync with what the actual Advancement flow
    * will say once picked, and needs no SRD text of our own - it's the same real
    * compendium data every other "Learn More" fact on this panel already reads.
@@ -3267,7 +3369,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Short ability abbreviations (e.g. ["INT", "WIS", "CHA"]) a background/species/class's
    * own AbilityScoreImprovement advancement offers - the *unlocked* keys in its
-   * `configuration.locked` list - the real field dnd5e itself uses to mark which
+   * `configuration.locked` list, the real field dnd5e itself uses to mark which
    * abilities a given ASI can't touch. Short enough for a card-level pill,
    * unlike the full `hint` sentence _abilityScoreImprovementHint reads for the detail panel.
    * @param {Item} item
@@ -3303,10 +3405,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const abilityScoreHint = this._abilityScoreImprovementHint(item);
     const ruleset = item.system.source?.label ?? item.system.source?.rules ?? null;
     // The item's own real compendium description - dnd5e's own class/species/background
-    // entries carry the full official traits/features text here, which pills and
-    // granted-feature names alone don't surface. Enriched rather than injected raw,
-    // since this text commonly contains real Foundry enrichers (@Embed, @UUID, ...) that
-    // need to resolve into actual content/links, not show as literal bracket syntax.
+    // entries carry the full official traits/features text here (this is what was
+    // missing before: pills and granted-feature names alone left a species like
+    // Dragonborn with almost nothing to read). Enriched rather than injected raw, since
+    // this text commonly contains real Foundry enrichers (@Embed, @UUID, ...) that need
+    // to resolve into actual content/links, not show as literal bracket syntax.
     const description = item.system.description?.value
       ? await foundry.applications.ux.TextEditor.implementation.enrichHTML(item.system.description.value, {
           relativeTo: item,
@@ -3479,8 +3582,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid was considered but not built - this list picker
-   * covers the same "link something I already made" need with far less risk.
+   * drag-and-drop onto a card grid would add more risk for little benefit over this
+   * list picker, which covers the same "link something I already made" need.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
   _showCustomItemForm(dnd5eType) {
@@ -3902,15 +4005,37 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const item = await fromUuid(uuid);
     if (!item) return;
 
+    let completed = true;
     await this._runEmbeddedAdvancement(async (host) => {
       const before = snapshotAbilities(this.draft.actor);
-      await triggerAdvancement(this.draft.actor, item.toObject(), host);
+      completed = await triggerAdvancement(this.draft.actor, item.toObject(), host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
 
-    // Only auto-advance past Class on the character's very first class - multiclassing
-    // (a second, third, ... class) should leave the player on this step to keep adding,
-    // remove, or adjust levels, not force them forward every time.
+    // Cancelled (Stop Advancement) - nothing was actually added, so stay right where the
+    // player was (still showing the add-class grid in Level Up mode) rather than
+    // treating a cancel as if a class had been picked.
+    if (!completed) {
+      this.render();
+      return;
+    }
+
+    // Level Up: once a class is actually picked (leveling an existing one via its own
+    // "Level Up" card handler above, or adding a new one here via "Multiclass into a New
+    // Class"), the whole point was to move the character forward - keep going to the
+    // next step instead of parking the player back on Class, same as finishing any other
+    // item pick in the wizard. Also drops back to the normal Level Up choice (rather than
+    // leaving the full add-class grid as the new default view) in case the player ever
+    // navigates back to this step.
+    if (this.levelUp) {
+      this._levelUpShowMulticlass = false;
+      this._goToStep(this.stepIndex + 1);
+      return;
+    }
+
+    // Only auto-advance past Class on the character's very first class during creation -
+    // multiclassing (a second, third, ... class) should leave the player on this step to
+    // keep adding, remove, or adjust levels, not force them forward every time.
     const classCount = this.draft.actor.items.filter((i) => i.type === "class").length;
     if (classCount === 1) this._goToStep(this.stepIndex + 1);
     else this.render();
@@ -3976,8 +4101,11 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * Metamagic picks with zero warning.
    * @param {string} classItemId
    * @param {number} level
-   * @returns {Promise<boolean>} false only when the player declined a level-decrease
-   *   confirmation; true otherwise (including the no-op case where level is unchanged)
+   * @returns {Promise<boolean>} false when the player declined a level-decrease
+   *   confirmation, or when the embedded Advancement flow itself was cancelled
+   *   (Stop Advancement); true otherwise (including the no-op case where level is
+   *   unchanged) - callers use this to decide whether to actually advance the wizard
+   *   forward (see the Class step's Level Up card handler) rather than assuming success.
    */
   async _applyClassLevel(classItemId, level) {
     const classItem = this.draft.actor.items.get(classItemId);
@@ -3996,12 +4124,44 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       if (!confirmed) return false;
     }
 
+    let completed = true;
     await this._runEmbeddedAdvancement(async (host) => {
       const before = snapshotAbilities(this.draft.actor);
-      await changeClassLevel(this.draft.actor, classItem.id, delta, host);
+      completed = await changeClassLevel(this.draft.actor, classItem.id, delta, host);
       await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
     });
-    return true;
+
+    // A player leveling up their own character already knows it happened - this is only
+    // for the case where a GM changed someone else's finished character's level for
+    // them (the Class step's own Level Up card, or the GM Progress Dashboard's quick
+    // level control), so they find out without needing to be told directly. A no-op if
+    // the actor has no real non-GM owner (see notifyLevelChange), or if the flow was
+    // cancelled and nothing actually changed.
+    if (completed && this.levelUp && game.user.isGM) await notifyLevelChange(this.draft.actor);
+
+    return completed;
+  }
+
+  /**
+   * Consume this session's queued-up level delta (see the constructor and _onRender),
+   * applying it to the character's original class - the same "which class is this
+   * really about" default the Equipment step's kit-granting logic already uses - or the
+   * first class found if none is flagged original (defensive only, mirrors that same
+   * existing fallback). Clamped to never drop below level 1 through this shortcut - a
+   * full class removal is a deliberate action with its own warning dialog, not something
+   * a quick "-1" control should be able to reach by accident.
+   */
+  async _applyPendingLevelDelta() {
+    const delta = this._pendingLevelDelta;
+    this._pendingLevelDelta = null;
+
+    const classItems = this.draft.actor.items.filter((item) => item.type === "class");
+    const target = classItems.find((item) => item.isOriginalClass) ?? classItems[0];
+    if (!target) return;
+
+    const newLevel = Math.max(1, Math.min(MAX_CLASS_LEVEL, target.system.levels + delta));
+    await this._applyClassLevel(target.id, newLevel);
+    this.render();
   }
 
   /**
@@ -4115,8 +4275,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // traits (armor/weapon proficiencies, etc.) as a side effect of a manager flow
         // actually running - directly recreating an item from already-resolved data,
         // with no manager involved, leaves those derived traits empty even though the
-        // item's own stored advancement values look complete. So this still has to go
-        // through a real flow, not a plain re-create - it's just a
+        // item's own stored advancement values look complete. So
+        // this still has to go through a real flow, not a plain re-create - it's just a
         // much lighter one than the original redo, since every step already shows its
         // previous answer instead of asking again, and only needs Next clicked through.
         const beforeRestore = snapshotAbilities(this.draft.actor);
@@ -4148,9 +4308,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Add a feat found through the general "Browse Feats" grid - separate from
    * _changeOriginFeat's swap, this is a plain add with nothing to remove automatically.
-   * Warns (does not block) on two things - without a guard, a character could otherwise
-   * pile up two Origin feats or two Fighting Style feats: the character's total level
-   * not meeting the feat's own real
+   * Warns (does not block) on two things, both real gaps in the naive add path (piling
+   * up two Origin feats and two Fighting Style feats with no guard at all): the
+   * character's total level not meeting the feat's own real
    * `system.prerequisites.level` yet, and already having another feat of the same
    * "normally singular" subtype (`origin`/`fightingStyle` - the two subtypes a
    * character's own granting sources, like a background or a Fighter's level-1 choice,
@@ -4326,9 +4486,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data. A brand new
-    // character should always start at full health regardless of pick order, so top it
-    // off here.
+    // afterward without current following, since current isn't derived data. Confirmed live
+    // building a Dwarf Fighter: HP showed 10/13 at Review, not 13/13. A brand new character
+    // should always start at full health regardless of pick order, so top it off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }

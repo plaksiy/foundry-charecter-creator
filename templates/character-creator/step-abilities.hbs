@@ -46,11 +46,14 @@
     <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.StandardArrayHint"}}</p>
     {{else if (eq abilityMethod "pointBuy")}}
     <p class="dnd-cc-method-caption">
-      {{localize "DND-CC.Abilities.PointBuyHint"}}
+      {{localize "DND-CC.Abilities.PointBuyHint" budget=pointBuyBudget min=pointBuyMin max=pointBuyMax}}
       {{localize "DND-CC.Abilities.PointBuyRemaining" remaining=pointBuyRemaining budget=pointBuyBudget}}
     </p>
     {{else if (eq abilityMethod "roll")}}
-    <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.RollHint"}}</p>
+    <p class="dnd-cc-method-caption">
+      {{localize "DND-CC.Abilities.RollHint"}}
+      {{#unless allowRerolls}}{{localize "DND-CC.Abilities.RerollsDisallowed"}}{{/unless}}
+    </p>
     {{else if (eq abilityMethod "manual")}}
     <p class="dnd-cc-method-caption">{{localize "DND-CC.Abilities.ManualHint"}}</p>
     {{/if}}
@@ -69,7 +72,7 @@
     {{#if showAbilityTable}}
     <ul class="dnd-cc-ability-grid">
       {{#each abilities}}
-      <li class="dnd-cc-ability-flip" data-ability="{{this.key}}">
+      <li class="dnd-cc-ability-flip {{#if this.isPrimary}}dnd-cc-ability-flip-primary{{/if}}" data-ability="{{this.key}}">
         <div class="dnd-cc-ability-flip-inner">
 
           <div class="dnd-cc-ability-face dnd-cc-ability-face-front">
@@ -77,6 +80,11 @@
               <span class="dnd-cc-ability-flip-corner-label">{{localize "DND-CC.Abilities.FlipLabel"}}</span>
               <i class="fa-solid fa-rotate" aria-hidden="true"></i>
             </button>
+            {{#if this.isPrimary}}
+            <span class="dnd-cc-ability-primary-badge" title="{{localize 'DND-CC.Abilities.PrimaryHint'}}">
+              <i class="fa-solid fa-star" aria-hidden="true"></i> {{localize "DND-CC.Abilities.PrimaryLabel"}}
+            </span>
+            {{/if}}
             <div class="dnd-cc-ability-card-header" data-ability-flip-toggle="{{this.key}}">
               {{#if this.icon}}
               <svg class="dnd-cc-ability-icon" viewBox="{{this.iconViewBox}}" aria-hidden="true">{{{this.icon}}}</svg>
@@ -109,7 +117,7 @@
                   <option value="{{this.index}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
                   {{/each}}
                 </select>
-                {{#if (eq ../abilityMethod "roll")}}
+                {{#if (and (eq ../abilityMethod "roll") ../allowRerolls)}}
                 <button type="button" class="dnd-cc-ability-reroll-button" data-ability-roll="{{this.key}}" title="{{localize 'DND-CC.Abilities.RerollButton'}}">
                   <i class="fa-solid fa-dice-d20"></i>
                 </button>

@@ -65,7 +65,10 @@
       "XpReadyMessage": "<strong>{name}</strong> has earned enough XP to level up ({value} / {max}).",
       "OpenButton": "Open Level Up",
       "MulticlassPrompt": "Want to branch into a different class instead?",
-      "MulticlassButton": "Multiclass into a New Class"
+      "MulticlassButton": "Multiclass into a New Class",
+      "ClassChoiceIntro": "Raise your character's level in an existing class, or branch into a new class to multiclass.",
+      "LevelUpCardLabel": "Level Up",
+      "LevelChangedMessage": "<strong>{name}</strong> is now level {level} ({classSummary})!"
     },
     "Accessibility": {
       "StepNavLabel": "Character creation steps",
@@ -110,12 +113,19 @@
         "Species": "Species",
         "Background": "Background",
         "HP": "HP",
-        "XP": "XP"
+        "XP": "XP",
+        "Level": "Level"
       },
       "NoFinished": "No finished characters yet.",
       "XpReady": "Ready to level up",
       "XpNotTracked": "Not tracked",
-      "LevelUp": "Level Up"
+      "LevelUp": "Level Up",
+      "LevelControlTitle": "Adjust this character's level directly - opens Level Up and applies the change right away.",
+      "LevelDecrease": "Lower this character's level by 1",
+      "LevelIncrease": "Raise this character's level by 1",
+      "LevelAddPlaceholder": "Levels",
+      "LevelAddApply": "Add",
+      "LevelAddTitle": "Add this many levels at once"
     },
     "ReplaceItem": {
       "Title": "Replace This Pick?",
@@ -282,9 +292,10 @@
       "StandardArray": "Standard Array",
       "StandardArrayHint": "Assign the fixed set 15, 14, 13, 12, 10, 8 to your six abilities.",
       "PointBuy": "Point Buy",
-      "PointBuyHint": "Spend a 27-point budget to buy scores between 8 and 15.",
+      "PointBuyHint": "Spend a {budget}-point budget to buy scores between {min} and {max}.",
       "Roll": "Roll",
       "RollHint": "Roll 4d6 (drop the lowest) six times and assign the results.",
+      "RerollsDisallowed": "Your GM has disabled rerolls - your first roll for each ability is final.",
       "Manual": "Manual",
       "ManualHint": "Type in each score directly.",
       "Ability": "Ability",
@@ -303,7 +314,9 @@
       "NoSkills": "No skills use this ability directly.",
       "FlipAll": "Flip All",
       "FlipHint": "Flip to see Saving Throw and skills",
-      "FlipLabel": "Flip"
+      "FlipLabel": "Flip",
+      "PrimaryLabel": "Primary",
+      "PrimaryHint": "This ability is primary for your current class - it's what your class mainly relies on to hit and cast effectively."
     },
     "Ruleset": {
       "Title": "Choose a ruleset",
@@ -450,6 +463,12 @@
       "Intro": "These restrict how a character can be built, on top of whatever content the Compendium Sources settings already allow.",
       "AbilityMethods": "Ability Score Methods",
       "AbilityMethodsHint": "Which generation methods players can choose from on the Ability Scores step.",
+      "PointBuySettings": "Point Buy & Rolling",
+      "PointBuySettingsHint": "Customize Point Buy's score range and point budget, and whether a rolled ability score can be rerolled. Defaults match the standard rules (8-15 range, 27 points, rerolls allowed).",
+      "PointBuyMinLabel": "Minimum Score",
+      "PointBuyMaxLabel": "Maximum Score",
+      "PointBuyBudgetLabel": "Point Budget",
+      "AllowRerolls": "Allow rerolling a rolled ability score",
       "DisallowedAlignments": "Disallowed Alignments",
       "DisallowedAlignmentsHint": "Checked alignments won't be offered on the About step. None disallowed by default.",
       "MinFeatLevel": "Minimum Feat Level",

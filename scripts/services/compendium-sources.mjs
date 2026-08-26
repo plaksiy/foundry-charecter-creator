@@ -146,9 +146,8 @@ export async function getStepItems(stepType, rulesetVersions) {
         type: entry.type,
         subtype: entry.system?.type?.subtype ?? null,
         // Distinguishes a real Feat from a class feature - both are stored as the same
-        // Item type "feat", only system.type.value tells them apart. Only meaningful
-        // for feat-type items; harmless undefined for every other type this function
-        // returns.
+        // Item type "feat", only system.type.value tells them apart. Only meaningful for
+        // feat-type items; harmless undefined for every other type this function returns.
         typeValue: doc?.system?.type?.value ?? null,
         prerequisites: doc?.system?.prerequisites ?? null,
         ruleset: itemRuleset,
@@ -236,8 +235,8 @@ function deduplicateByNameAndRuleset(items) {
  *
  * 2. Redundant generic content - a system-bundled book (SRD 5.1, SRD 5.2, ...) whose
  *    ruleset a *real, named* module (Player's Handbook, Forge of the Artificer, ...)
- *    also covers - hide the generic duplicate, not just narrow it by ruleset, for a GM
- *    who owns the real book. Deliberately keyed off
+ *    also covers. Confirmed live this is exactly what a GM who owns the real book wants:
+ *    hide the generic duplicate, not just narrow it by ruleset. Deliberately keyed off
  *    the package type (`system` vs anything else - matches the same signal
  *    `categorizePack` already uses to sort the Compendium Sources screen), not a
  *    hardcoded slug list - a GM with *only* the bundled SRD content for a given ruleset
@@ -301,11 +300,10 @@ export const PACK_CATEGORIES = ["core", "expanded", "homebrew", "legacy"];
 
 /**
  * Which of the 4 GM-facing groups a pack belongs to, purely from Foundry's own package
- * metadata plus one dnd5e naming convention: 2024 system packs are suffixed "24"
- * (`classes24`, `origins24`, ...), 2014 ones aren't. No new guessing involved -
- * `packageType` already
- * tells world/module apart natively, and the "24" suffix is a stable convention this
- * codebase already relies on elsewhere (getStepItems' ruleset resolution).
+ * metadata plus dnd5e's own naming convention: 2024 system packs are suffixed "24"
+ * (`classes24`, `origins24`, ...), 2014 ones aren't. No guessing involved - `packageType`
+ * already tells world/module apart natively, and the "24" suffix is a stable convention
+ * this codebase already relies on elsewhere (getStepItems' ruleset resolution).
  * @param {CompendiumCollection} pack
  * @returns {"core"|"expanded"|"homebrew"|"legacy"}
  */

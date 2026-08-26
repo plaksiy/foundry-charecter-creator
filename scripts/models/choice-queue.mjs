@@ -72,9 +72,23 @@ function runAdvancementManager(manager, container) {
     // and the player closing the window without finishing goes through the same
     // path, so wrap close() to catch the "player just closed it" case. Resolving
     // twice is harmless - the first resolve() call wins, the rest are no-ops.
+    //
+    // While embedded, also force `animate: false` and hide `container` immediately -
+    // even with `animate: false`, Foundry's own close() still sizes the manager's real
+    // element down to a 0-height sliver for a noticeable stretch (roughly half a second
+    // to a full second) before actually removing it, not just during an eased CSS
+    // transition - `animate` only skips the transition, not this resize-before-removal
+    // step itself. Inside a normal floating window that's
+    // invisible (the whole window is going away anyway), but inside our bounded/clipped
+    // embedded host it renders as a visibly broken, collapsed panel. Hiding the
+    // container outright the instant a close is requested turns that into a blank gap
+    // instead - far less jarring - until the caller's own `this.render()` replaces it
+    // with the next step's real content. Outside our wizard (a vanilla native popup, no
+    // `container`) this stays the normal animated close.
     const originalClose = manager.close.bind(manager);
-    manager.close = async (options) => {
-      const result = await originalClose(options);
+    manager.close = async (options = {}) => {
+      if (container?.isConnected) container.style.visibility = "hidden";
+      const result = await originalClose(container ? { ...options, animate: false } : options);
       resolve(false);
       return result;
     };
@@ -90,16 +104,16 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely (per `SubclassFlow.#browseCompendium`'s source). That meant clicking it always
-// popped out a real floating window mid-wizard, and never got the ruleset-aware source
-// filtering the Spells/Equipment pickers already have. Fixed the same way
-// EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
+// entirely (`SubclassFlow.#browseCompendium` in dnd5e's own source). That
+// meant clicking it always popped out a real floating window mid-wizard, and never got the
+// ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
+// way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
 // real `SubclassFlow` that overrides just the `browse` action, swapped in for the real one
 // via `SubclassAdvancement.metadata.apps.flow` - the actual class `AdvancementManager` asks
-// for when it needs to render a Subclass step (`advancement.constructor.metadata.apps.flow`
+// for when it needs to render a Subclass step. `advancement.constructor.metadata.apps.flow`
 // is what gets instantiated, read fresh from a *getter* each time, so simply overwriting
 // `metadata.apps.flow` on a snapshot object doesn't stick - the getter itself has to be
-// wrapped instead).
+// wrapped instead.
 
 let embeddedSubclassFlowClass = null;
 let subclassFlowPatched = false;
@@ -259,6 +273,16 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
 
   const EmbeddedCompendiumBrowser = getEmbeddedCompendiumBrowserClass();
   const browser = new EmbeddedCompendiumBrowser({ ...options, ...EMBEDDED_WINDOW_OPTIONS });
+
+  // Same "hide the container and skip the animation" fix as runAdvancementManager
+  // above - covers both the Cancel button and dnd5e's own closeOnSubmit call after a
+  // real Select, since both ultimately call this same instance's close().
+  const originalClose = browser.close.bind(browser);
+  browser.close = (opts = {}) => {
+    if (container.isConnected) container.style.visibility = "hidden";
+    return originalClose({ ...opts, animate: false });
+  };
+
   return new Promise((resolve) => {
     browser.addEventListener("close", () => resolve(browser.selected?.size ? browser.selected : null), { once: true });
     browser.render({ force: true }).then(async () => {
@@ -299,27 +323,66 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
 
 /**
  * Click a `<filter-state>` 3-state toggle (0 unset -> 1 require -> -1 exclude) twice to
- * land on "exclude". dnd5e fully replaces `[data-application-part="filters"]` with a
- * brand new element after EVERY filter change, not just once after the browser's first
- * paint - reusing the same element reference for a second `.click()` therefore silently
- * no-ops on an already-detached node instead of advancing its state, which is why a
- * straight `el.click(); el.click();` reliably got stuck on "require" instead of ever
- * reaching "exclude". Re-queries the element fresh before each click and
+ * land on "exclude". Confirmed live that dnd5e fully replaces
+ * `[data-application-part="filters"]` with a brand new element after EVERY filter change
+ * (not just once after the browser's first paint, which is what an earlier version of
+ * this function assumed) - reusing the same element reference for a second `.click()`
+ * therefore silently no-ops on an already-detached node instead of advancing its state,
+ * which is why a straight `el.click(); el.click();` reliably got stuck on "require"
+ * instead of ever reaching "exclude". Re-queries the element fresh before each click and
  * waits for the replacement (or a timeout, in case this particular click doesn't trigger
  * one - e.g. the filter doesn't exist at all for this browser's tab/type context) before
  * issuing the next one.
+ *
+ * The Source filter's own list of `<filter-state>` options is itself populated
+ * asynchronously the first time a CompendiumBrowser instance is ever created in a
+ * session (it has to index every enabled pack to know what sources even exist), which is
+ * genuinely slower than our own code reaching this point on a cold first open - a plain
+ * immediate `querySelector` for the target filter-state can come up empty even though the
+ * exact same lookup succeeds instantly on a later open once the index is cached. Waits
+ * for the element to actually exist (bounded by a timeout, in case this filter genuinely
+ * doesn't exist for this browser's tab/type) before giving up.
  * @param {HTMLElement} sidebar
  * @param {string} filterName
  */
 async function clickFilterStateToExclude(sidebar, filterName) {
   for (let step = 0; step < 2; step++) {
-    const filtersPart = sidebar.querySelector('[data-application-part="filters"]');
-    const el = filtersPart?.querySelector(`filter-state[name="${filterName}"]`);
+    const el = await waitForFilterStateElement(sidebar, filterName);
     if (!el) return;
+    const filtersPart = sidebar.querySelector('[data-application-part="filters"]');
     const replaced = waitForFiltersPartReplacement(sidebar, filtersPart);
     el.click();
     await replaced;
   }
+}
+
+/**
+ * Resolves with the live `filter-state[name="filterName"]` element inside `sidebar`'s
+ * filters part once it exists, or `null` after a timeout - see clickFilterStateToExclude
+ * for why this can't just be a single immediate querySelector.
+ * @param {HTMLElement} sidebar
+ * @param {string} filterName
+ * @param {number} [timeoutMs]
+ * @returns {Promise<HTMLElement|null>}
+ */
+function waitForFilterStateElement(sidebar, filterName, timeoutMs = 2000) {
+  const selector = `[data-application-part="filters"] filter-state[name="${filterName}"]`;
+  const existing = sidebar.querySelector(selector);
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    const finish = (el) => {
+      clearTimeout(timeout);
+      observer.disconnect();
+      resolve(el ?? null);
+    };
+    const timeout = setTimeout(() => finish(null), timeoutMs);
+    const observer = new MutationObserver(() => {
+      const el = sidebar.querySelector(selector);
+      if (el) finish(el);
+    });
+    observer.observe(sidebar, { childList: true, subtree: true });
+  });
 }
 
 /** Resolves once `[data-application-part="filters"]` inside `sidebar` is a different element than `staleElement`, or after a short timeout. */
@@ -342,20 +405,19 @@ function waitForFiltersPartReplacement(sidebar, staleElement) {
  * Collapses the sidebar's filter panel down to Search + Price (moved into one row
  * together) plus a single "Filters" toggle covering everything else (Attunement,
  * Weapon Mastery, Rarity, Properties, Source, ...) - the default panel (search on its
- * own row, then every filter group stacked below, several of them already collapsed-
- * but-still-taking-a-header's-worth-of-space) read as cluttered for what's usually just
- * "type a name and go."
+ * own row, then every filter group stacked below, several of them already
+ * collapsed-but-still-taking-a-header's-worth-of-space) reads as cluttered for what's
+ * usually just "type a name and go."
  *
- * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't
- * hold on its own - dnd5e re-renders `[data-application-part=
- * "filters"]` fresh at least once after the browser's first paint (its own locked-
- * type-filter initialization triggers it), which silently undoes a physical move of
- * the price filter out of that container and replaces the container itself, wiping
- * the "more filters" class along with it - the search part doesn't get this same
- * treatment and stays put once moved. A MutationObserver on the sidebar re-applies
- * the filters-side move (guarded by a `dccArranged` marker so an already-processed
- * filters element is never touched twice) every time that part gets replaced,
- * instead of a single fire-and-hope pass.
+ * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't hold
+ * on its own - dnd5e re-renders `[data-application-part="filters"]` fresh at least once
+ * after the browser's first paint (its own locked-type-filter initialization triggers
+ * it), which silently undoes a physical move of the price filter out of that container
+ * and replaces the container itself, wiping the "more filters" class along with it - the
+ * search part doesn't get this same treatment and stays put once moved. A
+ * MutationObserver on the sidebar re-applies the filters-side move (guarded by a
+ * `dccArranged` marker so an already-processed filters element is never touched twice)
+ * every time that part gets replaced, instead of a single fire-and-hope pass.
  * @param {HTMLElement} browserElement
  */
 function arrangeEmbeddedBrowserFilters(browserElement) {
@@ -380,9 +442,8 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
     // dnd5e replaces the whole `filters` part with a fresh element at least once after
     // the browser's first paint (its own locked-type-filter init), so this can run more
     // than once - each pass's own price filter must replace whatever an earlier pass
-    // already moved into searchRow, not pile up alongside it (without this cleanup,
-    // several re-renders left several duplicate price-range rows stacked in the search
-    // row).
+    // already moved into searchRow, not pile up alongside it, or several re-renders
+    // would leave several duplicate price-range rows stacked in the search row.
     searchRow.querySelectorAll('.filter[data-filter-id="price"]').forEach((el) => el.remove());
     const priceFilter = filtersPart.querySelector('.filter[data-filter-id="price"]');
     if (priceFilter) searchRow.append(priceFilter);
@@ -452,10 +513,10 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // (`AdvancementManager.flowsForLevel`), so a "secondary" grant on an original-class
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
-    // stops a genuinely inapplicable grant from being reported as a missed choice - an
-    // original-class Bard's "secondary" 1-skill/1-tool grants never appear as steps
-    // during a normal add, yet still carry an empty `value` forever since nothing ever
-    // resolves them.
+    // stops a genuinely inapplicable grant from being reported as a missed choice - a
+    // "secondary" 1-skill/1-tool grant on an original-class item never appears as a
+    // step during a normal add, yet still carries an empty `value` forever since
+    // nothing ever resolves it.
     if (!advancement.appliesToClass) continue;
 
     if (advancement.type === "Trait") {
@@ -470,13 +531,13 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
         .reduce((sum, [, c]) => sum + c.count, 0);
       if (required === 0) continue;
 
-      // `value.added` shows up two different shapes in the wild depending on whether
-      // the advancement can apply at more than one level: a flat {itemId: uuid} map
-      // when there's only ever one choice tier (e.g. a Fighting Style), or a
-      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
-      // Counting values that are themselves objects as nested per-level entries, and
-      // anything else as one flat entry, covers both without
-      // needing to know in advance which shape a given advancement uses.
+      // `value.added` shows up two different shapes depending on whether the
+      // advancement can apply at more than one level: a flat {itemId: uuid} map when
+      // there's only ever one choice tier (e.g. a Fighting Style), or a level-keyed
+      // {level: {itemId: uuid}} map when it repeats (e.g. Metamagic). Counting values
+      // that are themselves objects as nested per-level entries, and anything else as
+      // one flat entry, covers both without needing to know in advance which shape a
+      // given advancement uses.
       let added = 0;
       for (const entry of entryValues(advancement.value?.added)) {
         added += entry && typeof entry === "object" ? countEntries(entry) : 1;
@@ -489,12 +550,10 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
       // on abilities) or `value.feat` ("choose a feat instead," the real 2024 option at
       // some levels), per dnd5e's own AbilityScoreImprovement#apply(). An untouched
       // advancement still carries `value: {type: "asi"}` (dnd5e sets `type` eagerly,
-      // before any real choice is made), which has one real key and previously
-      // satisfied the old plain `countEntries(value) === 0` check - clicking straight
-      // through an ASI step with no interaction left ability scores completely
-      // unchanged, yet that check reported the item as fully resolved. `countEntries` isn't
-      // reused here since both real shapes are plain objects the count would treat as
-      // "non-empty" the moment they exist at all, same false-positive as before.
+      // before any real choice is made), which has one real key and would satisfy a
+      // plain `countEntries(value) === 0` check even though nothing was actually
+      // chosen. `countEntries` isn't reused here since both real shapes are plain
+      // objects the count would treat as "non-empty" the moment they exist at all.
       const hasAssignments = advancement.value?.assignments && Object.keys(advancement.value.assignments).length > 0;
       const hasFeat = advancement.value?.feat && Object.keys(advancement.value.feat).length > 0;
       if (!hasAssignments && !hasFeat) titles.push(advancement.title);
@@ -554,10 +613,10 @@ export function isStepComplete(actor, stepId) {
  * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds - these
  * show up as a real `Set` for some Trait configurations (e.g. a Weapon Mastery pick), a
  * plain object for others, and occasionally a `Map`. A naive `.length` check silently
- * reads `undefined` (=> treated as empty) on anything but a real array, which is
- * exactly what caused a genuinely-completed choice (a real Set with entries) to
- * misreport as unresolved. Handles all three shapes so the count is right regardless of
- * which one a given advancement happens to use.
+ * reads `undefined` (=> treated as empty) on anything but a real array, which would
+ * misreport a genuinely-completed choice (a real Set with entries) as unresolved.
+ * Handles all three shapes so the count is right regardless of which one a given
+ * advancement happens to use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
  */
@@ -614,6 +673,34 @@ function entryValues(value) {
  */
 export function itemsGrantedBy(actor, sourceItemId) {
   return actor.items.filter((item) => item.flags?.dnd5e?.advancementOrigin?.startsWith(`${sourceItemId}.`));
+}
+
+/**
+ * A short, plain-text preview of what a class (and its subclass, if any) grants at
+ * `targetLevel` - shown on the Class step's "Level Up" card before the player commits,
+ * so raising a level isn't a blind action. Built from the exact same generic
+ * `advancement.levels`/`advancement.title` data dnd5e itself already tracks on every
+ * Advancement type (the base `Advancement#levels` getter, confirmed by reading dnd5e's
+ * own source: `[this.level]` for a single-level type, every level 1-20 for HitPoints,
+ * whatever multi-level set an ItemChoice like Metamagic actually configures) rather
+ * than guessing per-type what
+ * "gains a level" even means. Reuses the same `[classItem, classItem.subclass]` source
+ * pair itemsAtRiskFromLevelDecrease already uses, for the same multiclass-subclass
+ * reason documented there.
+ * @param {Item} classItem
+ * @param {number} targetLevel
+ * @returns {string[]} plain-text advancement titles that apply at targetLevel, deduped
+ */
+export function previewClassLevelGains(classItem, targetLevel) {
+  const sources = [classItem, classItem.subclass].filter(Boolean);
+  const titles = [];
+  for (const source of sources) {
+    for (const advancement of Object.values(source.advancement.byId)) {
+      if (!advancement.levels.includes(targetLevel)) continue;
+      if (!titles.includes(advancement.title)) titles.push(advancement.title);
+    }
+  }
+  return titles;
 }
 
 export function itemsAtRiskFromLevelDecrease(actor, classItem, newLevel) {

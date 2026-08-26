@@ -1,4 +1,25 @@
-import { ABILITY_KEYS, MODULE_ID, POINT_BUY_BUDGET, POINT_BUY_COST, STANDARD_ARRAY } from "../constants.mjs";
+import { ABILITY_KEYS, MODULE_ID, STANDARD_ARRAY } from "../constants.mjs";
+import { getPointBuyRange, isRerollAllowed } from "../services/house-rules.mjs";
+
+/**
+ * Point Buy's per-point cost, generalized from the standard 5e table (8:0, 9:1, ...,
+ * 13:5, 14:7, 15:9 - +1/point for the first 6 values, +2/point above that) as a plain
+ * formula anchored to the GM's own configured minimum (see
+ * house-rules.mjs#getPointBuyRange) rather than a fixed lookup pinned to 8. Anchoring to
+ * `min` (not always 8) means a lowered minimum starts every ability at 0 cost like the
+ * standard range does at 8, instead of the curve going negative and silently handing out
+ * bonus points nobody asked for. Reproduces the exact original table when min is 8 (the
+ * default): cheapCeiling = 8 + 5 = 13, matching the real rules precisely. A pure numeric
+ * curve, not narrative rules text - same "safe to hardcode a structural formula"
+ * precedent as LIFESTYLE_TIERS/CLASS_COMPLEXITY in constants.mjs.
+ * @param {number} score
+ * @param {number} min - the house rule's configured minimum (the curve's zero-cost point)
+ * @returns {number}
+ */
+function pointBuyCost(score, min) {
+  const cheapCeiling = min + 5;
+  return score <= cheapCeiling ? score - min : (cheapCeiling - min) + 2 * (score - cheapCeiling);
+}
 
 const DRAFT_FLAG = "isDraft";
 const RULESET_FLAG = "ruleset";
@@ -126,12 +147,13 @@ export class CharacterDraft {
 
   /**
    * Switch generation method, resetting the base scores to that method's starting
-   * point (all unset, except Point Buy which starts every ability at 8).
+   * point (all unset, except Point Buy which starts every ability at the house rule's
+   * own minimum - 8 by default, see getPointBuyRange).
    * @param {"standardArray"|"pointBuy"|"roll"|"manual"} method
    */
   async setAbilityMethod(method) {
     await this.actor.setFlag(MODULE_ID, ABILITY_METHOD_FLAG, method);
-    const defaultBase = method === "pointBuy" ? 8 : null;
+    const defaultBase = method === "pointBuy" ? getPointBuyRange().min : null;
     await this.actor.setFlag(
       MODULE_ID,
       ABILITY_BASE_FLAG,
@@ -177,17 +199,21 @@ export class CharacterDraft {
     await this._syncAbilityScores();
   }
 
-  /** Point Buy: nudge one ability up or down within the 8-15 range and 27-point budget. */
+  /**
+   * Point Buy: nudge one ability up or down within the GM's configured range and point
+   * budget (8-15 and 27 points by default - see house-rules.mjs#getPointBuyRange).
+   */
   async adjustPointBuy(key, direction) {
+    const { min, max, budget } = getPointBuyRange();
     const base = this.abilityBaseScores;
-    const next = (base[key] ?? 8) + direction;
-    if (next < 8 || next > 15) return;
+    const next = (base[key] ?? min) + direction;
+    if (next < min || next > max) return;
 
     const spent = ABILITY_KEYS.reduce(
-      (sum, k) => sum + POINT_BUY_COST[k === key ? next : (base[k] ?? 8)],
+      (sum, k) => sum + pointBuyCost(k === key ? next : (base[k] ?? min), min),
       0
     );
-    if (spent > POINT_BUY_BUDGET) return;
+    if (spent > budget) return;
 
     base[key] = next;
     await this.actor.setFlag(MODULE_ID, ABILITY_BASE_FLAG, base);
@@ -195,9 +221,10 @@ export class CharacterDraft {
   }
 
   get pointBuyRemaining() {
+    const { min, budget } = getPointBuyRange();
     const base = this.abilityBaseScores;
-    const spent = ABILITY_KEYS.reduce((sum, key) => sum + (POINT_BUY_COST[base[key] ?? 8] ?? 0), 0);
-    return POINT_BUY_BUDGET - spent;
+    const spent = ABILITY_KEYS.reduce((sum, key) => sum + pointBuyCost(base[key] ?? min, min), 0);
+    return budget - spent;
   }
 
   /**
@@ -221,13 +248,21 @@ export class CharacterDraft {
 
   /**
    * Roll (or reroll) 4d6-drop-lowest for one specific ability and post the result to
-   * chat so it's visible to the table (a lightweight anti-cheat log; a GM-gated
-   * reroll-approval flow is a possible future addition, not built yet). Deliberately
+   * chat so it's visible to the table (a lightweight anti-cheat log). Deliberately
    * per-ability rather than rolling all six at once, so it feels like rolling dice for
-   * one stat at a time rather than a single bulk action.
+   * one stat at a time rather than a single bulk action. A reroll (this ability already
+   * has a value) is blocked outright when the GM's `allowRerolls` house rule is off -
+   * checked before anything is rolled, so declining doesn't even post a wasted chat
+   * message. The step's own reroll button is already hidden in that case (see
+   * step-abilities.hbs's `allowRerolls` context field); this is the defensive guard
+   * behind it, same "match the UI gate, don't just trust it" pattern this app uses
+   * everywhere else (e.g. _finalizeCharacter's own REQUIRED_STEPS re-check).
    * @param {"str"|"dex"|"con"|"int"|"wis"|"cha"} key
    */
   async rollAbility(key) {
+    const alreadyRolled = this.abilityAssignments[key] !== undefined;
+    if (alreadyRolled && !isRerollAllowed()) return;
+
     const roll = await new Roll("4d6kh3").evaluate();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: this.actor }),
@@ -386,8 +421,8 @@ export class CharacterDraft {
 
   /**
    * Discard the draft entirely (e.g. the player cancels character creation). Real,
-   * permanent deletion - only ever safe to call as a GM. A non-GM user cannot delete an
-   * Actor document at all in Foundry's default permission model, even
+   * permanent deletion - only ever safe to call as a GM. Confirmed live: a non-GM user
+   * cannot delete an Actor document at all in Foundry's default permission model, even
    * with full Owner-level ownership on that specific actor ("User player lacks
    * permission to delete Actor", straight from Foundry's own access check) - Actor
    * deletion is gated by role, not by per-document ownership. See abandon() for the
@@ -455,4 +490,32 @@ export function getNonGmOwners(actor) {
     .filter(([, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER)
     .map(([userId]) => game.users.get(userId))
     .filter((user) => user && !user.isGM);
+}
+
+/**
+ * Whisper a character's real owner(s) that their level just changed. Built for the case
+ * where a GM raises or lowers *someone else's* character's level directly (the Class
+ * step's own Level Up card, or the GM Progress Dashboard's quick level control) - a
+ * player leveling up their own character already knows, so the only call site for this
+ * is gated on `game.user.isGM` (see character-creator-app.mjs's _applyClassLevel). A
+ * no-op when the actor has no real non-GM owner (e.g. a GM leveling up their own PC).
+ * @param {Actor} actor
+ */
+export async function notifyLevelChange(actor) {
+  const owners = getNonGmOwners(actor);
+  if (!owners.length) return;
+
+  const classItems = actor.items.filter((item) => item.type === "class");
+  const level = classItems.reduce((sum, item) => sum + item.system.levels, 0);
+  const classSummary = classItems.map((item) => `${item.name} ${item.system.levels}`).join(" / ");
+
+  await ChatMessage.create({
+    whisper: owners.map((user) => user.id),
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content: `
+      <div class="dnd-cc-review-chat-card">
+        <p>${game.i18n.format("DND-CC.LevelUp.LevelChangedMessage", { name: actor.name, level, classSummary })}</p>
+      </div>
+    `
+  });
 }

@@ -10,7 +10,11 @@ const DEFAULT_HOUSE_RULES = {
   disallowedAlignments: [],
   minFeatLevel: 1,
   bannedSpecies: [],
-  allowSelfLevelUp: false
+  allowSelfLevelUp: false,
+  pointBuyBudget: 27,
+  pointBuyMin: 8,
+  pointBuyMax: 15,
+  allowRerolls: true
 };
 
 /** @returns {typeof DEFAULT_HOUSE_RULES} */
@@ -57,4 +61,28 @@ export function areFeatsAllowedAtLevel(level) {
  */
 export function isSelfLevelUpAllowed() {
   return getHouseRules().allowSelfLevelUp === true;
+}
+
+/**
+ * Point Buy's real min/max ability score range and point budget - defaults match the
+ * standard 5e rules (8-15 range, 27 points) but a GM can widen or narrow either, e.g.
+ * for a higher-power table. Read fresh on every call (not cached) so a mid-session GM
+ * change takes effect immediately, same as every other house rule here.
+ * @returns {{ min: number, max: number, budget: number }}
+ */
+export function getPointBuyRange() {
+  const rules = getHouseRules();
+  return { min: rules.pointBuyMin, max: rules.pointBuyMax, budget: rules.pointBuyBudget };
+}
+
+/**
+ * Whether the Roll ability-score method allows rerolling a value already rolled for an
+ * ability - on by default, since the existing anti-cheat chat log (CharacterDraft#
+ * rollAbility posts every roll/reroll publicly) already makes a reroll visible to the
+ * table rather than something that needs blocking outright. Off lets a GM enforce
+ * "first roll stands" instead.
+ * @returns {boolean}
+ */
+export function isRerollAllowed() {
+  return getHouseRules().allowRerolls !== false;
 }

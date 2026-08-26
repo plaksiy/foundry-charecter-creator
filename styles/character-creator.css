@@ -21,15 +21,14 @@
   --dcc-border: #3a3633;
   --dcc-text: #f2efe8;
   --dcc-text-muted: #a8a49a;
-  /* Accent color: never a fixed red on its own - a colorblind-accessibility review flagged
-     pure red sitting next to the rail's own green "done" state as a real problem for
-     colorblind players. Default is this neutral bone/silver tone instead; the toolbar's
-     accent-picker button (see _onRender) toggles one of the .dnd-cc-accent-* classes
-     below, each of which is a complete, legible accent+contrast pair, not a single color
-     swapped in isolation. --dcc-done deliberately stays green regardless of accent choice
-     - it still reads correctly as "complete", backed by a check icon too, not color
-     alone - only the *other* uses of red (buttons, active states,
-     card selection) move off red by default. */
+  /* Accent color: never a fixed red on its own - pure red sitting next to the rail's own
+     green "done" state is a real problem for colorblind players. Default is this neutral
+     bone/silver tone instead; the toolbar's accent-picker button (see _onRender) toggles
+     one of the .dnd-cc-accent-* classes below, each of which is a complete, legible
+     accent+contrast pair, not a single color swapped in isolation. --dcc-done deliberately
+     stays green regardless of accent choice (still reads correctly as "complete", backed
+     by a check icon too, not color alone) - only the *other* uses of red (buttons, active
+     states, card selection) move off red by default. */
   --dcc-accent: #e6e1d6;
   --dcc-accent-contrast: #141210;
   --dcc-border-strong: #e6e1d6;
@@ -125,9 +124,9 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them - without this,
-   a ruleset card can compute to a fixed short height while its own h3+p content spans
-   noticeably taller, overlapping the next card. `.header-control` (Foundry's native window titlebar
+   overflows the fixed box and visually overlaps whatever sits next to them. Confirmed live:
+   without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
+   48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
    buttons) is excluded from the font-family override specifically - it broke the Font
    Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
    to the button element itself (not a child), and our font would otherwise clobber it. */
@@ -135,9 +134,9 @@
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity - which is why a plain (non-!important) override here loses to
-   core's own button sizing despite being more specific. `!important` on a layered
-   declaration outranks a normal unlayered one,
+   selector specificity, which is exactly why a plain (non-!important) override here
+   loses to core's own button sizing despite being more specific. `!important` on a
+   layered declaration outranks a normal unlayered one,
    which is the correct, spec-sanctioned way to override core chrome from here - not a
    hack. Every button/select override in this file that fights Foundry's own default
    sizing needs `!important` for the same reason, not just this shared base rule. */
@@ -154,14 +153,16 @@
   gap: 0.35em;
 }
 
-.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"] {
+.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"],
+.dnd-cc-review-chat-card button[data-action="dnd-cc-open-levelup"] {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   margin-top: 0.3rem;
   cursor: pointer;
 }
-.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"][disabled] {
+.dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"][disabled],
+.dnd-cc-review-chat-card button[data-action="dnd-cc-open-levelup"][disabled] {
   cursor: default;
   opacity: 0.6;
 }
@@ -188,7 +189,7 @@
    directly into the native ApplicationV2 window-header instead (see _onRender). The
    rail's own portrait+name block (formerly here) was removed once the Identity step
    gave name/portrait a real, more prominent home - keeping both was redundant, and the
-   rail copy wasn't obviously clickable per direct user feedback. The rail now starts
+   rail copy also wasn't obviously clickable. The rail now starts
    right under the native window header with just the step list. */
 
 /* Text size / Simplify / Sources / Start Over now live as native window-header
@@ -217,10 +218,9 @@
   display: none;
 }
 
-/* Extended per direct accessibility feedback: flatten every other decorative gradient
-   sheen too (detail-panel header/icon boxes, lineage-picker cards), not just card art,
-   and drop the edition/book badge - useful metadata, but not needed to pick something,
-   so it's the "slightly less information" this mode was also asked to provide. */
+/* Also flattens every other decorative gradient sheen (detail-panel header/icon boxes,
+   lineage-picker cards), not just card art, and drops the edition/book badge - useful
+   metadata, but not needed to pick something. */
 .dnd-cc-reduce-imagery .dnd-cc-detail-header,
 .dnd-cc-reduce-imagery .dnd-cc-detail-icon,
 .dnd-cc-reduce-imagery .dnd-cc-lineage-card {
@@ -555,7 +555,7 @@
 }
 
 /* Background's two extra pills (ability options, granted feat name) read better a touch
-   bigger than the standard card pill size, per direct user feedback. */
+   bigger than the standard card pill size. */
 .dnd-cc-step-background .dnd-cc-pill { font-size: 0.72rem; }
 
 .dnd-cc-seg-group {
@@ -762,11 +762,10 @@
   margin: 0;
   padding: 0;
   display: grid;
-  /* Narrower columns than the grid used before, paired with .dnd-cc-card's own
-     aspect-ratio below - per direct user feedback the old 340px-wide/190px-tall cards
-     read as too wide a rectangle, with most of a card's portrait-oriented art falling
-     outside the visible frame. Still auto-fill, so resizing the window reflows to more
-     or fewer columns naturally, this only sets what "default" looks like. */
+  /* Narrower columns paired with .dnd-cc-card's own aspect-ratio below - a wider
+     rectangle put most of a card's portrait-oriented art outside the visible frame.
+     Still auto-fill, so resizing the window reflows to more or fewer columns naturally,
+     this only sets what "default" looks like. */
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.1rem;
 }
@@ -816,24 +815,25 @@
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
-  /* `overflow: hidden` on a grid item with `aspect-ratio` makes Chromium's grid-row
-     auto-sizing treat this item's contribution to its row's height as 0 (per the CSS
-     Sizing spec's automatic-minimum-size carve-out for non-visible overflow), instead of
-     the aspect-ratio-derived height - harmless as long as *some* other item sharing that
-     row has a real minimum size to fall back on, but a row made up entirely of these
-     cards collapses to a few px with every card in it rendering stacked on top of each
-     other. An explicit `min-height` doesn't work as a fix either: Chromium uses that
-     exact number as the row's full contribution instead of a floor beneath the larger
-     aspect-ratio size, so a fixed number always either collapses the row back down or
-     clips a wider card short. `clip-path` achieves the exact same visual result
-     (clipping the art/gradient to the card's own rounded corners) without tripping this
-     spec rule at all, since it isn't the `overflow` property. */
+  /* A real browser layout quirk, not a stylistic choice: `overflow: hidden` on a grid
+     item with `aspect-ratio` makes Chromium's grid-row auto-sizing treat this item's
+     contribution to its row's height as 0 (per the CSS Sizing spec's automatic-minimum-
+     size carve-out for non-visible overflow), instead of the aspect-ratio-derived height
+     - harmless as long as *some* other item sharing that row has a real minimum size to
+     fall back on, but a row made up entirely of these cards collapses to a few px with
+     every card in it rendering stacked on top of each other. An explicit `min-height`
+     doesn't fix this either - Chromium uses that exact number as the row's full
+     contribution instead of a floor beneath the larger aspect-ratio size, so a fixed
+     number always either collapses the row back down or clips a wider card short.
+     `clip-path` achieves the exact same visual result (clipping the art/gradient to the
+     card's own rounded corners) without tripping this spec rule at all, since it isn't
+     the `overflow` property. */
   clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
-/* Class cards specifically go fully square, per direct user feedback that the class
-   symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
-   frame better than the 3:4 portrait ratio the other two card grids use. */
+/* Class cards specifically go fully square - the class symbol art (centered, not a
+   landscape scene like Species/Background use) fits a 1:1 frame better than the 3:4
+   portrait ratio the other two card grids use. */
 .dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
 .dnd-cc-card:hover { border-color: var(--dcc-accent); }
 .dnd-cc-card.selected {
@@ -1404,6 +1404,99 @@
   font-family: var(--dcc-font-ui);
   font-size: 0.78rem;
 }
+.dnd-cc-class-row-level-static { font-weight: 600; }
+
+/* Level Up's own "raise a level, or multiclass instead" choice (step-class.hbs) - a
+   big, self-explaining card per option instead of a plain level dropdown, so leveling
+   up reads as a deliberate choice with a visible preview rather than a blind pick. */
+.dnd-cc-levelup-choice {
+  display: flex;
+  gap: 0.8rem;
+  align-items: stretch;
+  margin-top: 0.6rem;
+}
+.dnd-cc-levelup-cards {
+  flex: 0 0 65%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.application.dnd-cc button.dnd-cc-levelup-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border-strong);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-levelup-card:hover {
+  background: var(--dcc-surface-alt);
+  border-color: var(--dcc-accent);
+}
+.dnd-cc-levelup-card-icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--dcc-surface-alt);
+}
+.dnd-cc-levelup-card-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dnd-cc-levelup-card-body { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.dnd-cc-levelup-card-label {
+  font-family: var(--dcc-font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--dcc-accent);
+}
+.dnd-cc-levelup-card-target {
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dcc-text);
+}
+.dnd-cc-levelup-card-gains {
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  color: var(--dcc-text-muted);
+}
+
+.application.dnd-cc button.dnd-cc-levelup-multiclass-card {
+  flex: 1 1 35%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: var(--dcc-surface-alt);
+  border: 1px dashed var(--dcc-border-strong);
+  border-radius: 10px;
+  text-align: center;
+  color: var(--dcc-text-muted);
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-levelup-multiclass-card i { font-size: 1.5rem; color: var(--dcc-accent); }
+.application.dnd-cc button.dnd-cc-levelup-multiclass-card:hover {
+  border-color: var(--dcc-accent);
+  color: var(--dcc-text);
+}
+.dnd-cc-levelup-multiclass-card .dnd-cc-levelup-card-label { font-size: 0.95rem; }
+.dnd-cc-levelup-card-hint {
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  color: var(--dcc-text-muted);
+}
 
 .dnd-cc-class-total {
   font-family: var(--dcc-font-ui);
@@ -1629,11 +1722,10 @@
 /* One color-keyed flip card per ability - the same --dcc-str/dex/con/int/wis/cha
    tokens the Skills table already keys its rows off. Fixed height, identical in every
    state (flipped or not): front and back are both absolutely positioned to this one
-   box, so neither face can ever stretch it - a stray row of content on one card
-   growing the whole grid row (and every card in it) taller than its neighbors was a
-   real bug caught in the design pass, not a hypothetical one. */
+   box, so neither face can ever stretch it - avoids a stray row of content on one card
+   growing the whole grid row (and every card in it) taller than its neighbors. */
 /* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
-   cramped row of six, per direct feedback after seeing it live. */
+   cramped row of six. */
 .dnd-cc-ability-grid {
   list-style: none;
   margin: 0;
@@ -1691,9 +1783,9 @@
 
 /* A small always-visible corner control makes "this flips" obvious without relying
    on the player discovering that the icon/name header itself is clickable - a plain
-   icon-only circle still wasn't obviously a "flip this card" affordance on its own
-   (direct feedback), so it now also carries a short visible label, not just a hover
-   title. `height`/`padding` need `!important` for the same reason documented on the
+   icon-only circle isn't obviously a "flip this card" affordance on its own, so it also
+   carries a short visible label, not just a hover title. `height`/`padding` need
+   `!important` for the same reason documented on the
    shared `.application.dnd-cc button:not(.header-control)` reset above - that rule's
    own `height: auto !important` otherwise always wins over a plain (non-!important)
    size here regardless of specificity, which is exactly why this control used to
@@ -1724,6 +1816,36 @@
   text-transform: uppercase;
 }
 .dnd-cc-ability-flip-corner i { font-size: 0.72rem; }
+
+/* Highlights whichever ability the currently selected class(es) actually rely on
+   (isPrimary in _prepareAbilitiesContext) - a glow on top of the card's own per-ability
+   hue border, not a replacement for it, plus a real text+icon badge rather than color
+   alone (same colorblind-accessibility reasoning already applied to the rail's done/warn
+   states elsewhere in this file). Naturally absent for every card once no class is
+   picked, or once a class is removed, since isPrimary is recomputed fresh every render. */
+.dnd-cc-ability-flip-primary .dnd-cc-ability-face {
+  box-shadow: 0 0 0 2px var(--dcc-accent);
+}
+.dnd-cc-ability-primary-badge {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: help;
+}
+.dnd-cc-ability-primary-badge i { font-size: 0.6rem; }
 
 .dnd-cc-ability-card-header {
   display: flex;
@@ -1789,8 +1911,8 @@
 .dnd-cc-ability-card-control select { width: 100%; }
 .dnd-cc-ability-card-control .dnd-cc-ability-roll-button { width: 100%; justify-content: center; }
 
-/* Smaller field, bigger score/mod above - direct feedback that the dropdown/roll
-   button read as too dominant next to the now-larger total/modifier. Needs the
+/* Smaller field, bigger score/mod above - the dropdown/roll button reads as too
+   dominant next to the larger total/modifier otherwise. Needs the
    `.application.dnd-cc` prefix to actually beat the generic `.application.dnd-cc
    select`/input rule (2 classes + 1 type) on padding - a bare `.dnd-cc-ability-card-
    control select` (1 class + 1 type) loses that fight on specificity alone even
@@ -2489,7 +2611,7 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input. The two look visually identical by default (same box, same weight),
+   min!=max input. The two look visually identical otherwise (same box, same weight),
    making it hard to tell at a glance which scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
@@ -2584,7 +2706,7 @@
    column that resolves to the full container height regardless of how little content
    the sidebar actually has, so a plain `max-height` cap alone just clamped that same
    fixed 100% down to a fixed 45%, leaving a large empty gap above the results whenever
-   the collapsed search row didn't need anywhere near that much room. `height: auto !important`
+   the collapsed search row doesn't need anywhere near that much room. `height: auto !important`
    makes it size to its real content again, with max-height still capping it once a
    player expands a filter group with a lot of options. */
 .dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"] {
@@ -2758,6 +2880,83 @@
 .dnd-cc-gm-progress-delete { margin-left: 0.4rem; }
 .dnd-cc-gm-progress-delete:hover { border-color: var(--dcc-danger); color: var(--dcc-danger); }
 
+/* Finished Characters' quick level control (shell.hbs) - a GM can raise or lower a
+   character's level directly from the dashboard without opening the wizard themselves
+   first; clicking any of these opens a Level Up session with the change already queued
+   (see CharacterCreatorApp's pendingLevelDelta) so the resulting Advancement flow (HP
+   roll, ASI, subclass pick, ...) still renders somewhere for whoever's driving it. */
+.dnd-cc-level-control { min-width: 150px; }
+.dnd-cc-level-control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.application.dnd-cc button.dnd-cc-level-step {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px;
+  padding: 0 !important;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border) !important;
+  color: var(--dcc-text);
+  font-weight: 700;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-level-step:hover:not(:disabled) { border-color: var(--dcc-accent) !important; color: var(--dcc-accent); }
+.application.dnd-cc button.dnd-cc-level-step:disabled { opacity: 0.4; cursor: default; }
+
+.dnd-cc-level-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--dcc-surface-alt);
+  border: 1px solid var(--dcc-border);
+  overflow: hidden;
+}
+.dnd-cc-level-bar-fill {
+  height: 100%;
+  background: var(--dcc-accent);
+}
+.dnd-cc-level-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--dcc-text);
+  text-shadow: 0 0 3px var(--dcc-bg);
+}
+
+.dnd-cc-level-add-row {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+.dnd-cc-level-add-row input[type="number"] {
+  width: 4.5rem;
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  border: 1px solid var(--dcc-border);
+  border-radius: 6px;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0.2rem 0.4rem !important;
+  height: auto !important;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+}
+.dnd-cc-level-add-row button:disabled, .dnd-cc-level-add-row input:disabled { opacity: 0.4; }
+
 /* A <table> as a direct flex item resists flex-shrink even with min-height:0 (confirmed
    live - it kept computing to its full content height, 690px, inside a 558px-tall flex
    parent, regardless of that fix) - tables carry their own strong intrinsic-size formatting
@@ -2769,6 +2968,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: auto;
 }
 .dnd-cc-compendium-table {
   border-collapse: collapse;
@@ -2888,6 +3088,20 @@
 }
 .dnd-cc-house-rules-checkgrid label:hover { background: rgba(223, 0, 0, 0.08); }
 .dnd-cc-house-rules-checkgrid input[type="checkbox"] { accent-color: var(--dcc-accent); width: 15px; height: 15px; cursor: pointer; }
+
+.dnd-cc-house-rules-numgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1.4rem;
+  margin-bottom: 0.6rem;
+}
+.dnd-cc-house-rules-numgrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85em;
+  color: var(--dcc-text-muted);
+}
 
 .dnd-cc-house-rules-section input[type="number"] {
   background: var(--dcc-surface-alt);
@@ -3224,14 +3438,19 @@
 .dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
 .dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
 
-/* display: flex/flex-direction: column - NOT block. dnd5e's own <prose-mirror>
-   internally needs to be a flex column so its toolbar (.menu-container > menu.editor-menu)
-   and its editable content area stack vertically. `display: block` breaks that - the
-   toolbar's own wrapper collapses to 0 height in block flow while the menu itself still
-   renders at full size via internal positioning, and the editable content area's text
-   then starts at that same collapsed y-offset, landing directly underneath/behind the
-   toolbar buttons - the text isn't actually invisible or uncolored, it's being visually
-   covered by the toolbar. */
+/* display: flex/flex-direction: column - NOT block. This is the real fix for the
+   long-reported "can't see the cursor or text while typing in Backstory" bug: dnd5e's
+   own <prose-mirror> internally needs to be a flex column so its toolbar
+   (.menu-container > menu.editor-menu) and its editable content area stack vertically.
+   `display: block` (what this rule used to say) breaks that - the toolbar's own wrapper
+   collapses to 0 height in block flow while the menu itself still renders at full size
+   via internal positioning, and the editable content area's text then starts at that
+   same collapsed y-offset, landing directly underneath/behind the toolbar buttons.
+   Confirmed live via `document.elementFromPoint` on the actual typed text's own
+   bounding-box center: under `display: block` the topmost element there was a toolbar
+   button, not the text; under `display: flex; flex-direction: column`, it's the real
+   text node. Root-caused this way, not guessed - the text was never actually invisible
+   or uncolored, it was being visually covered by the toolbar the whole time. */
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;
@@ -3299,9 +3518,8 @@
      mostly-empty row of its own below. `align-items: start` (not the grid default
      `stretch`) is the other half of that same fix: a sparse card (an empty "No feats
      yet" Feats section, most often) no longer gets force-stretched to match its
-     tallest row-mate (usually Abilities' fixed 6-row table) - direct feedback that a
-     short section reading as artificially tall, with a large empty gap below its real
-     content, looked broken. */
+     tallest row-mate (usually Abilities' fixed 6-row table), which otherwise reads as
+     artificially tall with a large empty gap below its real content. */
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
   gap: 0.7rem;

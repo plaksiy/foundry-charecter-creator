@@ -24,6 +24,11 @@
           {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
         </div>
       </div>
+      {{#if ../levelUp}}
+      <span class="dnd-cc-class-row-level dnd-cc-class-row-level-static">
+        {{localize "DND-CC.Class.Level"}} {{this.level}}
+      </span>
+      {{else}}
       <label class="dnd-cc-class-row-level">
         {{localize "DND-CC.Class.Level"}}
         <select data-class-level="{{this.id}}">
@@ -32,6 +37,7 @@
           {{/each}}
         </select>
       </label>
+      {{/if}}
       <button type="button" class="dnd-cc-class-row-review" data-review-class="{{this.id}}" aria-label="{{localize 'DND-CC.Class.Review'}}" title="{{localize 'DND-CC.Class.Review'}}">
         <i class="fa-solid fa-pen"></i>
       </button>
@@ -47,10 +53,32 @@
   {{#if canAddClass}}
   {{#if levelUp}}
   {{#unless showAddClassGrid}}
-  <div class="dnd-cc-divider"><span>{{localize "DND-CC.LevelUp.MulticlassPrompt"}}</span></div>
-  <button type="button" class="dnd-cc-randomize-button" data-show-multiclass>
-    <i class="fa-solid fa-people-group" aria-hidden="true"></i> {{localize "DND-CC.LevelUp.MulticlassButton"}}
-  </button>
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.LevelUp.ClassChoiceIntro"}}</p>
+  <div class="dnd-cc-levelup-choice">
+    <div class="dnd-cc-levelup-cards">
+      {{#each classes}}
+      {{#if this.canLevelUp}}
+      <button type="button" class="dnd-cc-levelup-card" data-class-level-up="{{this.id}}">
+        <div class="dnd-cc-levelup-card-icon"><img src="{{this.img}}" alt="" /></div>
+        <div class="dnd-cc-levelup-card-body">
+          <span class="dnd-cc-levelup-card-label">{{localize "DND-CC.LevelUp.LevelUpCardLabel"}}</span>
+          <span class="dnd-cc-levelup-card-target">{{this.name}} {{this.level}} &gt; {{this.nextLevel}}</span>
+          {{#if this.levelUpGains.length}}
+          <ul class="dnd-cc-levelup-card-gains">
+            {{#each this.levelUpGains}}<li>+ {{this}}</li>{{/each}}
+          </ul>
+          {{/if}}
+        </div>
+      </button>
+      {{/if}}
+      {{/each}}
+    </div>
+    <button type="button" class="dnd-cc-levelup-multiclass-card" data-show-multiclass>
+      <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+      <span class="dnd-cc-levelup-card-label">{{localize "DND-CC.LevelUp.MulticlassButton"}}</span>
+      <span class="dnd-cc-levelup-card-hint">{{localize "DND-CC.LevelUp.MulticlassPrompt"}}</span>
+    </button>
+  </div>
   {{/unless}}
   {{/if}}
 

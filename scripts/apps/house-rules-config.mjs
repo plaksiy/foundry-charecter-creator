@@ -62,7 +62,11 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       alignmentOptions,
       minFeatLevel: rules.minFeatLevel,
       speciesOptions,
-      allowSelfLevelUp: rules.allowSelfLevelUp === true
+      allowSelfLevelUp: rules.allowSelfLevelUp === true,
+      pointBuyBudget: rules.pointBuyBudget,
+      pointBuyMin: rules.pointBuyMin,
+      pointBuyMax: rules.pointBuyMax,
+      allowRerolls: rules.allowRerolls !== false
     };
   }
 
@@ -84,12 +88,27 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       .filter((entry) => entry.banned === true)
       .map((entry) => entry.uuid);
 
+    // A GM could type a min above the max (or vice versa) - swap rather than reject, so
+    // Point Buy's own range check (pointBuyMin/pointBuyMax in character-draft.mjs) never
+    // ends up with an inverted, permanently-impossible range from a simple typo.
+    let pointBuyMin = Number(data.pointBuyMin);
+    let pointBuyMax = Number(data.pointBuyMax);
+    if (!Number.isFinite(pointBuyMin)) pointBuyMin = 8;
+    if (!Number.isFinite(pointBuyMax)) pointBuyMax = 15;
+    if (pointBuyMin > pointBuyMax) [pointBuyMin, pointBuyMax] = [pointBuyMax, pointBuyMin];
+
+    const pointBuyBudget = Number(data.pointBuyBudget);
+
     await game.settings.set(MODULE_ID, "houseRules", {
       abilityMethods,
       disallowedAlignments,
       minFeatLevel: Number(data.minFeatLevel) || 0,
       bannedSpecies,
-      allowSelfLevelUp: data.allowSelfLevelUp === true
+      allowSelfLevelUp: data.allowSelfLevelUp === true,
+      pointBuyBudget: Number.isFinite(pointBuyBudget) ? pointBuyBudget : 27,
+      pointBuyMin,
+      pointBuyMax,
+      allowRerolls: data.allowRerolls === true
     });
   }
 }
