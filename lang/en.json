@@ -2,6 +2,9 @@
   "DND-CC": {
     "WindowTitle": "Character Creator",
     "OpenButton": "Create Character",
+    "ResumeButton": "Resume Character",
+    "ResumeButtonTooltip": "You have an unfinished character - click to pick up where you left off",
+    "LoadingStep": "Loading...",
     "Back": "Previous Step",
     "BackTooltip": "Go back to the previous step - nothing you've entered is lost",
     "Next": "Next",
@@ -125,7 +128,13 @@
       "LevelIncrease": "Raise this character's level by 1",
       "LevelAddPlaceholder": "Levels",
       "LevelAddApply": "Add",
-      "LevelAddTitle": "Add this many levels at once"
+      "LevelAddTitle": "Add this many levels at once",
+      "MyButtonLabel": "My Characters",
+      "MyTitle": "My Characters",
+      "MyIntro": "Your own in-progress character. Click Open to pick up right where you left off.",
+      "MyFinishedIntro": "Your own finished characters - class/level, species, background, and (if your world tracks XP) whether you've earned enough to level up. Leveling up itself still happens from your character sheet.",
+      "MyNoDrafts": "You don't have a character in progress right now.",
+      "MyNoFinished": "You don't have any finished characters yet."
     },
     "ReplaceItem": {
       "Title": "Replace This Pick?",
@@ -248,7 +257,12 @@
       "AddCantrip": "Add Cantrip",
       "AddSpell": "Add Spell",
       "Remove": "Remove",
-      "NoSpellcasting": "This character has no spellcasting yet. Pick a spellcasting class to see cantrip and spell choices here."
+      "NoSpellcasting": "This character has no spellcasting yet. Pick a spellcasting class to see cantrip and spell choices here.",
+      "ShowProgression": "Show progression by level",
+      "HideProgression": "Hide progression by level",
+      "ProgressionLevel": "Level",
+      "ProgressionCantrips": "Cantrips",
+      "ProgressionSpells": "Spells"
     },
     "Duplicate": {
       "Title": "Already Known",

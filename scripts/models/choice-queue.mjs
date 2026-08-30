@@ -62,7 +62,6 @@ const EMBEDDED_WINDOW_OPTIONS = { window: { frame: false, positioned: false } };
  *   closed it without finishing.
  */
 function runAdvancementManager(manager, container) {
-  patchSubclassFlowEmbedding();
   return new Promise((resolve) => {
     Hooks.once("dnd5e.advancementManagerComplete", (completedManager) => {
       if (completedManager === manager) resolve(true);
@@ -76,9 +75,9 @@ function runAdvancementManager(manager, container) {
     // While embedded, also force `animate: false` and hide `container` immediately -
     // even with `animate: false`, Foundry's own close() still sizes the manager's real
     // element down to a 0-height sliver for a noticeable stretch (roughly half a second
-    // to a full second) before actually removing it, not just during an eased CSS
-    // transition - `animate` only skips the transition, not this resize-before-removal
-    // step itself. Inside a normal floating window that's
+    // to a full second) before actually removing it, not just
+    // during an eased CSS transition - `animate` only skips the transition, not this
+    // resize-before-removal step itself. Inside a normal floating window that's
     // invisible (the whole window is going away anyway), but inside our bounded/clipped
     // embedded host it renders as a visibly broken, collapsed panel. Hiding the
     // container outright the instant a close is requested turns that into a blank gap
@@ -104,16 +103,16 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely (`SubclassFlow.#browseCompendium` in dnd5e's own source). That
+// entirely (per `SubclassFlow.#browseCompendium`'s own source). That
 // meant clicking it always popped out a real floating window mid-wizard, and never got the
 // ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
 // way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
 // real `SubclassFlow` that overrides just the `browse` action, swapped in for the real one
 // via `SubclassAdvancement.metadata.apps.flow` - the actual class `AdvancementManager` asks
-// for when it needs to render a Subclass step. `advancement.constructor.metadata.apps.flow`
-// is what gets instantiated, read fresh from a *getter* each time, so simply overwriting
-// `metadata.apps.flow` on a snapshot object doesn't stick - the getter itself has to be
-// wrapped instead.
+// for when it needs to render a Subclass step (`advancement.constructor.
+// metadata.apps.flow` is what gets instantiated, read fresh from a *getter* each time, so
+// simply overwriting `metadata.apps.flow` on a snapshot object doesn't stick - the getter
+// itself has to be wrapped instead).
 
 let embeddedSubclassFlowClass = null;
 let subclassFlowPatched = false;
@@ -193,6 +192,223 @@ function patchSubclassFlowEmbedding() {
   });
 }
 
+// --- Embedded "browse for a feat instead" (Ability Score Improvement) -------
+//
+// The level-up ASI-or-feat choice (including the 2024 rules' Epic Boon pick at level
+// 19+) has the exact same "calls CompendiumBrowser directly, bypassing our wrapper"
+// problem as the Subclass picker above - `AbilityScoreImprovementFlow`'s own `browse`
+// action opens a real floating window regardless of the parent AdvancementManager's own
+// embedded/chromeless state. Same fix, same shape: a thin subclass overriding only the
+// `browse` action, swapped in via `AbilityScoreImprovementAdvancement.metadata.apps.flow`
+// (also a getter, patched the same way). The non-embedded branch is copied verbatim from
+// dnd5e's own `#browseCompendium` (including the prerequisite-validation step) so a
+// vanilla native level-up (or another module driving Advancement directly) sees no
+// behavior change at all.
+
+let embeddedAbilityScoreImprovementFlowClass = null;
+let abilityScoreImprovementFlowPatched = false;
+
+function getEmbeddedAbilityScoreImprovementFlowClass() {
+  if (!embeddedAbilityScoreImprovementFlowClass) {
+    const { AbilityScoreImprovementFlow } = dnd5e.applications.advancement;
+    embeddedAbilityScoreImprovementFlowClass = class EmbeddedAbilityScoreImprovementFlow extends AbilityScoreImprovementFlow {
+      static DEFAULT_OPTIONS = {
+        actions: { browse: EmbeddedAbilityScoreImprovementFlow.#browse }
+      };
+
+      static async #browse(event, target) {
+        const filters = {
+          locked: {
+            additional: { category: { feat: 1 } },
+            arbitrary: [{ k: "system.prerequisites.level", o: "lte", v: this.advancement.actor.system.details.level }],
+            types: new Set(["feat"])
+          }
+        };
+
+        const applyFeat = async (uuid) => {
+          if (!uuid) return;
+          const item = await fromUuid(uuid);
+          const isValid = item.system.validatePrerequisites?.(this.advancement.actor, { showMessage: true });
+          if (isValid === true) {
+            await this.advancement.apply(this.level, { retainedItems: this.retainedData?.retainedItems, type: "feat", uuid });
+          }
+        };
+
+        const embedded = this.manager?.options?.window?.frame === false;
+        if (!embedded) {
+          const result = await dnd5e.applications.CompendiumBrowser.selectOne({ filters, tab: "feats" }, this.manager?._detachOptions());
+          await applyFeat(result);
+          if (result) this.render();
+          return;
+        }
+
+        const draft = new CharacterDraft(this.advancement.actor);
+        const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(draft.rulesetVersions);
+
+        const host = document.createElement("div");
+        host.className = "dnd-cc-advancement-body dnd-cc-browser-body";
+        this.element.replaceChildren(host);
+
+        const result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
+        await applyFeat(result?.size ? Array.from(result)[0] : null);
+        this.render();
+      }
+    };
+  }
+  return embeddedAbilityScoreImprovementFlowClass;
+}
+
+function patchAbilityScoreImprovementFlowEmbedding() {
+  if (abilityScoreImprovementFlowPatched) return;
+  abilityScoreImprovementFlowPatched = true;
+
+  const ASIAdvancement = CONFIG.DND5E?.advancementTypes?.AbilityScoreImprovement?.documentClass;
+  const descriptor = ASIAdvancement && Object.getOwnPropertyDescriptor(ASIAdvancement, "metadata");
+  if (!descriptor?.get) return;
+
+  Object.defineProperty(ASIAdvancement, "metadata", {
+    configurable: true,
+    get() {
+      const metadata = descriptor.get.call(this);
+      metadata.apps = { ...metadata.apps, flow: getEmbeddedAbilityScoreImprovementFlowClass() };
+      return metadata;
+    }
+  });
+}
+
+// --- Embedded ItemChoice browse (Magic Initiate's spells, Metamagic-as-choice, a
+// generic "pick N of this type" advancement, ...) --------------------------------
+//
+// Same problem, same fix, one more time - `ItemChoiceFlow`'s own `browse` action is
+// what a feat/class's own nested "choose N items" advancement uses (Magic Initiate's
+// cantrip/spell pick is the concrete case that motivated this), and it calls
+// CompendiumBrowser directly too. Filter-construction copied verbatim from dnd5e's own
+// `#browseCompendium` (type/level/spell-list restrictions) - only the non-embedded
+// fallback and the embedded branch differ from the original.
+
+let embeddedItemChoiceFlowClass = null;
+let itemChoiceFlowPatched = false;
+
+function getEmbeddedItemChoiceFlowClass() {
+  if (!embeddedItemChoiceFlowClass) {
+    const { ItemChoiceFlow } = dnd5e.applications.advancement;
+    embeddedItemChoiceFlowClass = class EmbeddedItemChoiceFlow extends ItemChoiceFlow {
+      static DEFAULT_OPTIONS = {
+        actions: { browse: EmbeddedItemChoiceFlow.#browse }
+      };
+
+      static async #browse(event, target) {
+        const config = this.advancement.configuration;
+        const { current, max } = this.counts;
+        if (current >= max) {
+          ui.notifications.warn("DND5E.ADVANCEMENT.ItemChoice.Warning.MaxSelected", { localize: true });
+          return;
+        }
+
+        const filters = { locked: { additional: {}, documentClass: "Item" } };
+        if (config.type) {
+          filters.locked.types = new Set([config.type]);
+          if ((config.type === "feat") && config.restriction.type) {
+            const typeConfig = CONFIG.DND5E.featureTypes[config.restriction.type];
+            const subtype = typeConfig.subtypes?.[config.restriction.subtype];
+            filters.locked.additional.category = { [config.restriction.type]: 1 };
+            if (subtype) filters.locked.additional.subtype = { [config.restriction.subtype]: 1 };
+          }
+        } else {
+          filters.locked.types = this.advancement.constructor.VALID_TYPES;
+        }
+
+        if (config.type === "feat") {
+          filters.locked.arbitrary = [{ k: "system.prerequisites.level", o: "lte", v: this.featureLevel }];
+        } else if ((config.type === "spell") && (config.restriction.level !== "")) {
+          if (config.restriction.level === "available") {
+            filters.locked.additional.level = { max: this._maxSpellSlotLevel() };
+          } else {
+            filters.locked.additional.level = {
+              min: Number(config.restriction.level),
+              max: Number(config.restriction.level)
+            };
+          }
+        }
+
+        if ((config.type === "spell") && config.restriction.list.size) {
+          filters.locked.additional.spelllist = config.restriction.list.reduce((obj, list) => {
+            obj[list] = 1;
+            return obj;
+          }, {});
+        }
+
+        const selectionOptions = { filters, selection: { min: 1, max: max - current } };
+
+        const applySelection = async (result) => {
+          if (!result?.size) return;
+          const selected = Array.from(result).filter((uuid) => !this.selected.has(uuid));
+          await this.advancement.apply(this.level, { selected });
+        };
+
+        const embedded = this.manager?.options?.window?.frame === false;
+        if (!embedded) {
+          const result = await dnd5e.applications.CompendiumBrowser.select(selectionOptions, this.manager?._detachOptions());
+          await applySelection(result);
+          if (result?.size) this.render();
+          return;
+        }
+
+        const draft = new CharacterDraft(this.advancement.actor);
+        const excludedSourceSlugs = await getRulesetMismatchedSourceSlugs(draft.rulesetVersions);
+
+        const host = document.createElement("div");
+        host.className = "dnd-cc-advancement-body dnd-cc-browser-body";
+        this.element.replaceChildren(host);
+
+        const result = await runCompendiumBrowser(selectionOptions, host, excludedSourceSlugs);
+        await applySelection(result);
+        this.render();
+      }
+    };
+  }
+  return embeddedItemChoiceFlowClass;
+}
+
+function patchItemChoiceFlowEmbedding() {
+  if (itemChoiceFlowPatched) return;
+  itemChoiceFlowPatched = true;
+
+  const ItemChoiceAdvancement = CONFIG.DND5E?.advancementTypes?.ItemChoice?.documentClass;
+  const descriptor = ItemChoiceAdvancement && Object.getOwnPropertyDescriptor(ItemChoiceAdvancement, "metadata");
+  if (!descriptor?.get) return;
+
+  Object.defineProperty(ItemChoiceAdvancement, "metadata", {
+    configurable: true,
+    get() {
+      const metadata = descriptor.get.call(this);
+      metadata.apps = { ...metadata.apps, flow: getEmbeddedItemChoiceFlowClass() };
+      return metadata;
+    }
+  });
+}
+
+/**
+ * Apply all three embedding patches (Subclass, Ability Score Improvement, ItemChoice).
+ * Must run *before* `AdvancementManager.forNewItem`/`forLevelChange`/`forDeletedItem`
+ * construct their manager, not after - `AdvancementManager` resolves
+ * each step's Flow class (`advancement.constructor.metadata.apps.flow`) at construction
+ * time, not lazily when the player actually reaches that step. Patching only at the
+ * start of `runAdvancementManager` (i.e. after the manager already existed) meant the
+ * very first Ability-Score-Improvement-or-feat / ItemChoice / Subclass step reached in
+ * an entire page session - whichever one happened to be the first manager ever
+ * constructed - still got the *original*, unpatched Flow class and popped a real
+ * floating CompendiumBrowser once, before quietly self-correcting for every manager
+ * after that. Each individual patch function still only ever applies once (its own
+ * module-level `*Patched` flag), so calling this from all three call sites below is
+ * cheap and safe.
+ */
+function patchEmbeddedAdvancementFlows() {
+  patchSubclassFlowEmbedding();
+  patchAbilityScoreImprovementFlowEmbedding();
+  patchItemChoiceFlowEmbedding();
+}
+
 /**
  * Run dnd5e's Advancement flow for adding `itemData` to `actor`.
  * @param {Actor} actor
@@ -202,6 +418,7 @@ function patchSubclassFlowEmbedding() {
  *   they closed it without finishing.
  */
 export async function triggerAdvancement(actor, itemData, container) {
+  patchEmbeddedAdvancementFlows();
   const { AdvancementManager } = dnd5e.applications.advancement;
   const manager = await AdvancementManager.forNewItem(actor, itemData, container ? EMBEDDED_WINDOW_OPTIONS : {});
   return runAdvancementManager(manager, container);
@@ -217,6 +434,7 @@ export async function triggerAdvancement(actor, itemData, container) {
  * @param {HTMLElement} [container] - see runAdvancementManager
  */
 export async function removeItemWithAdvancement(actor, itemId, container) {
+  patchEmbeddedAdvancementFlows();
   const { AdvancementManager } = dnd5e.applications.advancement;
   const manager = AdvancementManager.forDeletedItem(actor, itemId, container ? EMBEDDED_WINDOW_OPTIONS : {});
 
@@ -297,8 +515,7 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
  * Collapse every filter group and exclude the generic SRD source packs (plus any
  * ruleset-mismatched book, see excludedSourceSlugs) by default, so the results grid is
  * visible immediately instead of buried under a fully-expanded filter sidebar (Level,
- * School, several Spell List groups, Properties, and Source all expanded at once, a real
- * complaint from live use).
+ * School, several Spell List groups, Properties, and Source all expanded at once).
  * @param {HTMLElement} browserElement
  * @param {string[]} [excludedSourceSlugs]
  */
@@ -323,7 +540,7 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
 
 /**
  * Click a `<filter-state>` 3-state toggle (0 unset -> 1 require -> -1 exclude) twice to
- * land on "exclude". Confirmed live that dnd5e fully replaces
+ * land on "exclude". dnd5e fully replaces
  * `[data-application-part="filters"]` with a brand new element after EVERY filter change
  * (not just once after the browser's first paint, which is what an earlier version of
  * this function assumed) - reusing the same element reference for a second `.click()`
@@ -336,12 +553,15 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
  *
  * The Source filter's own list of `<filter-state>` options is itself populated
  * asynchronously the first time a CompendiumBrowser instance is ever created in a
- * session (it has to index every enabled pack to know what sources even exist), which is
- * genuinely slower than our own code reaching this point on a cold first open - a plain
- * immediate `querySelector` for the target filter-state can come up empty even though the
- * exact same lookup succeeds instantly on a later open once the index is cached. Waits
- * for the element to actually exist (bounded by a timeout, in case this filter genuinely
- * doesn't exist for this browser's tab/type) before giving up.
+ * session (it has to index every enabled pack to know what sources even exist) -
+ * this is genuinely slower than our own code reaching this point on a
+ * cold first open, so a plain immediate `querySelector` for the target filter-state can
+ * come up empty even though the exact same lookup succeeds instantly on a second open
+ * later in the same session (the index is cached after the first build). The old
+ * behavior gave up the moment that first lookup came back empty, which is exactly why
+ * the SRD/ruleset exclusion silently didn't apply on a session's very first embedded
+ * browser open. Waits for the element to actually exist (bounded by a timeout, in case
+ * this filter genuinely doesn't exist for this browser's tab/type) before giving up.
  * @param {HTMLElement} sidebar
  * @param {string} filterName
  */
@@ -405,19 +625,20 @@ function waitForFiltersPartReplacement(sidebar, staleElement) {
  * Collapses the sidebar's filter panel down to Search + Price (moved into one row
  * together) plus a single "Filters" toggle covering everything else (Attunement,
  * Weapon Mastery, Rarity, Properties, Source, ...) - the default panel (search on its
- * own row, then every filter group stacked below, several of them already
- * collapsed-but-still-taking-a-header's-worth-of-space) reads as cluttered for what's
- * usually just "type a name and go."
+ * own row, then every filter group stacked below, several of them already collapsed-
+ * but-still-taking-a-header's-worth-of-space) reads as cluttered for what's usually
+ * just "type a name and go."
  *
- * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't hold
- * on its own - dnd5e re-renders `[data-application-part="filters"]` fresh at least once
- * after the browser's first paint (its own locked-type-filter initialization triggers
- * it), which silently undoes a physical move of the price filter out of that container
- * and replaces the container itself, wiping the "more filters" class along with it - the
- * search part doesn't get this same treatment and stays put once moved. A
- * MutationObserver on the sidebar re-applies the filters-side move (guarded by a
- * `dccArranged` marker so an already-processed filters element is never touched twice)
- * every time that part gets replaced, instead of a single fire-and-hope pass.
+ * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't
+ * hold on its own - dnd5e re-renders `[data-application-part=
+ * "filters"]` fresh at least once after the browser's first paint (its own locked-
+ * type-filter initialization triggers it), which silently undoes a physical move of
+ * the price filter out of that container and replaces the container itself, wiping
+ * the "more filters" class along with it - the search part doesn't get this same
+ * treatment and stays put once moved. A MutationObserver on the sidebar re-applies
+ * the filters-side move (guarded by a `dccArranged` marker so an already-processed
+ * filters element is never touched twice) every time that part gets replaced,
+ * instead of a single fire-and-hope pass.
  * @param {HTMLElement} browserElement
  */
 function arrangeEmbeddedBrowserFilters(browserElement) {
@@ -442,8 +663,9 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
     // dnd5e replaces the whole `filters` part with a fresh element at least once after
     // the browser's first paint (its own locked-type-filter init), so this can run more
     // than once - each pass's own price filter must replace whatever an earlier pass
-    // already moved into searchRow, not pile up alongside it, or several re-renders
-    // would leave several duplicate price-range rows stacked in the search row.
+    // already moved into searchRow, not pile up alongside it (without this cleanup,
+    // several re-renders left several duplicate price-range rows stacked in the search
+    // row).
     searchRow.querySelectorAll('.filter[data-filter-id="price"]').forEach((el) => el.remove());
     const priceFilter = filtersPart.querySelector('.filter[data-filter-id="price"]');
     if (priceFilter) searchRow.append(priceFilter);
@@ -514,9 +736,9 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
     // stops a genuinely inapplicable grant from being reported as a missed choice - a
-    // "secondary" 1-skill/1-tool grant on an original-class item never appears as a
-    // step during a normal add, yet still carries an empty `value` forever since
-    // nothing ever resolves it.
+    // real original-class Bard's own "secondary" 1-skill/
+    // 1-tool grants never appear as steps during a normal add, yet still carry an empty
+    // `value` forever since nothing ever resolves them.
     if (!advancement.appliesToClass) continue;
 
     if (advancement.type === "Trait") {
@@ -531,13 +753,13 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
         .reduce((sum, [, c]) => sum + c.count, 0);
       if (required === 0) continue;
 
-      // `value.added` shows up two different shapes depending on whether the
-      // advancement can apply at more than one level: a flat {itemId: uuid} map when
-      // there's only ever one choice tier (e.g. a Fighting Style), or a level-keyed
-      // {level: {itemId: uuid}} map when it repeats (e.g. Metamagic). Counting values
-      // that are themselves objects as nested per-level entries, and anything else as
-      // one flat entry, covers both without needing to know in advance which shape a
-      // given advancement uses.
+      // `value.added` shows up two different shapes in the wild depending on whether
+      // the advancement can apply at more than one level: a flat {itemId: uuid} map
+      // when there's only ever one choice tier (e.g. a Fighting Style), or a
+      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
+      // Counting values that are themselves objects as nested
+      // per-level entries, and anything else as one flat entry, covers both without
+      // needing to know in advance which shape a given advancement uses.
       let added = 0;
       for (const entry of entryValues(advancement.value?.added)) {
         added += entry && typeof entry === "object" ? countEntries(entry) : 1;
@@ -548,12 +770,15 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     if (advancement.type === "AbilityScoreImprovement") {
       // A real completed choice is either `value.assignments` (points actually spent
       // on abilities) or `value.feat` ("choose a feat instead," the real 2024 option at
-      // some levels), per dnd5e's own AbilityScoreImprovement#apply(). An untouched
-      // advancement still carries `value: {type: "asi"}` (dnd5e sets `type` eagerly,
-      // before any real choice is made), which has one real key and would satisfy a
-      // plain `countEntries(value) === 0` check even though nothing was actually
-      // chosen. `countEntries` isn't reused here since both real shapes are plain
-      // objects the count would treat as "non-empty" the moment they exist at all.
+      // some levels), per dnd5e's own AbilityScoreImprovement#
+      // apply(). An untouched advancement still carries `value: {type: "asi"}` (dnd5e
+      // sets `type` eagerly, before any real choice is made), which has one real key
+      // and previously satisfied the old plain `countEntries(value) === 0` check -
+      // clicking straight through a real Soldier background's ASI step
+      // with no interaction left the actor's ability scores completely unchanged, yet
+      // this check reported the background as fully resolved. `countEntries` isn't
+      // reused here since both real shapes are plain objects the count would treat as
+      // "non-empty" the moment they exist at all, same false-positive as before.
       const hasAssignments = advancement.value?.assignments && Object.keys(advancement.value.assignments).length > 0;
       const hasFeat = advancement.value?.feat && Object.keys(advancement.value.feat).length > 0;
       if (!hasAssignments && !hasFeat) titles.push(advancement.title);
@@ -611,12 +836,12 @@ export function isStepComplete(actor, stepId) {
 
 /**
  * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds - these
- * show up as a real `Set` for some Trait configurations (e.g. a Weapon Mastery pick), a
- * plain object for others, and occasionally a `Map`. A naive `.length` check silently
- * reads `undefined` (=> treated as empty) on anything but a real array, which would
- * misreport a genuinely-completed choice (a real Set with entries) as unresolved.
- * Handles all three shapes so the count is right regardless of which one a given
- * advancement happens to use.
+ * show up as a real `Set` for some Trait configurations (e.g. a
+ * Weapon Mastery pick), a plain object for others, and occasionally a `Map`. A naive
+ * `.length` check silently reads `undefined` (=> treated as empty) on anything but a
+ * real array, which is exactly what caused a genuinely-completed choice (a real Set
+ * with entries) to misreport as unresolved. Handles all three shapes so the count is right regardless of which one a
+ * given advancement happens to use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
  */
@@ -750,6 +975,7 @@ export function itemsAtRiskFromLevelDecrease(actor, classItem, newLevel) {
  *   possible when leveling up, since leveling down never needs player input)
  */
 export async function changeClassLevel(actor, classItemId, levelDelta, container) {
+  patchEmbeddedAdvancementFlows();
   const { AdvancementManager } = dnd5e.applications.advancement;
   const manager = AdvancementManager.forLevelChange(actor, classItemId, levelDelta, container ? EMBEDDED_WINDOW_OPTIONS : {});
   return runAdvancementManager(manager, container);

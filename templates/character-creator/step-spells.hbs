@@ -52,6 +52,36 @@
   </section>
   {{/if}}
 
+  {{#if this.progressionTable}}
+  <div class="dnd-cc-spell-progression">
+    <button type="button" class="dnd-cc-spell-progression-toggle" data-progression-toggle="{{this.identifier}}">
+      <i class="fa-solid fa-table-list"></i>
+      <span class="dnd-cc-spell-progression-show-label">{{localize "DND-CC.Spells.ShowProgression"}}</span>
+      <span class="dnd-cc-spell-progression-hide-label">{{localize "DND-CC.Spells.HideProgression"}}</span>
+    </button>
+    <div class="dnd-cc-spell-progression-table">
+      <table>
+        <thead>
+          <tr>
+            <th>{{localize "DND-CC.Spells.ProgressionLevel"}}</th>
+            {{#if this.progressionTable.hasCantrips}}<th>{{localize "DND-CC.Spells.ProgressionCantrips"}}</th>{{/if}}
+            {{#if this.progressionTable.hasSpells}}<th>{{localize "DND-CC.Spells.ProgressionSpells"}}</th>{{/if}}
+          </tr>
+        </thead>
+        <tbody>
+          {{#each this.progressionTable.rows}}
+          <tr>
+            <td>{{this.level}}</td>
+            {{#if ../progressionTable.hasCantrips}}<td>{{this.cantripsDisplay}}</td>{{/if}}
+            {{#if ../progressionTable.hasSpells}}<td>{{this.spellsDisplay}}</td>{{/if}}
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{/if}}
+
   {{/each}}
 
   {{#each otherGroups}}

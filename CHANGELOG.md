@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.3
+
+### New
+
+- **Cantrips/spells-known progression table**: an optional, collapsible reference table on the Spells step shows a spellcasting class's cantrip and spell counts across all 20 levels, similar to a printed class table but limited to just those two columns.
+- **"My Characters" panel**: a player-facing counterpart to the GM's Progress dashboard. Shows your own in-progress draft and finished characters (useful if you have more than one) - read-only, with no way to see or affect anyone else's characters, and no way to raise your own level from here.
+- **"Resume Character"**: the Actor Directory button now says "Resume Character" (with a short explanation) instead of "Create Character" whenever you already have an unfinished character, so it's clear your progress is still there after a disconnect or a page refresh.
+- A short "Loading..." label now appears under the spinner during a step transition that takes a moment, instead of the wizard appearing to do nothing.
+
+### Improved
+
+- Moving between steps (especially into Feats) is now noticeably faster, particularly on tables with a lot of installed content - the wizard no longer inspects every class feature in every enabled compendium just to find the handful of real feats, and a step's content list is now cached for the rest of the session instead of being recomputed on every render.
+- The ability-score-improvement-or-feat choice (including a 2024-rules Epic Boon pick) and a class or feat's own nested "choose from a list" pick (for example Magic Initiate's spell choice) now open their item browser inline inside the wizard, matching how spell and equipment browsing already worked, instead of popping out as a separate window.
+
+### Fixed
+
+- Sorcerer, Bard, Warlock, and Ranger under the 2014 ruleset showed cantrips but no leveled spells at all - their "spells known" count is tracked differently from prepared casters like Wizard or Cleric, which the lookup didn't account for.
+- The wizard could freeze or take a long time to respond when moving past the Abilities step, most noticeably on a table with several content modules installed.
+
 ## 0.8.0
 
 ### New

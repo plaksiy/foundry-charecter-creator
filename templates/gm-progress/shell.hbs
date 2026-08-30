@@ -1,5 +1,9 @@
 <div class="dnd-cc-gm-progress">
+  {{#if ownScope}}
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.MyIntro"}}</p>
+  {{else}}
   <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.Intro"}}</p>
+  {{/if}}
 
   {{#if hasRows}}
   <div class="dnd-cc-compendium-table-scroll">
@@ -34,9 +38,11 @@
               <i class="fa-solid fa-arrow-up-right-from-square"></i> {{localize "DND-CC.GmProgress.Open"}}
             </button>
             {{/unless}}
+            {{#unless ../ownScope}}
             <button type="button" class="dnd-cc-gm-progress-open dnd-cc-gm-progress-delete" data-delete-draft="{{this.id}}">
               <i class="fa-solid fa-trash"></i> {{localize "DND-CC.GmProgress.Delete"}}
             </button>
+            {{/unless}}
           </td>
         </tr>
         {{/each}}
@@ -44,11 +50,19 @@
     </table>
   </div>
   {{else}}
+  {{#if ownScope}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.MyNoDrafts"}}</p>
+  {{else}}
   <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.NoDrafts"}}</p>
+  {{/if}}
   {{/if}}
 
   <h3>{{localize "DND-CC.GmProgress.FinishedTitle"}}</h3>
+  {{#if ownScope}}
+  <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.MyFinishedIntro"}}</p>
+  {{else}}
   <p class="dnd-cc-step-intro">{{localize "DND-CC.GmProgress.FinishedIntro"}}</p>
+  {{/if}}
 
   {{#if hasFinishedRows}}
   <div class="dnd-cc-compendium-table-scroll">
@@ -73,6 +87,12 @@
           <td class="col-name">{{this.name}}</td>
           <td>{{this.classLevel}}</td>
           <td class="dnd-cc-level-control">
+            {{#if ../ownScope}}
+            <div class="dnd-cc-level-bar" title="{{this.totalLevel}} / 20">
+              <div class="dnd-cc-level-bar-fill" style="width:{{this.levelPercent}}%"></div>
+              <span class="dnd-cc-level-bar-label">{{this.totalLevel}}</span>
+            </div>
+            {{else}}
             <div class="dnd-cc-level-control-row">
               <button type="button" class="dnd-cc-level-step" data-level-adjust="{{this.id}}" data-delta="-1" {{#unless this.canLevelDown}}disabled{{/unless}} title="{{localize 'DND-CC.GmProgress.LevelDecrease'}}">-</button>
               <div class="dnd-cc-level-bar" title="{{this.totalLevel}} / 20">
@@ -85,6 +105,7 @@
               <input type="number" min="1" max="19" placeholder="{{localize 'DND-CC.GmProgress.LevelAddPlaceholder'}}" data-level-add-input="{{this.id}}" {{#unless this.canLevelUp}}disabled{{/unless}} />
               <button type="button" class="dnd-cc-gm-progress-open" data-level-add-apply="{{this.id}}" {{#unless this.canLevelUp}}disabled{{/unless}} title="{{localize 'DND-CC.GmProgress.LevelAddTitle'}}">{{localize "DND-CC.GmProgress.LevelAddApply"}}</button>
             </div>
+            {{/if}}
           </td>
           <td>{{this.species}}</td>
           <td>{{this.background}}</td>
@@ -98,9 +119,11 @@
           </td>
           {{/if}}
           <td>
+            {{#unless ../ownScope}}
             <button type="button" class="dnd-cc-gm-progress-open" data-levelup-actor="{{this.id}}">
               <i class="fa-solid fa-angles-up"></i> {{localize "DND-CC.GmProgress.LevelUp"}}
             </button>
+            {{/unless}}
           </td>
         </tr>
         {{/each}}
@@ -108,7 +131,11 @@
     </table>
   </div>
   {{else}}
+  {{#if ownScope}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.MyNoFinished"}}</p>
+  {{else}}
   <p class="dnd-cc-empty-state">{{localize "DND-CC.GmProgress.NoFinished"}}</p>
+  {{/if}}
   {{/if}}
 
   <footer class="dnd-cc-compendium-sources-footer">

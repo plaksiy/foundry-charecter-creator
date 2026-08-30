@@ -92,6 +92,24 @@ function matchesRuleset(itemRuleset, rulesetVersions) {
   return rulesetVersions.includes(itemRuleset);
 }
 
+// A step's real item list only changes when the GM edits Compendium Sources (enabling/
+// disabling a pack or retagging its ruleset) or a homebrew stub is added/removed -
+// nothing about navigating the wizard itself changes what a fresh sweep would find. But
+// _prepareFeatsContext (and _prepareItemListContext for Class/Species/Background) call
+// getStepItems fresh on every single render while that step is showing, so without a
+// cache the same full compendium sweep reruns on every re-render, not just the first
+// visit - the more content a table has installed, the more this compounds. Cached by
+// the exact (stepType, rulesetVersions) pair for the rest of the client session;
+// clearStepItemsCache() is called wherever something that could change the result
+// actually happens (Compendium Sources save, a homebrew stub's own creation/removal).
+// Caches the in-flight promise itself, not just the resolved value, so two renders
+// racing the same lookup share one sweep instead of each starting their own.
+const stepItemsCache = new Map();
+
+export function clearStepItemsCache() {
+  stepItemsCache.clear();
+}
+
 /**
  * Collect indexed items for a wizard step from every GM-enabled compendium, filtered by
  * dnd5e item type and by the wizard's selected ruleset version(s).
@@ -100,6 +118,24 @@ function matchesRuleset(itemRuleset, rulesetVersions) {
  * @returns {Promise<object[]>}
  */
 export async function getStepItems(stepType, rulesetVersions) {
+  const cacheKey = `${stepType}:${Array.from(rulesetVersions).sort().join(",")}`;
+  if (stepItemsCache.has(cacheKey)) {
+    // A fresh copy every time - callers freely .sort()/mutate the array they get back
+    // (see _prepareItemListContext), which must never touch the shared cached one.
+    return [...(await stepItemsCache.get(cacheKey))];
+  }
+
+  const promise = _collectStepItems(stepType, rulesetVersions);
+  stepItemsCache.set(cacheKey, promise);
+  try {
+    return [...(await promise)];
+  } catch (err) {
+    stepItemsCache.delete(cacheKey);
+    throw err;
+  }
+}
+
+async function _collectStepItems(stepType, rulesetVersions) {
   const itemTypes = STEP_ITEM_TYPES[stepType];
   if (!itemTypes) throw new Error(`${MODULE_ID} | Unknown step type "${stepType}"`);
 
@@ -122,21 +158,38 @@ export async function getStepItems(stepType, rulesetVersions) {
       fields: ["system.source", "system.type", "system.hd.denomination", "system.primaryAbility.value", "system.movement.walk"]
     });
 
+    const candidates = [];
     for (const entry of index) {
       if (!itemTypes.includes(entry.type)) continue;
 
       const itemRuleset = resolveItemRuleset(entry, packRulesetTag);
       if (!matchesRuleset(itemRuleset, rulesetVersions)) continue;
 
-      // The human-readable source book label ("SRD 5.1", "PHB 2024", ...) is a derived
-      // getter (system.source.label) that only exists on a fully-prepared Item document -
-      // getIndex's raw system.source only ever has the literal stored book/rules/revision
-      // fields, and the "book" field itself is often blank on stock SRD items (the label
-      // is computed from rules+revision instead). Worth the extra fetch here: this only
-      // runs for the small already-filtered survivor set (a step's real class/species/
-      // background/feat list, a few dozen at most), and pack.getDocument caches after
-      // the first load, so repeat renders don't refetch.
-      const doc = await pack.getDocument(entry._id);
+      // dnd5e stores class features (Rage, Metamagic options, every subclass feature,
+      // ...) as the same Item type "feat" as a real Feat, distinguished only by
+      // system.type.value - and class features vastly outnumber real feats (in one real
+      // install, 1847 "feat"-typed entries across enabled packs, only 120 of them an
+      // actual Feat). system.type.value is already free on the index (requested via
+      // "system.type" above), so a feat-step lookup can skip the expensive
+      // per-entry document fetch below for anything that isn't a real Feat, instead of
+      // fetching every class feature just to immediately discard it.
+      if (stepType === "feat" && entry.system?.type?.value !== "feat") continue;
+
+      candidates.push({ entry, itemRuleset });
+    }
+
+    // The human-readable source book label ("SRD 5.1", "PHB 2024", ...) is a derived
+    // getter (system.source.label) that only exists on a fully-prepared Item document -
+    // getIndex's raw system.source only ever has the literal stored book/rules/revision
+    // fields, and the "book" field itself is often blank on stock SRD items (the label
+    // is computed from rules+revision instead). Fetched in parallel rather than one
+    // document at a time - each pack.getDocument() call for an entry that isn't already
+    // cached is a real round trip, and awaiting them sequentially in a loop serializes
+    // every one of those round trips end to end instead of overlapping them.
+    const docs = await Promise.all(candidates.map(({ entry }) => pack.getDocument(entry._id)));
+
+    candidates.forEach(({ entry, itemRuleset }, i) => {
+      const doc = docs[i];
       const bookLabel = doc?.system?.source?.label ?? null;
 
       results.push({
@@ -157,7 +210,7 @@ export async function getStepItems(stepType, rulesetVersions) {
         primaryAbilities: entry.system?.primaryAbility?.value?.length ? entry.system.primaryAbility.value : null,
         speed: entry.system?.movement?.walk ?? null
       });
-    }
+    });
   }
 
   // Player/GM-authored homebrew placeholders (see "Add Custom" in the Class/Species/
@@ -235,7 +288,7 @@ function deduplicateByNameAndRuleset(items) {
  *
  * 2. Redundant generic content - a system-bundled book (SRD 5.1, SRD 5.2, ...) whose
  *    ruleset a *real, named* module (Player's Handbook, Forge of the Artificer, ...)
- *    also covers. Confirmed live this is exactly what a GM who owns the real book wants:
+ *    also covers - exactly what a GM who owns the real book wants:
  *    hide the generic duplicate, not just narrow it by ruleset. Deliberately keyed off
  *    the package type (`system` vs anything else - matches the same signal
  *    `categorizePack` already uses to sort the Compendium Sources screen), not a
@@ -300,10 +353,11 @@ export const PACK_CATEGORIES = ["core", "expanded", "homebrew", "legacy"];
 
 /**
  * Which of the 4 GM-facing groups a pack belongs to, purely from Foundry's own package
- * metadata plus dnd5e's own naming convention: 2024 system packs are suffixed "24"
- * (`classes24`, `origins24`, ...), 2014 ones aren't. No guessing involved - `packageType`
- * already tells world/module apart natively, and the "24" suffix is a stable convention
- * this codebase already relies on elsewhere (getStepItems' ruleset resolution).
+ * metadata plus the one already-documented dnd5e naming convention (see "Compendium
+ * structure" in CLAUDE.md): 2024 system packs are suffixed "24" (`classes24`,
+ * `origins24`, ...), 2014 ones aren't. No new guessing involved - `packageType` already
+ * tells world/module apart natively, and the "24" suffix is a stable convention this
+ * codebase already relies on elsewhere (getStepItems' ruleset resolution).
  * @param {CompendiumCollection} pack
  * @returns {"core"|"expanded"|"homebrew"|"legacy"}
  */

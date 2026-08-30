@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.mjs";
-import { PACK_CATEGORIES, RULESET_TAG_CHOICES, listConfigurablePacks } from "../services/compendium-sources.mjs";
+import { PACK_CATEGORIES, RULESET_TAG_CHOICES, listConfigurablePacks, clearStepItemsCache } from "../services/compendium-sources.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -76,5 +76,6 @@ export class CompendiumSourcesConfig extends HandlebarsApplicationMixin(Applicat
     }
 
     await game.settings.set(MODULE_ID, "compendiumSources", config);
+    clearStepItemsCache();
   }
 }

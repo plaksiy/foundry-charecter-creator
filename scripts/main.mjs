@@ -1,7 +1,7 @@
 import { CharacterCreatorApp } from "./apps/character-creator-app.mjs";
 import { CompendiumSourcesConfig } from "./apps/compendium-sources-config.mjs";
 import { HouseRulesConfig } from "./apps/house-rules-config.mjs";
-import { GmProgressDashboard } from "./apps/gm-progress-dashboard.mjs";
+import { GmProgressDashboard, MyCharactersDashboard } from "./apps/gm-progress-dashboard.mjs";
 import { StepOrderConfig } from "./apps/step-order-config.mjs";
 import { CharacterDraft, getNonGmOwners } from "./models/character-draft.mjs";
 import { isSelfLevelUpAllowed } from "./services/house-rules.mjs";
@@ -150,15 +150,30 @@ Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | Ready`);
 });
 
+// A player whose only actor is their own hidden draft sees an apparently-empty Actor
+// Directory after a disconnect/refresh, with nothing telling them their progress is
+// still there - the button read "Create Character" regardless, exactly as if starting
+// fresh. Checking CharacterDraft.findExisting() here (a plain synchronous find over
+// already-loaded actors, no extra cost) lets the button say "Resume Character" instead
+// whenever the current user already has an unfinished draft, self-updating on every
+// directory re-render since a draft's existence can change at any time (finalized,
+// discarded, or freshly started elsewhere).
 Hooks.on("renderActorDirectory", (_app, html) => {
   const root = html instanceof HTMLElement ? html : html[0];
   const header = root.querySelector(".directory-header .action-buttons") ?? root.querySelector(".directory-header");
   if (!header || header.querySelector(".dnd-cc-open-button")) return;
 
+  const hasDraft = Boolean(CharacterDraft.findExisting());
+
   const button = document.createElement("button");
   button.type = "button";
   button.classList.add("dnd-cc-open-button");
-  button.innerHTML = `<i class="fa-solid fa-hat-wizard"></i> ${game.i18n.localize("DND-CC.OpenButton")}`;
+  if (hasDraft) {
+    button.innerHTML = `<i class="fa-solid fa-arrow-rotate-right"></i> ${game.i18n.localize("DND-CC.ResumeButton")}`;
+    button.dataset.tooltip = game.i18n.localize("DND-CC.ResumeButtonTooltip");
+  } else {
+    button.innerHTML = `<i class="fa-solid fa-hat-wizard"></i> ${game.i18n.localize("DND-CC.OpenButton")}`;
+  }
   button.addEventListener("click", () => new CharacterCreatorApp().render(true));
 
   header.appendChild(button);
@@ -179,6 +194,29 @@ Hooks.on("renderActorDirectory", (_app, html) => {
   button.classList.add("dnd-cc-open-button", "dnd-cc-progress-button");
   button.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> ${game.i18n.localize("DND-CC.GmProgress.ButtonLabel")}`;
   button.addEventListener("click", () => new GmProgressDashboard().render(true));
+
+  header.appendChild(button);
+});
+
+// A player's own equivalent of the GM's Progress button - the same idea (see this
+// character's status without opening its full sheet), but scoped to only what the
+// current user actually owns, and with every mutating control (Delete, self-leveling)
+// stripped out (see MyCharactersDashboard#isOwnScope). Mainly useful once a player has
+// more than one finished character and wants an at-a-glance overview of all of them.
+// GM-hidden since the GM's own "Progress" button already covers everyone, including
+// any PC the GM plays themselves.
+Hooks.on("renderActorDirectory", (_app, html) => {
+  if (game.user.isGM) return;
+
+  const root = html instanceof HTMLElement ? html : html[0];
+  const header = root.querySelector(".directory-header .action-buttons") ?? root.querySelector(".directory-header");
+  if (!header || header.querySelector(".dnd-cc-my-progress-button")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.classList.add("dnd-cc-open-button", "dnd-cc-my-progress-button");
+  button.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> ${game.i18n.localize("DND-CC.GmProgress.MyButtonLabel")}`;
+  button.addEventListener("click", () => new MyCharactersDashboard().render(true));
 
   header.appendChild(button);
 });

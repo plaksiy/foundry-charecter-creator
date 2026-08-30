@@ -35,6 +35,7 @@ import {
   unresolvedAdvancementTitles
 } from "../models/choice-queue.mjs";
 import {
+  clearStepItemsCache,
   getRulesetMismatchedSourceSlugs,
   getStepItems,
   listPlayerVisiblePacks,
@@ -685,7 +686,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * "Tiefling, Abyssal" / "Tiefling, Chthonic" / "Tiefling, Infernal") into one parent
    * card per base name, matching how a player actually thinks about picking a species
    * ("Elf, then which kind") rather than showing every lineage as an unrelated top-level
-   * card. Confirmed live this "Name, Lineage" naming is the real compendium convention
+   * card. This "Name, Lineage" naming is the real compendium convention
    * dnd5e itself uses for pre-split species - not every species uses it (Dragonborn,
    * Human, etc. are single un-split items and pass through untouched here). A base name
    * with only one surviving member (e.g. house-rules banned the other two lineages)
@@ -768,8 +769,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         levelOptions.push({ value, selected: value === item.system.levels });
       }
       const missing = unresolvedAdvancementTitles(item, item.system.levels);
-      // A live class Item's primaryAbility.value is a real Set, not an array - a plain
-      // .length check silently reads undefined (=> always falsy) on it,
+      // A live class Item's primaryAbility.value is a real Set, not an
+      // array - a plain .length check silently reads undefined (=> always falsy) on it,
       // the same Set-vs-array gotcha documented in choice-queue.mjs's countEntries.
       // Array.from normalizes a Set, an Array, or nothing uniformly.
       const primaryAbilityArray = Array.from(item.system.primaryAbility?.value ?? []);
@@ -1206,7 +1207,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the class item's own `system.spellcasting`, but a third-caster subclass (Eldritch
    * Knight, Arcane Trickster) grants spellcasting entirely through the *subclass*: the
    * class item's own block stays at `progression: "none"` with `type`/`ability` blank
-   * and `preparation.max: 0` (a real Eldritch Knight, for example), while the
+   * and `preparation.max: 0` on a real Eldritch Knight, while the
    * subclass's own `system.spellcasting` carries the real, fully-resolved values
    * (`progression: "third"`, `type: "spell"`, `ability: "int"`, `preparation.max: 3`).
    * Reading the class-level block unconditionally in this situation silently produced
@@ -1228,8 +1229,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * spelling and which item actually carries it varies by caster type, so every shape
    * has to be checked rather than assumed: a full/pact caster's own class-identifier
    * scale entry uses `cantrips-known` (Wizard, Sorcerer, Warlock, ...); Artificer's own
-   * class scale entry instead uses the plain key `cantrips`; and a third-caster
-   * subclass like Eldritch Knight defines it on the *subclass's* own scale
+   * class scale entry instead uses the plain key `cantrips` (Artificer would otherwise
+   * show 0 cantrips at level 1 despite a real `{cantrips: {value: 2}}` scale entry,
+   * since the lookup only checked `cantrips-known` for the class's own scale); and
+   * a third-caster subclass like Eldritch Knight defines it on the *subclass's* own scale
    * instead of the class's, under either key spelling. Checked in that order so every
    * real shape resolves without needing to know in advance which one a given
    * class/subclass actually uses. Shared by the Spells step's own group cap
@@ -1250,6 +1253,124 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       ?? 0;
   }
 
+  /**
+   * Leveled-spell cap for a spellcasting class - almost always `preparation.max`
+   * (`simplifyBonus(preparation.formula, rollData)`, computed by dnd5e itself), but a
+   * 2014-rule "known" caster (Sorcerer, Bard, Warlock, Ranger, per the real
+   * `dnd5e.classes` pack) has no `preparation.formula` at all: the 2024 pack
+   * gives every spellcasting class a real formula referencing a shared "max-prepared"
+   * scale value, but the legacy pack never got that treatment - "Spells Known" there is
+   * only a plain descriptive `ScaleValue` advancement (identifier "spells-known") never
+   * read by `preparation.max`, which stays permanently 0 for these classes as a result.
+   * That silently hid the entire leveled-spell picker (cantrips still worked, since
+   * `_cantripsMax` already has its own fallback chain) for any 2014-ruleset known
+   * caster - falls back to the class's own "spells-known" scale value in that case,
+   * same shape `_cantripsMax` already uses for its own equivalent key-naming gap.
+   * @param {string} identifier
+   * @param {Item5e} classItem
+   * @returns {number}
+   */
+  _leveledSpellsMax(identifier, classItem) {
+    const preparationMax = this._effectiveSpellcasting(classItem).preparation?.max ?? 0;
+    if (preparationMax > 0) return preparationMax;
+
+    const rollData = this.draft.actor.getRollData();
+    const subclassIdentifier = classItem.subclass?.system?.identifier;
+    const subclassScale = subclassIdentifier ? rollData.scale?.[subclassIdentifier] : null;
+    return rollData.scale?.[identifier]?.["spells-known"]?.value
+      ?? subclassScale?.["spells-known"]?.value
+      ?? 0;
+  }
+
+  /**
+   * First `ScaleValue` advancement on an item matching one of the given identifiers.
+   * Reads the real `identifier` getter, not the raw `configuration.identifier` field -
+   * a "Cantrips Known" advancement can carry a blank `configuration.identifier` (the
+   * 2024 pack's own Sorcerer/Wizard/Bard/... all do this), which dnd5e itself resolves
+   * to the slugified title (`formatIdentifier(this.title)`, exactly what `identifier`
+   * already does) rather than leaving it unmatched.
+   */
+  _findScaleValueAdvancement(item, identifiers) {
+    return item?.advancement?.byType?.ScaleValue?.find((a) => identifiers.includes(a.identifier)) ?? null;
+  }
+
+  /** `{identifier: {value}}` scale entries an item's own `ScaleValue` advancements resolve to at a given level. */
+  _scaleAtLevel(item, level) {
+    const scale = {};
+    for (const advancement of item?.advancement?.byType?.ScaleValue ?? []) {
+      const value = advancement.valueForLevel(level);
+      if (value !== null) scale[advancement.identifier] = value;
+    }
+    return scale;
+  }
+
+  /**
+   * A `getRollData()`-shaped clone with a hypothetical class level substituted in, so a
+   * class's own spellcasting formula - whether it's a 2014-style `@abilities.X.mod +
+   * @classes.Y.levels` or a 2024-style `@scale.Y.max-prepared` reference - can be
+   * evaluated at any level for a preview table, without touching the real actor or
+   * waiting for the player to actually level up.
+   * @param {Item5e} classItem
+   * @param {string} identifier
+   * @param {number} level
+   * @returns {object}
+   */
+  _rollDataAtLevel(classItem, identifier, level) {
+    const rollData = foundry.utils.deepClone(this.draft.actor.getRollData());
+    if (rollData.classes?.[identifier]) rollData.classes[identifier].levels = level;
+    rollData.scale ??= {};
+    rollData.scale[identifier] = this._scaleAtLevel(classItem, level);
+    const subclassIdentifier = classItem.subclass?.system?.identifier;
+    if (subclassIdentifier) rollData.scale[subclassIdentifier] = this._scaleAtLevel(classItem.subclass, level);
+    return rollData;
+  }
+
+  /**
+   * A compact, optional level-by-level cantrips/spells-known preview table for one
+   * spellcasting class - the same information a printed class table shows (e.g. the
+   * PHB's "The Warlock" table's Cantrips Known/Spells Known columns), but only those
+   * two columns, since slot counts/proficiency bonus/features are already shown
+   * elsewhere in this wizard. Reuses the exact same data sources `_cantripsMax`/
+   * `_leveledSpellsMax` already read for the *current* level, generalized to any level
+   * via `_rollDataAtLevel` - not a separate hardcoded table of our own.
+   * @param {string} identifier
+   * @param {Item5e} classItem
+   * @returns {{hasCantrips: boolean, hasSpells: boolean, rows: object[]}|null} null if
+   *   this class never gets either (e.g. a non-caster, or a third-caster subclass not
+   *   yet chosen)
+   */
+  _spellcastingProgressionTable(identifier, classItem) {
+    const cantripsAdvancement = this._findScaleValueAdvancement(classItem, ["cantrips-known", "cantrips"])
+      ?? this._findScaleValueAdvancement(classItem.subclass, ["cantrips-known", "cantrips"]);
+    const spellsFormula = this._effectiveSpellcasting(classItem).preparation?.formula;
+    const spellsAdvancement = spellsFormula
+      ? null
+      : (this._findScaleValueAdvancement(classItem, ["spells-known"])
+        ?? this._findScaleValueAdvancement(classItem.subclass, ["spells-known"]));
+
+    const hasCantrips = Boolean(cantripsAdvancement);
+    const hasSpells = Boolean(spellsFormula || spellsAdvancement);
+    if (!hasCantrips && !hasSpells) return null;
+
+    const maxLevel = CONFIG.DND5E.maxLevel ?? 20;
+    const rows = [];
+    for (let level = 1; level <= maxLevel; level++) {
+      const cantrips = hasCantrips ? (cantripsAdvancement.valueForLevel(level)?.value ?? 0) : 0;
+      let spells = 0;
+      if (hasSpells) {
+        spells = spellsFormula
+          ? Math.max(0, Math.round(dnd5e.utils.simplifyBonus(spellsFormula, this._rollDataAtLevel(classItem, identifier, level))))
+          : (spellsAdvancement.valueForLevel(level)?.value ?? 0);
+      }
+      rows.push({
+        level,
+        cantripsDisplay: cantrips > 0 ? String(cantrips) : "-",
+        spellsDisplay: spells > 0 ? String(spells) : "-"
+      });
+    }
+    return { hasCantrips, hasSpells, rows };
+  }
+
   async _prepareSpellsContext() {
     const actor = this.draft.actor;
     const spellcastingClasses = actor.spellcastingClasses ?? {};
@@ -1262,7 +1383,6 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const spellcastingGroups = identifiers.map((identifier) => {
       const classItem = spellcastingClasses[identifier];
-      const spellcasting = this._effectiveSpellcasting(classItem);
 
       const classSourceKey = `class:${identifier}`;
       const classSpellItems = actor.items.filter(
@@ -1272,7 +1392,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const leveledItems = classSpellItems.filter((item) => item.system.level > 0);
 
       const cantripsMax = this._cantripsMax(identifier, classItem);
-      const preparedMax = spellcasting.preparation?.max ?? 0;
+      const preparedMax = this._leveledSpellsMax(identifier, classItem);
 
       return {
         identifier,
@@ -1292,7 +1412,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
               canAdd: leveledItems.length < preparedMax,
               items: leveledItems.map((item) => ({ id: item.id, name: item.name, img: item.img }))
             }
-          : null
+          : null,
+        progressionTable: this._spellcastingProgressionTable(identifier, classItem)
       };
     });
 
@@ -1383,7 +1504,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     ).length;
     const capForKind = kind === "cantrip"
       ? this._cantripsMax(identifier, classItem)
-      : (this._effectiveSpellcasting(classItem).preparation?.max ?? 0);
+      : this._leveledSpellsMax(identifier, classItem);
     const freeSlots = Math.max(1, capForKind - existingOfKind);
 
     const filters = { locked: { additional: {}, documentClass: "Item", types: new Set(["spell"]) } };
@@ -1520,9 +1641,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
               : null,
             // An "(a) Greataxe or (b) any martial melee weapon"-style pick is a real OR
             // node with its own children (a fixed "linked" alternative plus a category
-            // one) - a shape the original resolveBranch implementation anticipated but
-            // never actually got UI for, so it silently did nothing when picked. Each
-            // child already has a real, correct
+            // one) - a real shape found on a real Barbarian kit, one the original
+            // resolveBranch implementation anticipated ("not seen in any sampled
+            // content but handled defensively") but never actually got UI for, so it
+            // silently did nothing when picked. Each child already has a real, correct
             // `.label` getter (dnd5e's own EquipmentEntryData), so no label-building of
             // our own is needed - just surface them as separate buttons.
             // A child can itself be a "focus" alternative ("(a) a component pouch or
@@ -1924,7 +2046,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * run right as the player clicked into the *next* field, landing that click during a
    * DOM swap and leaving its focus/selection in a broken state (typing in one field,
    * then clicking a different one, misplaced the second field's cursor) before this
-   * re-render was removed.
+   * was removed.
    */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
@@ -2470,7 +2592,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. Confirmed live as a real non-GM "player" user:
+   * Change the character's portrait. As a real non-GM "player" user,
    * Foundry's FilePicker requires the FILES_BROWSE permission, which the Player role
    * doesn't have by default - same class of gap as Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
@@ -2607,18 +2729,26 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * updates per click (the flag write, then the derived-score sync), which is enough of
    * a gap on a loaded world to read as the wizard doing nothing. The class is applied
    * to the step body specifically (not the whole wizard window) so the persistent
-   * identity bar and rail stay interactive throughout.
+   * identity bar and rail stay interactive throughout. An optional `message` renders
+   * under the spinner (`::after`'s `content: attr(data-loading-text)`) - worth setting
+   * for a genuinely compendium-heavy wait (a step transition on a table with a lot of
+   * installed content) so a several-second gap reads as "it's working" rather than
+   * "it's frozen," rather than for a quick, near-instant action where a bare spinner is
+   * enough.
    * @param {() => Promise<void>} action
+   * @param {string} [message]
    */
-  async _withBusy(action) {
+  async _withBusy(action, message = "") {
     const body = this.element.querySelector(".dnd-cc-step-body");
     body?.classList.add("dnd-cc-busy");
+    if (message) body?.setAttribute("data-loading-text", message);
     try {
       await action();
     } finally {
       // A finished action almost always re-renders, replacing this exact node - but
       // guard the removal anyway in case the action threw before ever calling render().
       body?.classList.remove("dnd-cc-busy");
+      body?.removeAttribute("data-loading-text");
     }
   }
 
@@ -2995,6 +3125,14 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       el.addEventListener("click", () => this._removeSpell(el.dataset.removeSpell));
     });
 
+    // Show/hide a class's cantrips/spells-known-by-level reference table - a plain
+    // class toggle, not a re-render, same reasoning as the ability flip cards above.
+    root.querySelectorAll("[data-progression-toggle]").forEach((el) => {
+      el.addEventListener("click", () => {
+        el.closest(".dnd-cc-spell-progression")?.classList.toggle("is-open");
+      });
+    });
+
     root.querySelectorAll("[data-equipment-branch]").forEach((el) => {
       el.addEventListener("click", () => {
         const [source, branchId] = el.dataset.equipmentBranch.split(":");
@@ -3353,7 +3491,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * one, read straight from its real `hint` text - dnd5e itself already writes a full,
    * accurate sentence there ("Your background allows you to increase your Intelligence,
    * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
-   * increase all three by 1."). Reading
+   * increase all three by 1."), matching a real Acolyte background. Reading
    * this instead of computing our own summary from `configuration.locked`/`points`/`cap`
    * means the preview can never drift out of sync with what the actual Advancement flow
    * will say once picked, and needs no SRD text of our own - it's the same real
@@ -3369,7 +3507,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Short ability abbreviations (e.g. ["INT", "WIS", "CHA"]) a background/species/class's
    * own AbilityScoreImprovement advancement offers - the *unlocked* keys in its
-   * `configuration.locked` list, the real field dnd5e itself uses to mark which
+   * `configuration.locked` list - the real field dnd5e itself uses to mark which
    * abilities a given ASI can't touch. Short enough for a card-level pill,
    * unlike the full `hint` sentence _abilityScoreImprovementHint reads for the detail panel.
    * @param {Item} item
@@ -3582,8 +3720,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid would add more risk for little benefit over this
-   * list picker, which covers the same "link something I already made" need.
+   * drag-and-drop onto a card grid was considered but not built - this list picker
+   * covers the same "link something I already made" need with far less risk.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
   _showCustomItemForm(dnd5eType) {
@@ -3674,6 +3812,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         ui.notifications.error(game.i18n.localize("DND-CC.CustomForm.CreateFailed"));
         return;
       }
+      clearStepItemsCache();
       this._hideOverlay();
       this.render();
       created.sheet.render(true);
@@ -3684,6 +3823,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         const item = game.items.get(el.dataset.customAdopt);
         if (!item) return;
         await item.setFlag(MODULE_ID, "homebrewStub", true);
+        clearStepItemsCache();
         this._hideOverlay();
         this.render();
       });
@@ -3788,8 +3928,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const primaryAbilities = Array.from(wrapper.querySelectorAll("[data-custom-primary-ability]:checked")).map(
         (el) => el.value
       );
-      // dnd5e's own schema wants the full "d#" string (a bare number fails validation
-      // with "must be a dice value in the format d#"), not the denomination as a number.
+      // dnd5e's own schema wants the full "d#" string - a bare number fails validation
+      // with "must be a dice value in the format d#" - not the denomination as a number.
       return {
         hd: { denomination: hitDie },
         primaryAbility: { value: primaryAbilities }
@@ -3827,7 +3967,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * gets cleaned up too instead of left behind as orphans - a plain
    * deleteEmbeddedDocuments would leave granted items like a species's feats behind.
    *
-   * The old item is removed *before* the new one is added - this is the only order that
+   * The old item is removed *before* the new one is added - the only order that
    * actually works: dnd5e itself rejects a second race/background item
    * outright while one is already on the actor ("Only a single Species can be added to
    * a Player Character", logged straight from dnd5e's own validation) - a race/
@@ -3868,7 +4008,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // tagging (flags.<module>.equipmentSource), never through dnd5e's real Advancement -
     // removeItemWithAdvancement above has no way to know it exists, so swapping
     // backgrounds left the old kit sitting on the actor forever, tagged to a background
-    // that no longer exists. Species never grants equipment, so this only
+    // that no longer exists (swapping Soldier for Sage left all 7 Soldier-granted
+    // items behind). Species never grants equipment, so this only
     // applies to background. Runs regardless of whether the new background's own
     // Advancement flow completed or was cancelled, since the old background (and
     // whatever it granted) is already gone either way once `existing` was removed above.
@@ -4065,8 +4206,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // flags.dnd5e.advancementOrigin - dnd5e's own Advancement reversal below has no
     // way to know about them, since they were never granted through an Advancement
     // flow in the first place. Left alone, removing the class orphans them: they stay
-    // on the actor forever, tagged to a class identifier that no longer exists.
-    // Cleaned up explicitly here, the same way _clearEquipmentSource already handles
+    // on the actor forever, tagged to a class identifier that no longer exists (build
+    // a Fighter, add spells via the Spells step, remove Fighter, add a different
+    // class: the old Fighter-tagged spells were still sitting there). Cleaned up
+    // explicitly here, the same way _clearEquipmentSource already handles
     // the equivalent gap for equipment below.
     const classSourceKey = `class:${classItem.system.identifier}`;
     const orphanedSpells = this.draft.actor.items.filter(
@@ -4212,7 +4355,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * dnd5e has a real API built for exactly this, `AdvancementManager.forModifyChoices`,
    * but it never actually populates its own `.element` the way `forNewItem`/
    * `forDeletedItem`/`forLevelChange` do, so embedding it the same way just produces an
-   * empty host - confirmed directly against the running manager instance, not assumed.
+   * empty host, checked directly against the running manager instance.
    * Removing and re-adding the class (reusing the same primitives every other swap in
    * this app already relies on) redoes every choice from scratch rather than only the
    * missing one, which is more disruptive than a true "resume where I left off" would
@@ -4308,9 +4451,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Add a feat found through the general "Browse Feats" grid - separate from
    * _changeOriginFeat's swap, this is a plain add with nothing to remove automatically.
-   * Warns (does not block) on two things, both real gaps in the naive add path (piling
-   * up two Origin feats and two Fighting Style feats with no guard at all): the
-   * character's total level not meeting the feat's own real
+   * Warns (does not block) on two things (piling up two Origin feats and two Fighting
+   * Style feats is otherwise possible with no guard at all): the character's total
+   * level not meeting the feat's own real
    * `system.prerequisites.level` yet, and already having another feat of the same
    * "normally singular" subtype (`origin`/`fightingStyle` - the two subtypes a
    * character's own granting sources, like a background or a Fighter's level-1 choice,
@@ -4445,7 +4588,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // switching steps re-renders the whole wizard shell, not just the destination
     // step's own content, and on a heavier world that round-trip is worth showing
     // feedback for rather than leaving the old step sitting there looking unresponsive.
-    this._withBusy(() => this.render());
+    this._withBusy(() => this.render(), game.i18n.localize("DND-CC.LoadingStep"));
   }
 
   /**
@@ -4486,8 +4629,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data. Confirmed live
-    // building a Dwarf Fighter: HP showed 10/13 at Review, not 13/13. A brand new character
+    // afterward without current following, since current isn't derived data (a real Dwarf
+    // Fighter build once showed HP as 10/13 at Review, not 13/13). A brand new character
     // should always start at full health regardless of pick order, so top it off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });

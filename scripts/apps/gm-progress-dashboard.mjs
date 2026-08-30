@@ -26,6 +26,19 @@ function ownerNameFor(actor) {
   return owner ? owner.name : game.i18n.localize("DND-CC.GmProgress.NoOwner");
 }
 
+/**
+ * Whether the current user holds real, explicit OWNER-level permission on this actor -
+ * reads the raw `ownership` field directly rather than the `isOwner` getter, which for
+ * a GM account always returns true regardless of the actual ownership data (GMs bypass
+ * permission checks entirely). MyCharactersDashboard's own scoping needs the real
+ * per-document answer, not "can this viewer currently do anything to it."
+ * @param {Actor} actor
+ * @returns {boolean}
+ */
+function isOwnedByCurrentUser(actor) {
+  return actor.ownership[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+}
+
 export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "dnd-cc-gm-progress",
@@ -42,6 +55,19 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
     }
   };
 
+  /**
+   * True for the player-facing "My Characters" view (see MyCharactersDashboard below) -
+   * scopes every row to actors the current user actually owns, and strips out every
+   * control that mutates or exposes someone else's data (Delete, the quick level +/-/
+   * add-N controls, the Level Up trigger). Self-leveling already exists as its own,
+   * separately house-rule-gated feature (the character sheet's own header button, see
+   * `allowSelfLevelUp`) - this panel is read-only status, not a second way to reach it.
+   * @returns {boolean}
+   */
+  get isOwnScope() {
+    return false;
+  }
+
   static PARTS = {
     body: {
       template: `modules/${MODULE_ID}/templates/gm-progress/shell.hbs`
@@ -53,8 +79,8 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
    * changes, instead of requiring the GM to click Refresh - a GM watching this while
    * several players build characters at once wants the rows to move on their own.
    * Debounced (a single advancement step can fire several rapid actor updates in a row,
-   * e.g. a Trait/ItemGrant cascade) and scoped to `type === "character"` so an unrelated
-   * NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
+   * e.g. a Trait/ItemGrant cascade) and scoped to `type === "character"`
+   * so an unrelated NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
    * Registered in `_onFirstRender` (once per open dashboard, not per render) and torn
    * down in `_onClose` so a closed-and-reopened dashboard never accumulates duplicate
    * listeners across its own lifetime.
@@ -81,7 +107,10 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
   }
 
   async _prepareContext(_options) {
-    const drafts = game.actors.filter((actor) => CharacterDraft.isDraft(actor));
+    const ownScope = this.isOwnScope;
+    const drafts = game.actors.filter(
+      (actor) => CharacterDraft.isDraft(actor) && (!ownScope || isOwnedByCurrentUser(actor))
+    );
 
     const rows = drafts.map((actor) => {
       // Prefer a real, non-GM owner - a draft can end up with the GM also holding
@@ -119,7 +148,9 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
     const levelingMode = game.settings.get("dnd5e", "levelingMode");
     const tracksXp = levelingMode !== "noxp";
 
-    const finished = game.actors.filter((actor) => actor.type === "character" && !CharacterDraft.isDraft(actor));
+    const finished = game.actors.filter(
+      (actor) => actor.type === "character" && !CharacterDraft.isDraft(actor) && (!ownScope || isOwnedByCurrentUser(actor))
+    );
     const finishedRows = finished.map((actor) => {
       const classItems = actor.items.filter((item) => item.type === "class");
       const totalLevel = classItems.reduce((sum, item) => sum + item.system.levels, 0);
@@ -130,10 +161,10 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
       const background = actor.items.find((item) => item.type === "background")?.name ?? "-";
       const hp = actor.system.attributes?.hp;
       const xp = actor.system.details?.xp;
-      // xp.max is dnd5e's own real derived "XP needed for the *next* level"
-      // (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`) - no separate
-      // threshold lookup of our own needed. Infinity at the world's max level, so a
-      // plain >= comparison naturally never reports "ready" there.
+      // xp.max is dnd5e's own real derived "XP needed for the *next* level" (confirmed
+      // live reading Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`) -
+      // no separate threshold lookup of our own needed. Infinity at the world's max
+      // level, so a plain >= comparison naturally never reports "ready" there.
       const xpReady = tracksXp && xp && xp.max !== Infinity && xp.value >= xp.max;
 
       return {
@@ -160,7 +191,7 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
     });
     finishedRows.sort((a, b) => a.ownerName.localeCompare(b.ownerName) || a.name.localeCompare(b.name));
 
-    return { rows, hasRows: rows.length > 0, finishedRows, hasFinishedRows: finishedRows.length > 0, tracksXp };
+    return { rows, hasRows: rows.length > 0, finishedRows, hasFinishedRows: finishedRows.length > 0, tracksXp, ownScope };
   }
 
   _onRender(context, options) {
@@ -234,5 +265,26 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
         this.render();
       });
     });
+  }
+}
+
+/**
+ * The same screen, scoped to the current user's own characters - "how far along am I,
+ * across every character I have" for a player with more than one, without exposing
+ * anyone else's data or any control over it (see isOwnScope's own note on why
+ * self-leveling specifically stays out of this panel).
+ */
+export class MyCharactersDashboard extends GmProgressDashboard {
+  static DEFAULT_OPTIONS = {
+    id: "dnd-cc-my-progress",
+    classes: ["dnd-cc", "dnd-cc-gm-progress"],
+    window: {
+      title: "DND-CC.GmProgress.MyTitle",
+      icon: "fa-solid fa-clipboard-list"
+    }
+  };
+
+  get isOwnScope() {
+    return true;
   }
 }
