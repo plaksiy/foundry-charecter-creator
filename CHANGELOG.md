@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.6
+
+### Fixed
+
+- Swapping an already-selected species or background (including through the new "Resolve Missing Choice" button, and the equivalent "redo this class's choices"/swap-a-feat actions) could leave the next choice screen invisible - it was fully there and interactable underneath, just impossible to see, and could also leave a stray "undefined" label above it.
+- Swapping a feat that grants no further choices of its own (for example switching a background's origin feat to Alert) could permanently freeze that step with an empty panel and no way to continue except closing and reopening the wizard.
+
 ## 0.8.5
 
 ### Fixed

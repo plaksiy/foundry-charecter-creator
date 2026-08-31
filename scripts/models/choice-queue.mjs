@@ -93,7 +93,28 @@ function runAdvancementManager(manager, container) {
     };
 
     const rendering = manager.render(true);
-    if (container) rendering.then(() => container.append(manager.element));
+    if (container) {
+      rendering.then(() => {
+        // A container can arrive here already carrying a leftover `visibility: hidden`
+        // from a PRIOR manager's own close() (see above) - real for any call site that
+        // runs more than one manager through the same container in a row (e.g.
+        // _selectItem's remove-then-add swap, _reviewClass's remove-then-add redo,
+        // _changeOriginFeat's add-then-remove) without an app-level re-render in
+        // between. Left uncleared, the new manager's own content renders correctly but
+        // stays invisible until the caller's outer render() eventually fires. Clearing
+        // it here is a no-op for the common single-manager-per-container case.
+        container.style.visibility = "";
+        // A manager whose steps are all `automatic` (a removeItemWithAdvancement
+        // reversal, most commonly) can finish and call its own close() - which nulls
+        // out `element` as part of ApplicationV2's own teardown - before this .then()
+        // callback gets a turn to run, since close() can fire synchronously within the
+        // same render() call for a fully-automatic flow. `container.append(undefined)`
+        // still "succeeds" in that case, but per the Element.append() spec any non-Node
+        // argument is coerced to a string first - stringifying `undefined` inserts a
+        // literal "undefined" text node into the container.
+        if (manager.element) container.append(manager.element);
+      });
+    }
   });
 }
 
@@ -437,6 +458,19 @@ export async function triggerAdvancement(actor, itemData, container) {
   patchEmbeddedAdvancementFlows();
   const { AdvancementManager } = dnd5e.applications.advancement;
   const manager = await AdvancementManager.forNewItem(actor, itemData, container ? EMBEDDED_WINDOW_OPTIONS : {});
+
+  if (!manager.steps.length) {
+    // An item with no Advancement at all (e.g. a flat-benefit feat like Alert) makes
+    // `forNewItem` produce a manager with zero steps - calling `manager.render(true)`
+    // on that throws ("Cannot read properties of null (reading 'flow')", dnd5e's own
+    // render logic assumes a current step always exists) rather than rendering an
+    // empty-but-harmless panel, permanently stalling the embedded host with no way to
+    // recover short of closing the wizard. `removeItemWithAdvancement` below already
+    // guards the equivalent case for removal - this mirrors it for adding.
+    await actor.createEmbeddedDocuments("Item", [itemData]);
+    return true;
+  }
+
   return runAdvancementManager(manager, container);
 }
 
@@ -520,6 +554,11 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
   return new Promise((resolve) => {
     browser.addEventListener("close", () => resolve(browser.selected?.size ? browser.selected : null), { once: true });
     browser.render({ force: true }).then(async () => {
+      // Same leftover-hidden-container reset as runAdvancementManager above, for the
+      // same reason - a container reused across more than one embedded app in a row
+      // without an app-level re-render in between.
+      container.style.visibility = "";
+      if (!browser.element) return;
       container.append(browser.element);
       await collapseFiltersByDefault(browser.element, excludedSourceSlugs);
       arrangeEmbeddedBrowserFilters(browser.element);
@@ -531,8 +570,7 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
  * Collapse every filter group and exclude the generic SRD source packs (plus any
  * ruleset-mismatched book, see excludedSourceSlugs) by default, so the results grid is
  * visible immediately instead of buried under a fully-expanded filter sidebar (Level,
- * School, several Spell List groups, Properties, and Source all expanded at once, a real
- * complaint from live use).
+ * School, several Spell List groups, Properties, and Source all expanded at once).
  * @param {HTMLElement} browserElement
  * @param {string[]} [excludedSourceSlugs]
  */
@@ -559,14 +597,13 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
  * Click a `<filter-state>` 3-state toggle (0 unset -> 1 require -> -1 exclude) twice to
  * land on "exclude". dnd5e fully replaces
  * `[data-application-part="filters"]` with a brand new element after EVERY filter change
- * (not just once after the browser's first paint, which is what an earlier version of
- * this function assumed) - reusing the same element reference for a second `.click()`
- * therefore silently no-ops on an already-detached node instead of advancing its state,
- * which is why a straight `el.click(); el.click();` reliably got stuck on "require"
- * instead of ever reaching "exclude". Re-queries the element fresh before each click and
- * waits for the replacement (or a timeout, in case this particular click doesn't trigger
- * one - e.g. the filter doesn't exist at all for this browser's tab/type context) before
- * issuing the next one.
+ * (not just once after the browser's first paint) - reusing the same element reference
+ * for a second `.click()` therefore silently no-ops on an already-detached node instead
+ * of advancing its state, which is why a straight `el.click(); el.click();` reliably got
+ * stuck on "require" instead of ever reaching "exclude". Re-queries the element fresh
+ * before each click and waits for the replacement (or a timeout, in case this particular
+ * click doesn't trigger one - e.g. the filter doesn't exist at all for this browser's
+ * tab/type context) before issuing the next one.
  *
  * The Source filter's own list of `<filter-state>` options is itself populated
  * asynchronously the first time a CompendiumBrowser instance is ever created in a
@@ -922,9 +959,9 @@ export function itemsGrantedBy(actor, sourceItemId) {
  * `targetLevel` - shown on the Class step's "Level Up" card before the player commits,
  * so raising a level isn't a blind action. Built from the exact same generic
  * `advancement.levels`/`advancement.title` data dnd5e itself already tracks on every
- * Advancement type (the base `Advancement#levels` getter, confirmed by reading dnd5e's
- * own source: `[this.level]` for a single-level type, every level 1-20 for HitPoints,
- * whatever multi-level set an ItemChoice like Metamagic actually configures) rather
+ * Advancement type (the base `Advancement#levels` getter: `[this.level]` for a
+ * single-level type, every level 1-20 for HitPoints, whatever multi-level set an
+ * ItemChoice like Metamagic actually configures) rather
  * than guessing per-type what
  * "gains a level" even means. Reuses the same `[classItem, classItem.subclass]` source
  * pair itemsAtRiskFromLevelDecrease already uses, for the same multiclass-subclass
