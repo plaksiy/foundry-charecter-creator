@@ -10,6 +10,7 @@ const DEFAULT_HOUSE_RULES = {
   disallowedAlignments: [],
   minFeatLevel: 1,
   bannedSpecies: [],
+  bannedClasses: [],
   allowSelfLevelUp: false,
   pointBuyBudget: 27,
   pointBuyMin: 8,
@@ -37,6 +38,17 @@ export function isAlignmentKeyAllowed(key) {
 /** @param {string} uuid - compendium uuid of a species item */
 export function isSpeciesBanned(uuid) {
   return getHouseRules().bannedSpecies.includes(uuid);
+}
+
+/**
+ * Hide a specific class (e.g. an NPC-flavored class from a supplement a GM doesn't want
+ * offered at their table) without disabling the whole compendium pack it lives in - the
+ * same "ban individual items, not whole sources" need bannedSpecies already covers, just
+ * for classes.
+ * @param {string} uuid - compendium uuid of a class item
+ */
+export function isClassBanned(uuid) {
+  return getHouseRules().bannedClasses.includes(uuid);
 }
 
 /**

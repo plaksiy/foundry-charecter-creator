@@ -123,6 +123,15 @@ Hooks.once("init", () => {
     default: "neutral"
   });
 
+  // Same client-scoped/config:false personal-preference pattern as accentColor above -
+  // adjusted live from the wizard's own Settings panel, not a settings-menu entry.
+  game.settings.register(MODULE_ID, "theme", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "dark"
+  });
+
   const loadTemplates = foundry.applications.handlebars.loadTemplates;
   loadTemplates([
     `modules/${MODULE_ID}/templates/character-creator/step-ruleset.hbs`,
@@ -242,10 +251,10 @@ Hooks.on("renderActorDirectory", (_app, html) => {
 //
 // Registered on the native sheet's own render hook *and* both of Tidy 5e Sheets' own
 // class-specific render hooks (`Tidy5eCharacterSheet`, the legacy skin, and
-// `Tidy5eCharacterSheetQuadrone`, its current one) - Tidy5e's own header uses the exact
-// same `.header-control`/`[data-action="close"]` convention as the native sheet (both
-// ultimately extend ApplicationV2's own header), so one shared handler covers all three
-// without needing sheet-specific styling or markup.
+// `Tidy5eCharacterSheetQuadrone`, its current one) - Tidy5e's own
+// header uses the exact same `.header-control`/`[data-action="close"]` convention as the
+// native sheet (both ultimately extend ApplicationV2's own header), so one shared handler
+// covers all three without needing sheet-specific styling or markup.
 function addLevelUpHeaderButton(app) {
   const actor = app.actor;
   if (!actor?.isOwner || CharacterDraft.isDraft(actor)) return;
@@ -271,9 +280,10 @@ Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
 // an actionable chat card - being informed doesn't grant any new power, only the button
 // itself does (see renderChatMessageHTML below, which disables it for a non-GM viewer
 // unless the `allowSelfLevelUp` house rule allows self-service). `xp.max` is dnd5e's own
-// real derived "XP needed for the *next* level" (Actor5e#prepareDerivedData:
-// `xp.max = getLevelExp(currentLevel)`), so eligibility is a plain `value >= max` read
-// off the actor's own already-computed data - no separate threshold table of our own needed.
+// real derived "XP needed for the *next*
+// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`),
+// so eligibility is a plain `value >= max` read off the actor's
+// own already-computed data - no separate threshold table of our own needed.
 // `game.user.isActiveGM` (not a plain isGM check) ensures exactly one connected client
 // fires this, even if more than one GM happens to be online - `updateActor` fires on every
 // client, and a plain isGM guard would send one duplicate chat card per online GM.

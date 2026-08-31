@@ -73,6 +73,20 @@
   </section>
 
   <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.BannedClasses"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.BannedClassesHint"}}</p>
+    <div class="dnd-cc-house-rules-checkgrid">
+      {{#each classOptions}}
+      <label>
+        <input type="hidden" name="classes.{{@index}}.uuid" value="{{this.uuid}}">
+        <input type="checkbox" name="classes.{{@index}}.banned" {{#if this.banned}}checked{{/if}}>
+        {{this.name}}
+      </label>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
     <h3>{{localize "DND-CC.HouseRules.Leveling"}}</h3>
     <div class="dnd-cc-house-rules-checkgrid">
       <label>

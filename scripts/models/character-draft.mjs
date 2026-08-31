@@ -421,7 +421,7 @@ export class CharacterDraft {
 
   /**
    * Discard the draft entirely (e.g. the player cancels character creation). Real,
-   * permanent deletion - only ever safe to call as a GM. Confirmed live: a non-GM user
+   * permanent deletion - only ever safe to call as a GM. A non-GM user
    * cannot delete an Actor document at all in Foundry's default permission model, even
    * with full Owner-level ownership on that specific actor ("User player lacks
    * permission to delete Actor", straight from Foundry's own access check) - Actor

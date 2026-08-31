@@ -9,6 +9,7 @@ import {
   CLASS_THEME_COLORS,
   COMPLEXITY_LEVELS,
   EQUIPMENT_ITEM_TYPES,
+  FEEDBACK_EMAIL,
   LIFESTYLE_TIERS,
   MAX_CLASS_LEVEL,
   MODULE_ID,
@@ -47,6 +48,7 @@ import {
   getPointBuyRange,
   isAbilityGenerationMethodAllowed,
   isAlignmentKeyAllowed,
+  isClassBanned,
   isRerollAllowed,
   isSpeciesBanned
 } from "../services/house-rules.mjs";
@@ -291,7 +293,9 @@ const ACCENT_COLOR_OPTIONS = [
   { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#4f7fd9" },
   { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
   { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#2f9e44" },
-  { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" }
+  { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" },
+  { value: "teal", labelKey: "DND-CC.Accessibility.AccentTeal", swatch: "#1f9b8f" },
+  { value: "rose", labelKey: "DND-CC.Accessibility.AccentRose", swatch: "#d6488a" }
 ];
 
 /**
@@ -745,10 +749,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // it (see the template: a resolved lineage pick shows a plain ribbon with no
         // way back in, an unresolved one needs a real clickable one instead).
         hasUnresolved: selectedMember?.hasUnresolved ?? false,
-        // "Learn More" on a lineage group has no single item of its own to describe -
-        // shows whichever lineage is currently selected, or the first one alphabetically
-        // as a representative starting point otherwise.
-        learnMoreUuid: (selectedMember ?? sortedMembers[0]).uuid
+        // The group's own "Learn More" (see _showLineageGroupInfo) has no single real
+        // item to read a description from - showing one specific lineage's own real
+        // compendium text there (the original approach) misleadingly presented that one
+        // lineage's own story as if it were true of the whole species. Carries just the
+        // lineage names/uuids so that overlay can list what's available without
+        // borrowing any one member's own narrative.
+        lineageLabels: sortedMembers.map((m) => m.lineageLabel)
       });
     }
 
@@ -842,6 +849,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const items = await getStepItems("class", this.rulesetVersions);
     const addableClasses = items
       .filter((item) => !existingNames.has(item.name))
+      .filter((item) => !isClassBanned(item.uuid))
       .filter((item) => {
         if (this.classComplexityFilter === "all") return true;
         const complexity = CLASS_COMPLEXITY[item.name];
@@ -1234,7 +1242,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the class item's own `system.spellcasting`, but a third-caster subclass (Eldritch
    * Knight, Arcane Trickster) grants spellcasting entirely through the *subclass*: the
    * class item's own block stays at `progression: "none"` with `type`/`ability` blank
-   * and `preparation.max: 0` on a real Eldritch Knight, while the
+   * and `preparation.max: 0`, while the
    * subclass's own `system.spellcasting` carries the real, fully-resolved values
    * (`progression: "third"`, `type: "spell"`, `ability: "int"`, `preparation.max: 3`).
    * Reading the class-level block unconditionally in this situation silently produced
@@ -1256,9 +1264,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * spelling and which item actually carries it varies by caster type, so every shape
    * has to be checked rather than assumed: a full/pact caster's own class-identifier
    * scale entry uses `cantrips-known` (Wizard, Sorcerer, Warlock, ...); Artificer's own
-   * class scale entry instead uses the plain key `cantrips` (Artificer would otherwise
-   * show 0 cantrips at level 1 despite a real `{cantrips: {value: 2}}` scale entry,
-   * since the lookup only checked `cantrips-known` for the class's own scale); and
+   * class scale entry instead uses the plain key `cantrips` (Artificer
+   * showed 0 cantrips at level 1 despite a real `{cantrips: {value: 2}}` scale entry,
+   * because the lookup only ever checked `cantrips-known` for the class's own scale); and
    * a third-caster subclass like Eldritch Knight defines it on the *subclass's* own scale
    * instead of the class's, under either key spelling. Checked in that order so every
    * real shape resolves without needing to know in advance which one a given
@@ -1283,8 +1291,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Leveled-spell cap for a spellcasting class - almost always `preparation.max`
    * (`simplifyBonus(preparation.formula, rollData)`, computed by dnd5e itself), but a
-   * 2014-rule "known" caster (Sorcerer, Bard, Warlock, Ranger, per the real
-   * `dnd5e.classes` pack) has no `preparation.formula` at all: the 2024 pack
+   * 2014-rule "known" caster (Sorcerer, Bard, Warlock, Ranger, per
+   * the real dnd5e.classes pack) has no `preparation.formula` at all: the 2024 pack
    * gives every spellcasting class a real formula referencing a shared "max-prepared"
    * scale value, but the legacy pack never got that treatment - "Spells Known" there is
    * only a plain descriptive `ScaleValue` advancement (identifier "spells-known") never
@@ -1312,10 +1320,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * First `ScaleValue` advancement on an item matching one of the given identifiers.
    * Reads the real `identifier` getter, not the raw `configuration.identifier` field -
-   * a "Cantrips Known" advancement can carry a blank `configuration.identifier` (the
-   * 2024 pack's own Sorcerer/Wizard/Bard/... all do this), which dnd5e itself resolves
-   * to the slugified title (`formatIdentifier(this.title)`, exactly what `identifier`
-   * already does) rather than leaving it unmatched.
+   * a "Cantrips Known" advancement can carry a blank
+   * `configuration.identifier` (the 2024 pack's own Sorcerer/Wizard/Bard/... all do this),
+   * which dnd5e itself resolves to the slugified title (`formatIdentifier(this.title)`,
+   * exactly what `identifier` already does) rather than leaving it unmatched.
    */
   _findScaleValueAdvancement(item, identifiers) {
     return item?.advancement?.byType?.ScaleValue?.find((a) => identifiers.includes(a.identifier)) ?? null;
@@ -2071,9 +2079,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * browser already shows correctly on its own, with nothing else on either step
    * visually depending on it. A full `.dnd-cc-content` re-render on every blur used to
    * run right as the player clicked into the *next* field, landing that click during a
-   * DOM swap and leaving its focus/selection in a broken state (typing in one field,
-   * then clicking a different one, misplaced the second field's cursor) before this
-   * was removed.
+   * DOM swap and leaving its focus/selection in a broken state - a real bug (typing in
+   * one field, then clicking a different one, misplaced the second field's cursor)
+   * before this was removed.
    */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
@@ -2801,54 +2809,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       header.insertBefore(button, closeButton);
     };
 
-    const fontScaleValue = String(game.settings.get(MODULE_ID, "fontScale"));
-    const scaleIndex = Math.max(0, FONT_SCALE_OPTIONS.findIndex((option) => option.value === fontScaleValue));
-    const fontButton = document.createElement("button");
-    fontButton.classList.add("fa-solid", "fa-text-height");
-    fontButton.dataset.tooltip = game.i18n.format("DND-CC.Accessibility.FontSizeOption", {
-      size: FONT_SCALE_OPTIONS[scaleIndex].label
-    });
-    fontButton.setAttribute("aria-label", game.i18n.localize("DND-CC.Accessibility.FontSizeLabel"));
-    fontButton.addEventListener("click", async () => {
-      const next = FONT_SCALE_OPTIONS[(scaleIndex + 1) % FONT_SCALE_OPTIONS.length];
-      await game.settings.set(MODULE_ID, "fontScale", next.value);
-      this.render();
-    });
-    insertButton(fontButton);
-
-    const reduceImagery = game.settings.get(MODULE_ID, "reduceImagery");
-    const imageryButton = document.createElement("button");
-    imageryButton.classList.add("fa-solid", "fa-image");
-    if (reduceImagery) imageryButton.classList.add("active");
-    imageryButton.dataset.tooltip = game.i18n.localize("DND-CC.Accessibility.ReduceImageryTitle");
-    imageryButton.setAttribute("aria-label", game.i18n.localize("DND-CC.Accessibility.ReduceImageryLabel"));
-    imageryButton.addEventListener("click", async () => {
-      await game.settings.set(MODULE_ID, "reduceImagery", !reduceImagery);
-      this.render();
-    });
-    insertButton(imageryButton);
-
-    const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
-    const accentIndex = Math.max(0, ACCENT_COLOR_OPTIONS.findIndex((option) => option.value === accentValue));
-    const accentButton = document.createElement("button");
-    accentButton.classList.add("fa-solid", "fa-palette");
-    accentButton.dataset.tooltip = game.i18n.format("DND-CC.Accessibility.AccentColorOption", {
-      color: game.i18n.localize(ACCENT_COLOR_OPTIONS[accentIndex].labelKey)
-    });
-    accentButton.setAttribute("aria-label", game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"));
-    accentButton.addEventListener("click", async () => {
-      const next = ACCENT_COLOR_OPTIONS[(accentIndex + 1) % ACCENT_COLOR_OPTIONS.length];
-      await game.settings.set(MODULE_ID, "accentColor", next.value);
-      this.render();
-    });
-    insertButton(accentButton);
-
-    const sourcesButton = document.createElement("button");
-    sourcesButton.classList.add("fa-solid", "fa-book-atlas");
-    sourcesButton.dataset.tooltip = game.i18n.localize("DND-CC.Sources.ButtonTitle");
-    sourcesButton.setAttribute("aria-label", game.i18n.localize("DND-CC.Sources.ButtonLabel"));
-    sourcesButton.addEventListener("click", () => this._showSourceFilter());
-    insertButton(sourcesButton);
+    // Text size, Simplify, accent color, theme, Sources, Feedback, and the diagnostic
+    // report all used to be their own separate header icons - consolidated into one
+    // "Settings" panel (see _showSettingsPanel) since that had grown into a genuinely
+    // crowded row of icon buttons a player had to learn individually. Start Over stays
+    // its own dedicated button below, not folded in here - it's used often enough (and
+    // is destructive enough) that burying it one level deeper behind Settings would only
+    // cost clicks for no real benefit.
+    const settingsButton = document.createElement("button");
+    settingsButton.classList.add("fa-solid", "fa-gear");
+    settingsButton.dataset.tooltip = game.i18n.localize("DND-CC.SettingsPanel.ButtonTitle");
+    settingsButton.setAttribute("aria-label", game.i18n.localize("DND-CC.SettingsPanel.ButtonLabel"));
+    settingsButton.addEventListener("click", () => this._showSettingsPanel());
+    insertButton(settingsButton);
 
     if (!this.levelUp && !this.isAssisting) {
       const discardButton = document.createElement("button");
@@ -2880,6 +2853,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     ACCENT_COLOR_OPTIONS.forEach((option) => root.classList.remove(`dnd-cc-accent-${option.value}`));
     const accentColor = String(game.settings.get(MODULE_ID, "accentColor"));
     if (accentColor !== "neutral") root.classList.add(`dnd-cc-accent-${accentColor}`);
+
+    root.classList.toggle("dnd-cc-theme-light", String(game.settings.get(MODULE_ID, "theme")) === "light");
 
     this._renderHeaderToolbar();
 
@@ -2935,6 +2910,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelectorAll("[data-choose-lineage]").forEach((el) => {
       el.addEventListener("click", () => this._showLineagePicker(el.dataset.chooseLineage));
+    });
+
+    root.querySelectorAll("[data-lineage-info]").forEach((el) => {
+      el.addEventListener("click", () => this._showLineageGroupInfo(el.dataset.lineageInfo));
     });
 
     root.querySelectorAll("[data-identity-portrait]").forEach((el) => {
@@ -3518,8 +3497,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * one, read straight from its real `hint` text - dnd5e itself already writes a full,
    * accurate sentence there ("Your background allows you to increase your Intelligence,
    * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
-   * increase all three by 1."). Reading this instead of computing our own summary from
-   * `configuration.locked`/`points`/`cap`
+   * increase all three by 1."). Reading
+   * this instead of computing our own summary from `configuration.locked`/`points`/`cap`
    * means the preview can never drift out of sync with what the actual Advancement flow
    * will say once picked, and needs no SRD text of our own - it's the same real
    * compendium data every other "Learn More" fact on this panel already reads.
@@ -3625,6 +3604,58 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
+   * The general "Learn More" for a pre-split lineage group (Elf, Tiefling, Gnome, ...)
+   * - deliberately does NOT reuse _showItemDetail against one specific member's uuid,
+   * since that member's own real compendium description is genuinely only true of that
+   * one lineage (e.g. a Tiefling, Abyssal's own text), not the species as a whole -
+   * showing it under the base name alone would misrepresent it as general lore. This
+   * lists what's available (names only, no borrowed narrative) and hands off to the
+   * real per-lineage description inside the picker (_showLineagePicker's own "Learn
+   * More" buttons) for the actual text.
+   * @param {string} baseName - e.g. "Elf"
+   */
+  async _showLineageGroupInfo(baseName) {
+    // Re-fetches fresh rather than trusting a cached copy, same reasoning as
+    // _showLineagePicker below - a house rule ban or a compendium toggle since the grid
+    // last rendered shouldn't leave a stale lineage listed here.
+    const items = await getStepItems("race", this.rulesetVersions);
+    const members = items
+      .filter((item) => {
+        const match = item.name.match(/^(.+), (.+)$/);
+        return match && match[1].trim() === baseName && !isSpeciesBanned(item.uuid);
+      })
+      .map((item) => ({ ...item, lineageLabel: item.name.split(",")[1].trim() }))
+      .sort((a, b) => a.lineageLabel.localeCompare(b.lineageLabel));
+
+    const esc = this._escapeHtml.bind(this);
+    const wrapper = document.createElement("div");
+    wrapper.className = "dnd-cc-detail-modal";
+    wrapper.innerHTML = `
+      <div class="dnd-cc-detail-header" style="background-color:${esc(reviewedCardColor(baseName, SPECIES_THEME_COLORS))}">
+        <div class="dnd-cc-detail-icon"><img src="${esc(members[0]?.img ?? "")}" alt="" /></div>
+        <div class="dnd-cc-detail-title">
+          <span class="dnd-cc-detail-name">${esc(baseName)}</span>
+        </div>
+        <button type="button" class="dnd-cc-detail-close" data-overlay-close aria-label="${esc(game.i18n.localize("DND-CC.Close"))}">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="dnd-cc-detail-body">
+        <p class="dnd-cc-step-intro">${esc(game.i18n.format("DND-CC.Lineage.GroupInfoIntro", { base: baseName }))}</p>
+        <div class="dnd-cc-section-label">${esc(game.i18n.localize("DND-CC.Lineage.AvailableLabel"))}</div>
+        <ul class="dnd-cc-detail-features">${members.map((m) => `<li>${esc(m.lineageLabel)}</li>`).join("")}</ul>
+        <button type="button" class="dnd-cc-card-select" data-choose-lineage="${esc(baseName)}">
+          ${esc(game.i18n.localize("DND-CC.Lineage.ChooseButton"))} <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    `;
+
+    wrapper.querySelector("[data-choose-lineage]")?.addEventListener("click", () => this._showLineagePicker(baseName));
+
+    this._showOverlay(wrapper);
+  }
+
+  /**
    * The "which lineage" sub-picker a grouped species card (see _groupLineageCards)
    * opens instead of selecting directly - re-fetches and re-filters the real species
    * list rather than trusting a cached copy, so it can't show a lineage a house rule
@@ -3658,14 +3689,36 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       <div class="dnd-cc-detail-body">
         <ul class="dnd-cc-lineage-grid">
           ${members.map((m) => `
-            <li class="dnd-cc-lineage-card" style="background-color:${esc(m.color)}" data-lineage-select="${esc(m.uuid)}">
+            <li class="dnd-cc-lineage-card" style="background-color:${esc(m.color)}">
               <div class="dnd-cc-card-icon"><img src="${esc(m.img)}" alt="" /></div>
               <span class="dnd-cc-lineage-name">${esc(m.lineageLabel)}</span>
+              <div class="dnd-cc-card-actions dnd-cc-lineage-card-actions">
+                <button type="button" class="dnd-cc-card-learn-more" data-lineage-learn-more="${esc(m.uuid)}">
+                  ${esc(game.i18n.localize("DND-CC.LearnMore"))}
+                </button>
+                <button type="button" class="dnd-cc-card-select" data-lineage-select="${esc(m.uuid)}">
+                  ${esc(game.i18n.localize("DND-CC.Select"))}
+                </button>
+              </div>
             </li>
           `).join("")}
         </ul>
       </div>
     `;
+
+    // Each lineage's own "Learn More" reuses the exact same generic detail overlay
+    // every other card type already uses - a lineage-group card's own top-level Learn
+    // More (see _groupLineageCards) can only ever describe one representative member,
+    // which is what made every lineage but that one look like it had no description of
+    // its own at all. _showOverlay only ever holds one panel, so this replaces the
+    // lineage picker rather than stacking above it - reopening "Choose Lineage" from
+    // the species card gets back to the picker, same as opening it the first time.
+    wrapper.querySelectorAll("[data-lineage-learn-more]").forEach((el) => {
+      el.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this._showItemDetail(el.dataset.lineageLearnMore);
+      });
+    });
 
     wrapper.querySelectorAll("[data-lineage-select]").forEach((el) => {
       el.addEventListener("click", async () => {
@@ -3734,9 +3787,165 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
+   * The single consolidated player-facing Settings panel - theme, accent color, text
+   * size, Simplify, a shortcut into the Sources panel, Feedback, and the diagnostic
+   * report, all in one place instead of a growing row of individually-learned header
+   * icons. Every control here writes straight to the same client-scoped settings the
+   * old per-icon toolbar buttons already used - this is a presentation change, not a new
+   * preference model.
+   */
+  _showSettingsPanel() {
+    const esc = this._escapeHtml.bind(this);
+    const theme = String(game.settings.get(MODULE_ID, "theme"));
+    const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
+    const fontScaleValue = String(game.settings.get(MODULE_ID, "fontScale"));
+    const reduceImagery = game.settings.get(MODULE_ID, "reduceImagery");
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "dnd-cc-detail-modal dnd-cc-settings-panel";
+    wrapper.innerHTML = `
+      <div class="dnd-cc-detail-header">
+        <div class="dnd-cc-detail-title">
+          <span class="dnd-cc-detail-name">${esc(game.i18n.localize("DND-CC.SettingsPanel.PanelTitle"))}</span>
+        </div>
+        <button type="button" class="dnd-cc-detail-close" data-overlay-close aria-label="${esc(game.i18n.localize("DND-CC.Close"))}">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="dnd-cc-detail-body">
+        <div class="dnd-cc-settings-section">
+          <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeLabel"))}</h3>
+          <div class="dnd-cc-settings-row">
+            <button type="button" class="dnd-cc-settings-choice ${theme !== "light" ? "active" : ""}" data-set-theme="dark">
+              <i class="fa-solid fa-moon"></i> ${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeDark"))}
+            </button>
+            <button type="button" class="dnd-cc-settings-choice ${theme === "light" ? "active" : ""}" data-set-theme="light">
+              <i class="fa-solid fa-sun"></i> ${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeLight"))}
+            </button>
+          </div>
+        </div>
+
+        <div class="dnd-cc-settings-section">
+          <h3>${esc(game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"))}</h3>
+          <div class="dnd-cc-settings-swatch-row">
+            ${ACCENT_COLOR_OPTIONS.map((option) => `
+              <button type="button" class="dnd-cc-settings-swatch ${accentValue === option.value ? "active" : ""}"
+                style="background-color:${esc(option.swatch)}" data-set-accent="${esc(option.value)}"
+                aria-label="${esc(game.i18n.localize(option.labelKey))}" data-tooltip="${esc(game.i18n.localize(option.labelKey))}">
+              </button>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="dnd-cc-settings-section">
+          <h3>${esc(game.i18n.localize("DND-CC.Accessibility.FontSizeLabel"))}</h3>
+          <div class="dnd-cc-settings-row">
+            ${FONT_SCALE_OPTIONS.map((option) => `
+              <button type="button" class="dnd-cc-settings-choice ${fontScaleValue === option.value ? "active" : ""}" data-set-font-scale="${esc(option.value)}">
+                ${esc(option.label)}
+              </button>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="dnd-cc-settings-section">
+          <label class="dnd-cc-settings-checkbox-row">
+            <input type="checkbox" data-toggle-imagery ${reduceImagery ? "checked" : ""} />
+            ${esc(game.i18n.localize("DND-CC.Accessibility.ReduceImageryTitle"))}
+          </label>
+        </div>
+
+        <div class="dnd-cc-settings-section dnd-cc-settings-actions">
+          <button type="button" class="dnd-cc-settings-action" data-open-sources>
+            <i class="fa-solid fa-book-atlas"></i> ${esc(game.i18n.localize("DND-CC.Sources.ButtonLabel"))}
+          </button>
+          <button type="button" class="dnd-cc-settings-action" data-open-feedback>
+            <i class="fa-solid fa-comment-dots"></i> ${esc(game.i18n.localize("DND-CC.Feedback.ButtonLabel"))}
+          </button>
+          <button type="button" class="dnd-cc-settings-action" data-open-diagnostics>
+            <i class="fa-solid fa-stethoscope"></i> ${esc(game.i18n.localize("DND-CC.Diagnostics.ButtonLabel"))}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Every control that only changes a client setting re-renders the whole wizard
+    // (theme/accent/imagery affect the currently-visible step's own look) and then
+    // reopens this same panel, same "don't close on every click" pattern
+    // _showSourceFilter already uses - font size doesn't need the reopen since it's the
+    // only one that doesn't affect anything drawn behind this overlay, but reopening is
+    // harmless there too and keeps this one loop simple instead of special-casing it.
+    const reopen = async () => {
+      await this.render();
+      this._showSettingsPanel();
+    };
+
+    wrapper.querySelectorAll("[data-set-theme]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await game.settings.set(MODULE_ID, "theme", el.dataset.setTheme);
+        await reopen();
+      });
+    });
+
+    wrapper.querySelectorAll("[data-set-accent]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await game.settings.set(MODULE_ID, "accentColor", el.dataset.setAccent);
+        await reopen();
+      });
+    });
+
+    wrapper.querySelectorAll("[data-set-font-scale]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await game.settings.set(MODULE_ID, "fontScale", el.dataset.setFontScale);
+        await reopen();
+      });
+    });
+
+    wrapper.querySelector("[data-toggle-imagery]")?.addEventListener("change", async (event) => {
+      await game.settings.set(MODULE_ID, "reduceImagery", event.currentTarget.checked);
+      await reopen();
+    });
+
+    wrapper.querySelector("[data-open-sources]")?.addEventListener("click", () => this._showSourceFilter());
+    wrapper.querySelector("[data-open-feedback]")?.addEventListener("click", () => this._openFeedbackEmail());
+    wrapper.querySelector("[data-open-diagnostics]")?.addEventListener("click", () => this._copyDiagnosticReport());
+
+    this._showOverlay(wrapper);
+  }
+
+  /**
+   * Opens the player's own email client with a feedback message pre-addressed to the
+   * module author and pre-filled with the same short environment block the diagnostic
+   * report already gathers, so a bug report or a feature request naturally comes with
+   * the version/step context needed to act on it - the player only has to write the
+   * actual feedback text. A plain `mailto:` link needs no server, no API key, and no
+   * telemetry of any kind (matching this module's own "fully local" README claim) - the
+   * tradeoff is it only works if the player's OS has a mail client configured to handle
+   * `mailto:` links at all, which this can't detect or work around.
+   */
+  _openFeedbackEmail() {
+    const moduleData = game.modules.get(MODULE_ID);
+    const subject = `${game.i18n.localize("DND-CC.WindowTitle")} feedback (v${moduleData?.version ?? "?"})`;
+    const body = [
+      game.i18n.localize("DND-CC.Feedback.BodyPlaceholder"),
+      "",
+      "---",
+      `Module version: ${moduleData?.version ?? "unknown"}`,
+      `Foundry version: ${game.version}`,
+      `dnd5e system version: ${game.system?.version ?? "unknown"}`
+    ].join("\n");
+
+    // A plain navigation (not window.open) - a mailto: URL never actually loads a page,
+    // it just hands off to the OS's registered mail handler, so there's no document to
+    // show in a new tab and window.open would just leave one stray blank tab behind.
+    const mailto = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  }
+
+  /**
    * "Add Custom" - creates a homebrew placeholder World Item (still finished by hand on
    * its own item sheet afterward for anything this form doesn't cover - full Advancement
-   * authoring is out of scope here), or adopts an
+   * authoring is out of scope here, same explicit user decision as before), or adopts an
    * already-existing World Item the GM/player authored outside the wizard. Either way
    * it's a real Item with a real UUID, so it slots into the exact same list/select/
    * advancement machinery as any compendium entry - getStepItems already includes
@@ -3747,7 +3956,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid was considered but not built - this list
+   * drag-and-drop onto a card grid was considered but not built this pass - this list
    * picker covers the same "link something I already made" need with far less risk.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
@@ -4153,7 +4362,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     const existingNames = new Set(classItems.map((item) => item.name));
     const items = await getStepItems("class", this.rulesetVersions);
-    const pool = items.filter((item) => !existingNames.has(item.name));
+    const pool = items.filter((item) => !existingNames.has(item.name) && !isClassBanned(item.uuid));
     if (!pool.length) return;
 
     const pick = pool[Math.floor(Math.random() * pool.length)];

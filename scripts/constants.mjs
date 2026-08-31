@@ -1,5 +1,8 @@
 export const MODULE_ID = "foundryvtt-dnd-charecter-creator";
 
+/** Where the Settings panel's Feedback button sends a player's mailto: message. */
+export const FEEDBACK_EMAIL = "plaksiyillya@gmail.com";
+
 export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
 /**
@@ -47,10 +50,10 @@ export const ORIGIN_FEAT_SUBTYPE = "origin";
 export const EQUIPMENT_ITEM_TYPES = ["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"];
 
 /**
- * Invented, generic fantasy character names for the Identity step's "Randomize" button -
- * a mix of short single names and two-part names. None of these are drawn from any
- * book, setting, or media property - safe, structural placeholder data the same way
- * LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
+ * Invented, generic fantasy character names for the Identity step's "Randomize"
+ * button - a mix of short single names and two-part names. None of these are
+ * drawn from any book, setting, or media property - safe, structural placeholder data
+ * the same way LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
  */
 export const NAME_EXAMPLES = [
   "Finn", "Vex", "Orin", "Sable", "Bram", "Lyra", "Dax", "Wren", "Kael", "Rue",
@@ -117,8 +120,8 @@ export const CLASS_COMPLEXITY = {
  * (e.g. Cleric's icon background is a bright blue starfield, Sorcerer's is electric-blue
  * lightning, Wizard's is gold-lit), not a generic per-class stereotype. Fighter/Monk/
  * Paladin/Ranger intentionally diverge from their icon's own dominant tone by design. A
- * class not listed here (homebrew, third-party) falls back to the deterministic
- * name-hash color every other card type uses (hashCardColor).
+ * class not listed here (homebrew, third-party) falls back to the
+ * deterministic name-hash color every other card type uses (hashCardColor).
  */
 export const CLASS_THEME_COLORS = {
   Barbarian: "#b25a2f",

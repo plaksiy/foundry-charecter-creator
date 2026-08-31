@@ -56,6 +56,18 @@
       "PanelHint": "Hide sourcebooks you don't own or don't want to see - this only affects your own view, not what your GM has enabled for the table.",
       "NoneEnabled": "Your GM hasn't enabled any sourcebooks yet."
     },
+    "SettingsPanel": {
+      "ButtonLabel": "Settings",
+      "ButtonTitle": "Theme, text size, accent color, and more",
+      "PanelTitle": "Settings",
+      "ThemeLabel": "Theme",
+      "ThemeDark": "Dark",
+      "ThemeLight": "Light"
+    },
+    "Feedback": {
+      "ButtonLabel": "Send Feedback",
+      "BodyPlaceholder": "Write your feedback, bug report, or feature request here..."
+    },
     "Discard": {
       "ButtonLabel": "Start Over",
       "ButtonTitle": "Discard this character and start a new one",
@@ -88,7 +100,9 @@
       "AccentBlue": "Blue",
       "AccentViolet": "Violet",
       "AccentGreen": "Green",
-      "AccentAmber": "Amber"
+      "AccentAmber": "Amber",
+      "AccentTeal": "Teal",
+      "AccentRose": "Rose"
     },
     "GmAssist": {
       "WindowTitle": "Assisting: {name}"
@@ -177,8 +191,10 @@
     "Lineage": {
       "Count": "{count} lineages",
       "SelectedRibbon": "Selected: {lineage}",
-      "ChooseButton": "Choose Lineage",
-      "PickerTitle": "{base} - Choose a Lineage"
+      "ChooseButton": "Lineage",
+      "PickerTitle": "{base} - Choose a Lineage",
+      "GroupInfoIntro": "{base} isn't a single species - it's a family of related lineages, each with its own traits and its own real description. Pick one below to read its full details.",
+      "AvailableLabel": "Available Lineages"
     },
     "Steps": {
       "Ruleset": "Getting Started",
@@ -491,6 +507,8 @@
       "MinFeatLevelHint": "The level a character needs to reach before an origin feat can be swapped on the Feats step. Set to 0 to disable feat swapping entirely.",
       "BannedSpecies": "Banned Species",
       "BannedSpeciesHint": "Checked species won't be offered on the Species step, regardless of ruleset.",
+      "BannedClasses": "Banned Classes",
+      "BannedClassesHint": "Checked classes won't be offered on the Class step, regardless of ruleset - useful for hiding a class you don't want at your table without disabling the whole book it came from.",
       "Leveling": "Leveling",
       "AllowSelfLevelUp": "Allow players to level up their own characters",
       "AllowSelfLevelUpHint": "When a character earns enough XP to level up, always notify you (the GM). If this is also checked, the player is notified too and can open Level Up themselves instead of waiting on you.",

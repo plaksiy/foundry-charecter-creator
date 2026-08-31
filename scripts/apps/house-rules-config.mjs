@@ -57,11 +57,21 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
         banned: rules.bannedSpecies.includes(item.uuid)
       }));
 
+    const classItems = await getStepItems("class", ["2014", "2024"]);
+    const classOptions = classItems
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((item) => ({
+        uuid: item.uuid,
+        name: item.name,
+        banned: rules.bannedClasses.includes(item.uuid)
+      }));
+
     return {
       abilityMethodOptions,
       alignmentOptions,
       minFeatLevel: rules.minFeatLevel,
       speciesOptions,
+      classOptions,
       allowSelfLevelUp: rules.allowSelfLevelUp === true,
       pointBuyBudget: rules.pointBuyBudget,
       pointBuyMin: rules.pointBuyMin,
@@ -88,6 +98,10 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       .filter((entry) => entry.banned === true)
       .map((entry) => entry.uuid);
 
+    const bannedClasses = Object.values(data.classes ?? {})
+      .filter((entry) => entry.banned === true)
+      .map((entry) => entry.uuid);
+
     // A GM could type a min above the max (or vice versa) - swap rather than reject, so
     // Point Buy's own range check (pointBuyMin/pointBuyMax in character-draft.mjs) never
     // ends up with an inverted, permanently-impossible range from a simple typo.
@@ -104,6 +118,7 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       disallowedAlignments,
       minFeatLevel: Number(data.minFeatLevel) || 0,
       bannedSpecies,
+      bannedClasses,
       allowSelfLevelUp: data.allowSelfLevelUp === true,
       pointBuyBudget: Number.isFinite(pointBuyBudget) ? pointBuyBudget : 27,
       pointBuyMin,

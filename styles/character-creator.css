@@ -23,13 +23,13 @@
   --dcc-text-muted: #a8a49a;
   /* Accent color: never a fixed red on its own - a colorblind-accessibility review flagged
      pure red sitting next to the rail's own green "done" state as a real problem for
-     colorblind players. Default is this neutral bone/silver tone instead; the toolbar's
-     accent-picker button (see _onRender) toggles one of the .dnd-cc-accent-* classes
-     below, each of which is a complete, legible accent+contrast pair, not a single color
-     swapped in isolation. --dcc-done deliberately stays green regardless of accent choice
-     (green still reads correctly as "complete", backed by a check
-     icon too, not color alone) - only the *other* uses of red (buttons, active states,
-     card selection) move off red by default. */
+     colorblind players. Default is this neutral bone/silver tone instead; the Settings
+     panel's own accent-color swatches (see _showSettingsPanel) set one of the
+     .dnd-cc-accent-* classes below, each of which is a complete, legible accent+contrast
+     pair, not a single color swapped in isolation. --dcc-done deliberately stays green
+     regardless of accent choice (green still reads correctly as "complete", backed by a
+     check icon too, not color alone) - only the *other* uses of red (buttons, active
+     states, card selection) move off red by default. */
   --dcc-accent: #e6e1d6;
   --dcc-accent-contrast: #141210;
   --dcc-border-strong: #e6e1d6;
@@ -43,6 +43,30 @@
   --dcc-font-ui: "DndCcRoboto", sans-serif;
   background: var(--dcc-bg);
   color: var(--dcc-text);
+}
+
+/* Light theme - an alternate palette for anyone who finds the dark "oath" look hard to
+   read, toggled from the Settings panel (see _showSettingsPanel), stored in the
+   client-scoped "theme" setting. Declared before the accent-color overrides below so a
+   deliberately-chosen accent (red/blue/...) always wins over this theme's own default
+   "neutral" accent, regardless of source order elsewhere - both selectors have equal
+   specificity, so whichever is declared last in the stylesheet wins the properties they
+   share. The dark theme's own neutral accent (#e6e1d6, a light bone tone) exists
+   specifically for contrast against a near-black background - reused as-is here it would
+   nearly vanish against a light one, so light theme's own "neutral" default is a dark
+   ink tone instead, with white contrast text. The other 5 accent swatches (red/blue/
+   violet/green/amber) are mid-tone enough to keep working unmodified against either
+   background and aren't redefined here. */
+.application.dnd-cc.dnd-cc-theme-light {
+  --dcc-bg: #f3ede0;
+  --dcc-surface: #fffcf5;
+  --dcc-surface-alt: #ece3d0;
+  --dcc-border: #c7bca2;
+  --dcc-text: #221e18;
+  --dcc-text-muted: #6b6252;
+  --dcc-accent: #2a251e;
+  --dcc-accent-contrast: #fdfbf5;
+  --dcc-border-strong: #2a251e;
 }
 
 .application.dnd-cc.dnd-cc-accent-red {
@@ -70,10 +94,32 @@
   --dcc-accent-contrast: #141210;
   --dcc-border-strong: #d99a2b;
 }
+.application.dnd-cc.dnd-cc-accent-teal {
+  --dcc-accent: #1f9b8f;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #1f9b8f;
+}
+.application.dnd-cc.dnd-cc-accent-rose {
+  --dcc-accent: #d6488a;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #d6488a;
+}
 
 .application.dnd-cc .window-header {
   background: var(--dcc-surface);
   border-bottom: 1px solid var(--dcc-border);
+}
+/* Foundry's own native window-title text and header-control (gear/trash/close) icon
+   color is a fixed light tone, meant for a dark titlebar - never overridden for the
+   dark "oath" theme since it already reads fine there, but the light theme's own
+   header background is ALSO light, so that same native light-on-light text/icon color
+   became functionally invisible (title and controls both resolved to
+   rgb(247,243,232), the header background to rgb(255,252,245) - a 3-unit difference).
+   Only the light theme needs this override; dark theme is untouched. */
+.application.dnd-cc.dnd-cc-theme-light .window-header,
+.application.dnd-cc.dnd-cc-theme-light .window-header .window-title,
+.application.dnd-cc.dnd-cc-theme-light .header-control {
+  color: var(--dcc-text);
 }
 
 
@@ -195,11 +241,13 @@
    rail copy wasn't obviously clickable anyway. The rail now starts
    right under the native window header with just the step list. */
 
-/* Text size / Simplify / Sources / Start Over now live as native window-header
-   controls (injected in _renderHeaderToolbar, not part of this template's own PARTS.body
-   at all) - deliberately left unstyled beyond these two states, so they read as exactly
-   the same kind of control as Foundry's own toggleControls/copyUuid/close buttons
-   already in that header, not a second, differently-styled toolbar bolted on. */
+/* Settings and Start Over now live as native window-header controls (injected in
+   _renderHeaderToolbar, not part of this template's own PARTS.body at all) -
+   deliberately left unstyled beyond these two states, so they read as exactly the same
+   kind of control as Foundry's own toggleControls/copyUuid/close buttons already in
+   that header, not a second, differently-styled toolbar bolted on. Text size/Simplify/
+   accent color/Sources/Feedback/diagnostics all now live inside the single Settings
+   panel (_showSettingsPanel) instead of being their own header icons. */
 .dnd-cc-header-toolbar-button.active { color: var(--dcc-accent); }
 .dnd-cc-header-discard-button:hover { color: var(--dcc-danger); }
 
@@ -264,6 +312,98 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--dcc-text-muted);
+}
+
+/* Settings panel (_showSettingsPanel) - the consolidated home for theme/accent/text
+   size/Simplify/Sources/Feedback/diagnostics, replacing what used to be a row of
+   separately-learned header icons. Each .dnd-cc-settings-section is one control group;
+   h3 headings reuse the app's existing default h3 styling (accent-colored, Cinzel), no
+   override needed here. */
+.dnd-cc-settings-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+.dnd-cc-settings-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.dnd-cc-settings-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dnd-cc-settings-choice.active {
+  border-color: var(--dcc-accent);
+  background: var(--dcc-accent);
+  color: var(--dcc-accent-contrast);
+}
+.dnd-cc-settings-swatch-row {
+  display: flex;
+  gap: 0.55rem;
+}
+/* Needs the same !important + specificity bump as every other custom button that
+   fights Foundry's own default chrome (see the shared button reset's own comment near
+   the top of this file) - a plain width/height here always lost to that reset's own
+   `height: auto !important`, collapsing each swatch down to a thin sliver instead of a
+   real 34px square. Rounded square, not a circle, so the actual swatch color reads as
+   a clear block of color rather than a thin ring. */
+.application.dnd-cc button.dnd-cc-settings-swatch {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px;
+  border-radius: 8px;
+  border: 2px solid var(--dcc-border);
+  cursor: pointer;
+  padding: 0 !important;
+  flex: none;
+}
+.application.dnd-cc button.dnd-cc-settings-swatch.active {
+  border-color: var(--dcc-text);
+  box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 4px var(--dcc-accent);
+}
+.dnd-cc-settings-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  color: var(--dcc-text);
+  cursor: pointer;
+}
+.dnd-cc-settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--dcc-border);
+  padding-top: 0.9rem;
+}
+.dnd-cc-settings-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.dnd-cc-settings-action:hover {
+  border-color: var(--dcc-accent);
 }
 
 .dnd-cc-steps {
@@ -765,8 +905,16 @@
 }
 .dnd-cc-advisor-active { color: var(--dcc-text); }
 .application.dnd-cc a.content-link {
+  /* Foundry's own native content-link pill always renders a fixed dark translucent
+     background regardless of page theme - fine in the dark "oath" theme, where
+     --dcc-accent is typically a light/bright color, but the light theme's own default
+     "neutral" accent is a dark ink tone specifically so it reads against a light page
+     background - dark text on that same fixed-dark native pill would be unreadable.
+     Giving the pill its own themed background keeps this legible under both themes and
+     every accent choice, instead of depending on Foundry's own hardcoded value. */
   color: var(--dcc-accent);
   border-color: var(--dcc-accent);
+  background: var(--dcc-surface-alt);
 }
 
 .dnd-cc-step-terms-note {
@@ -787,8 +935,19 @@
      aspect-ratio below - the old 340px-wide/190px-tall cards
      read as too wide a rectangle, with most of a card's portrait-oriented art falling
      outside the visible frame. Still auto-fill, so resizing the window reflows to more
-     or fewer columns naturally, this only sets what "default" looks like. */
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+     or fewer columns naturally, this only sets what "default" looks like.
+     Capped at 220px (not left open at 1fr) so a card's own size stays constant
+     regardless of how many happen to fit in a row - with an open 1fr max, a
+     lightly-filled row (e.g. 3 cards after a complexity filter) stretched every card to
+     fill the leftover space, while a fully-packed row (5-6 cards) kept them near the
+     200px floor - the same grid rendering visibly different-sized cards purely based on
+     item count. The cap is widened to 250px (from an earlier, tighter 220px) so 4
+     columns at the wizard's default window width use almost all of the available row
+     width instead of leaving a large empty gap on the right - any leftover space that
+     still doesn't divide evenly is centered via justify-content below instead of
+     collecting on one side. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 250px));
+  justify-content: center;
   gap: 1.1rem;
 }
 
@@ -809,6 +968,17 @@
   padding-right: 0.4rem;
 }
 .dnd-cc-card-group-label {
+  /* CSS Grid's own default align-items is "stretch" - every item, including this
+     full-width label, stretches to fill its own row track's height. For every OTHER
+     row (the cards themselves) that's a no-op since aspect-ratio already forces their
+     real height regardless of align-items. But a row holding *only* this label has
+     nothing else to anchor its own auto height, and that combination
+     lets the row's own computed auto-height balloon to well over 100px for one line of
+     text (a real, reproducible browser quirk - forcing align-self: start
+     alone measurably drops it back to its real content height) - reading as a large empty gap above the
+     group's real cards below. align-self: start opts this one item out of stretching
+     to match whatever its row was otherwise computing. */
+  align-self: start;
   grid-column: 1 / -1;
   font-family: var(--dcc-font-ui);
   font-weight: 700;
@@ -816,7 +986,15 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--dcc-text-muted);
-  margin: 1.4rem 0 0.6rem;
+  /* A second+ group's own top margin used to be 1.4rem on top of the grid's own 1.1rem
+     row-gap (already providing real separation from the previous group's last card row)
+     - stacking both made the empty space between a finished group and the next
+     "PHB 2024"/"SRD 5.1" label read as a large, unexplained dead zone rather than a
+     deliberate divider, since nothing marks that gap as intentional until the eye
+     reaches the label's own text and border-bottom well past it. Trimmed close to the
+     row-gap itself so the label reads as "right after" the previous group, not floating
+     in blank space. */
+  margin: 0.3rem 0 0.6rem;
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--dcc-border);
 }
@@ -854,7 +1032,7 @@
   clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
-/* Class cards specifically go fully square: the class
+/* Class cards specifically go fully square - the class
    symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
    frame better than the 3:4 portrait ratio the other two card grids use. */
 .dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
@@ -1077,6 +1255,21 @@
   color: #fff;
   background-image: linear-gradient(160deg, rgba(255,255,255,0.12), rgba(0,0,0,0.3));
 }
+/* The generic gradient+white text above is tuned for a per-item Learn More overlay,
+   whose header always sits on top of that item's own real, saturated hashCardColor
+   background - white reads fine there regardless of theme. Settings/Sources/the
+   lineage picker have no such colored backdrop of their own, so that same header falls
+   back to whatever the modal's own surface color is - under the light theme, a light
+   surface behind a mostly-transparent gradient plus hardcoded white text reads as weak,
+   muddy contrast instead of a clean header. These three give their own header a real
+   solid background + theme-aware text color instead. */
+.dnd-cc-settings-panel .dnd-cc-detail-header,
+.dnd-cc-sources-panel .dnd-cc-detail-header,
+.dnd-cc-lineage-picker .dnd-cc-detail-header {
+  background-image: none;
+  background-color: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+}
 .dnd-cc-detail-icon {
   flex: none;
   width: 40px;
@@ -1178,8 +1371,8 @@
 
 .dnd-cc-lineage-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.7rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1189,27 +1382,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-height: 96px;
-  padding: 0.8rem 0.5rem;
+  gap: 0.6rem;
+  min-height: 148px;
+  padding: 1.1rem 0.7rem;
   border-radius: 8px;
   border: 1.5px solid var(--dcc-border);
   background-image: linear-gradient(160deg, rgba(255,255,255,0.15), rgba(0,0,0,0.35));
-  cursor: pointer;
   transition: border-color 0.15s ease;
 }
 .dnd-cc-lineage-card:hover { border-color: var(--dcc-accent); }
+/* Two real buttons per lineage (Learn More + Select) instead of the whole card being
+   one implicit click target - a lineage-group's own top-level "Learn More" could only
+   ever describe one representative member, so each real lineage needs its own way to
+   view its own description before picking it. Stacked, not side-by-side, since the
+   grid's own 110px minimum column width can't fit two "Learn More"/"Select"-length
+   buttons in a row without wrapping or overflowing. */
+.dnd-cc-lineage-card-actions {
+  flex-direction: column;
+  width: 100%;
+  gap: 0.3rem;
+}
+.dnd-cc-lineage-card-actions .dnd-cc-card-learn-more,
+.dnd-cc-lineage-card-actions .dnd-cc-card-select {
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.66rem;
+}
 .dnd-cc-lineage-card .dnd-cc-card-icon {
   position: static;
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   padding: 0;
 }
 .dnd-cc-lineage-card .dnd-cc-card-icon img { opacity: 1; }
 .dnd-cc-lineage-name {
   font-family: var(--dcc-font-ui);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: #fff;
   text-align: center;
   text-shadow: 0 1px 3px rgba(0,0,0,0.6);
@@ -1763,7 +1972,7 @@
    state (flipped or not): front and back are both absolutely positioned to this one
    box, so neither face can ever stretch it - a stray row of content on one card
    growing the whole grid row (and every card in it) taller than its neighbors was a
-   real bug worth guarding against. */
+   real bug caught in the design pass, not a hypothetical one. */
 /* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
    cramped row of six. */
 .dnd-cc-ability-grid {
@@ -1895,22 +2104,22 @@
   cursor: pointer;
 }
 .dnd-cc-ability-icon {
-  width: 2rem;
-  height: 2rem;
+  width: 2.9rem;
+  height: 2.9rem;
   color: var(--card-accent);
   fill: currentColor;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
 }
 .dnd-cc-ability-card-abbr {
   font-family: var(--dcc-font-display);
   font-weight: 900;
-  font-size: 1rem;
+  font-size: 1.3rem;
   text-transform: uppercase;
   color: var(--card-accent);
 }
 .dnd-cc-ability-card-label {
   font-family: var(--dcc-font-ui);
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   color: var(--dcc-text-muted);
 }
 
@@ -3625,9 +3834,13 @@
 .dnd-cc-review-card {
   display: flex;
   flex-direction: column;
-  /* A long list (many proficient skills, a big spell list) scrolls internally instead
-     of growing the card - and therefore its whole grid row - without bound. */
-  max-height: 280px;
+  /* A fixed height (not just a cap) so every card in the row renders the same size
+     regardless of how much content it actually has - a short card (e.g. "No feats yet")
+     just has some breathing room at the bottom of its own box instead of the whole row
+     reading as jagged/mismatched heights. A long list (many proficient skills, a big
+     spell list) scrolls internally instead of growing the card - and therefore its
+     whole grid row - without bound. */
+  height: 280px;
   overflow-y: auto;
   padding: 0.7rem 0.9rem;
   background: var(--dcc-surface);

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.7
+
+### New
+
+- **Settings panel**: the header's separate text size / Simplify / accent color / Sources icons are now one "Settings" button, which also adds a Dark/Light theme toggle, a "Send Feedback" button (opens your email client with a pre-filled report), and a shortcut to the diagnostic report. "Start Over" stays its own header button.
+- **Light theme**: an alternative to the default dark theme, picked from the new Settings panel. Applies to the whole wizard, including the embedded advancement forms.
+- Two more accent colors (teal, rose) - 8 total now.
+- **Hide specific classes**: game masters can now hide individual classes (for example an NPC-flavored class from a supplement) from the House Rules screen, the same way individual species could already be hidden - without disabling the whole book they came from.
+- A pre-split lineage species (Elf, Tiefling, Gnome, ...) now shows real per-lineage descriptions when you click "Learn More" inside "Choose a Lineage" - previously every lineage showed the same one (alphabetically first) description regardless of which you were actually looking at. The species card's own top-level "Learn More" now explains that it's a family of lineages instead of showing one specific lineage's own story as if it applied to all of them.
+
+### Fixed
+
+- The Settings panel's accent-color swatches rendered as thin broken slivers instead of solid color squares.
+- Class/Species/Background cards showed at inconsistent sizes depending on how many happened to fit in a row, and left a large empty gap on the right at the wizard's default window size.
+- A source-group label (e.g. "SRD 5.1", shown when a species or class exists in more than one enabled book) could render nearly seven times taller than its own text, leaving a large empty gap above that group's cards.
+- The Review step's summary cards (Abilities/Skills/Feats/Equipment) could end up very different heights depending on how much each one had to show, reading as an uneven, messy grid.
+- The Settings/Sources/lineage-picker panel headers, and the window's own title bar and header buttons, were hard to read under the light theme.
+
+### Improved
+
+- The Ability Score cards' icons and labels are bigger and easier to read.
+- The lineage-picker cards (Elf/Tiefling/Gnome/...) are bigger, with a larger icon and a shorter "Lineage" button.
+
 ## 0.8.6
 
 ### Fixed
