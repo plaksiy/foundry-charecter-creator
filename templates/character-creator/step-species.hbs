@@ -43,7 +43,13 @@
           <span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Lineage.Count" count=this.lineageCount}}</span>
         </div>
         {{#if this.selected}}
+        {{#if this.hasUnresolved}}
+        <button type="button" class="dnd-cc-card-selected-ribbon dnd-cc-card-resolve-ribbon" data-choose-lineage="{{this.name}}" title="{{localize 'DND-CC.ResolvePickTooltip'}}">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{localize "DND-CC.ResolvePick"}}
+        </button>
+        {{else}}
         <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Lineage.SelectedRibbon" lineage=this.selectedLineageLabel}}</div>
+        {{/if}}
         {{else}}
         <div class="dnd-cc-card-actions">
           <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.learnMoreUuid}}">
@@ -61,7 +67,13 @@
         </div>
         {{/if}}
         {{#if this.selected}}
+        {{#if this.hasUnresolved}}
+        <button type="button" class="dnd-cc-card-selected-ribbon dnd-cc-card-resolve-ribbon" data-uuid="{{this.uuid}}" title="{{localize 'DND-CC.ResolvePickTooltip'}}">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{localize "DND-CC.ResolvePick"}}
+        </button>
+        {{else}}
         <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
+        {{/if}}
         {{else}}
         <div class="dnd-cc-card-actions">
           <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">

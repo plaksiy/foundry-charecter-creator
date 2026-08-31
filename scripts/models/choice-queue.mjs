@@ -73,9 +73,9 @@ function runAdvancementManager(manager, container) {
     // twice is harmless - the first resolve() call wins, the rest are no-ops.
     //
     // While embedded, also force `animate: false` and hide `container` immediately -
-    // even with `animate: false`, Foundry's own close() still sizes the manager's real
-    // element down to a 0-height sliver for a noticeable stretch (roughly half a second
-    // to a full second) before actually removing it, not just
+    // even with `animate: false`, Foundry's own close() still sizes
+    // the manager's real element down to a 0-height sliver for a noticeable stretch
+    // (roughly half a second to a full second) before actually removing it, not just
     // during an eased CSS transition - `animate` only skips the transition, not this
     // resize-before-removal step itself. Inside a normal floating window that's
     // invisible (the whole window is going away anyway), but inside our bounded/clipped
@@ -103,7 +103,7 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely (per `SubclassFlow.#browseCompendium`'s own source). That
+// entirely (per `SubclassFlow.#browseCompendium`'s source). That
 // meant clicking it always popped out a real floating window mid-wizard, and never got the
 // ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
 // way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
@@ -166,7 +166,13 @@ function getEmbeddedSubclassFlowClass() {
         }
         // Always re-render, success or cancel - the host div stays swapped in for the
         // flow's own real content otherwise, same rule every other embedded-browser call
-        // site in this app already follows.
+        // site in this app already follows. render() only replaces the flow's own
+        // named "content" part - it never touches this host, which was inserted as a
+        // plain sibling via replaceChildren, not as a recognized part - so a render()
+        // alone leaves it sitting in the DOM forever (hidden via runCompendiumBrowser's
+        // own close() wrapper, but still occupying its full layout height), reading as
+        // a large empty gap above the real content. Removing it explicitly is required.
+        host.remove();
         this.render();
       }
     };
@@ -251,6 +257,10 @@ function getEmbeddedAbilityScoreImprovementFlowClass() {
 
         const result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
         await applyFeat(result?.size ? Array.from(result)[0] : null);
+        // See EmbeddedSubclassFlow's own #browse for why this is required, not
+        // optional - render() alone leaves this host (a plain sibling, not a
+        // recognized part) sitting in the DOM as a large hidden-but-still-laid-out gap.
+        host.remove();
         this.render();
       }
     };
@@ -363,6 +373,12 @@ function getEmbeddedItemChoiceFlowClass() {
 
         const result = await runCompendiumBrowser(selectionOptions, host, excludedSourceSlugs);
         await applySelection(result);
+        // See EmbeddedSubclassFlow's own #browse for why this is required, not
+        // optional - render() alone leaves this host (a plain sibling, not a
+        // recognized part) sitting in the DOM as a large hidden-but-still-laid-out gap.
+        // Especially visible here since ItemChoice can repeat this cycle several times
+        // in a row (e.g. "choose 2 cantrips"), stacking one orphaned host per pick.
+        host.remove();
         this.render();
       }
     };
@@ -515,7 +531,8 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
  * Collapse every filter group and exclude the generic SRD source packs (plus any
  * ruleset-mismatched book, see excludedSourceSlugs) by default, so the results grid is
  * visible immediately instead of buried under a fully-expanded filter sidebar (Level,
- * School, several Spell List groups, Properties, and Source all expanded at once).
+ * School, several Spell List groups, Properties, and Source all expanded at once, a real
+ * complaint from live use).
  * @param {HTMLElement} browserElement
  * @param {string[]} [excludedSourceSlugs]
  */
@@ -663,9 +680,9 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
     // dnd5e replaces the whole `filters` part with a fresh element at least once after
     // the browser's first paint (its own locked-type-filter init), so this can run more
     // than once - each pass's own price filter must replace whatever an earlier pass
-    // already moved into searchRow, not pile up alongside it (without this cleanup,
-    // several re-renders left several duplicate price-range rows stacked in the search
-    // row).
+    // already moved into searchRow, not pile up alongside it (without
+    // this cleanup, several re-renders left several duplicate price-range rows stacked
+    // in the search row).
     searchRow.querySelectorAll('.filter[data-filter-id="price"]').forEach((el) => el.remove());
     const priceFilter = filtersPart.querySelector('.filter[data-filter-id="price"]');
     if (priceFilter) searchRow.append(priceFilter);
@@ -735,8 +752,8 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // (`AdvancementManager.flowsForLevel`), so a "secondary" grant on an original-class
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
-    // stops a genuinely inapplicable grant from being reported as a missed choice - a
-    // real original-class Bard's own "secondary" 1-skill/
+    // stops a genuinely inapplicable grant from being reported as a missed choice -
+    // an original-class Bard's "secondary" 1-skill/
     // 1-tool grants never appear as steps during a normal add, yet still carry an empty
     // `value` forever since nothing ever resolves them.
     if (!advancement.appliesToClass) continue;
@@ -770,7 +787,7 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     if (advancement.type === "AbilityScoreImprovement") {
       // A real completed choice is either `value.assignments` (points actually spent
       // on abilities) or `value.feat` ("choose a feat instead," the real 2024 option at
-      // some levels), per dnd5e's own AbilityScoreImprovement#
+      // some levels) - per dnd5e's own AbilityScoreImprovement#
       // apply(). An untouched advancement still carries `value: {type: "asi"}` (dnd5e
       // sets `type` eagerly, before any real choice is made), which has one real key
       // and previously satisfied the old plain `countEntries(value) === 0` check -
@@ -835,8 +852,8 @@ export function isStepComplete(actor, stepId) {
 }
 
 /**
- * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds - these
- * show up as a real `Set` for some Trait configurations (e.g. a
+ * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds -
+ * these show up as a real `Set` for some Trait configurations (e.g. a
  * Weapon Mastery pick), a plain object for others, and occasionally a `Map`. A naive
  * `.length` check silently reads `undefined` (=> treated as empty) on anything but a
  * real array, which is exactly what caused a genuinely-completed choice (a real Set

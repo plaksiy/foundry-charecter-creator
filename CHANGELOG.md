@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.5
+
+### Fixed
+
+- The Actor Directory's "Create Character"/"Resume Character"/"My Characters" buttons could wrap their own label text onto multiple lines on a narrow sidebar (most noticeable for a non-GM player), instead of the whole button moving to its own row the way Foundry's native buttons do.
+- Picking an item through an inline browser nested inside a native advancement popup (for example a spell chosen through Magic Initiate, an Ability Score Improvement's feat choice, or a Subclass pick) could leave a large empty gap in the panel afterward.
+- If a species or background's own choice (or a feat it granted, such as a human's bonus origin feat) was skipped past without answering, the character could get permanently stuck: "Next" stayed blocked, and there was no way to reopen that choice or change species/background/the stuck feat at all. Species/Background cards with an unresolved choice now show a "Resolve Missing Choice" button to redo the pick, and a stuck origin feat can now be swapped even when the "Minimum Feat Level" house rule would otherwise block picking feats. This also covers pre-split lineage species (Elf, Tiefling, Gnome, etc.).
+
 ## 0.8.3
 
 ### New

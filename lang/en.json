@@ -13,6 +13,8 @@
     "FinishTooltip": "Continue to the final Review step",
     "Select": "Select",
     "Selected": "Selected",
+    "ResolvePick": "Resolve Missing Choice",
+    "ResolvePickTooltip": "This pick still has a choice left unanswered - click to redo it and pick again",
     "StepCounter": "Step {current} of {total}",
     "Close": "Close",
     "RandomizeButton": "Randomize",

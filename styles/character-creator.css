@@ -125,9 +125,9 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them (without this,
-   a ruleset card computed to `height: 34px` while its own h3+p content spanned 48.5px,
-   overlapping the next card). `.header-control` (Foundry's native window titlebar
+   overflows the fixed box and visually overlaps whatever sits next to them.
+   Without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
+   48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
    buttons) is excluded from the font-family override specifically - it broke the Font
    Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
    to the button element itself (not a child), and our font would otherwise clobber it. */
@@ -135,9 +135,9 @@
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity, which is why a plain (non-!important) override here loses to
-   core's own button sizing despite being more specific. `!important` on a layered
-   declaration outranks a normal unlayered one,
+   selector specificity - this is exactly why a
+   plain (non-!important) override here lost to core's own button sizing despite being
+   more specific. `!important` on a layered declaration outranks a normal unlayered one,
    which is the correct, spec-sanctioned way to override core chrome from here - not a
    hack. Every button/select override in this file that fights Foundry's own default
    sizing needs `!important` for the same reason, not just this shared base rule. */
@@ -152,6 +152,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dnd-cc-review-chat-card button[data-action="dnd-cc-approve-review"],
@@ -190,7 +192,7 @@
    directly into the native ApplicationV2 window-header instead (see _onRender). The
    rail's own portrait+name block (formerly here) was removed once the Identity step
    gave name/portrait a real, more prominent home - keeping both was redundant, and the
-   rail copy wasn't obviously clickable per direct user feedback. The rail now starts
+   rail copy wasn't obviously clickable anyway. The rail now starts
    right under the native window header with just the step list. */
 
 /* Text size / Simplify / Sources / Start Over now live as native window-header
@@ -219,10 +221,10 @@
   display: none;
 }
 
-/* Extended per direct accessibility feedback: flatten every other decorative gradient
+/* Simplify mode also flattens every other decorative gradient
    sheen too (detail-panel header/icon boxes, lineage-picker cards), not just card art,
-   and drop the edition/book badge - useful metadata, but not needed to pick something,
-   so it's the "slightly less information" this mode was also asked to provide. */
+   and drops the edition/book badge - useful metadata, but not needed to pick something,
+   so it's the "slightly less information" this mode aims to provide. */
 .dnd-cc-reduce-imagery .dnd-cc-detail-header,
 .dnd-cc-reduce-imagery .dnd-cc-detail-icon,
 .dnd-cc-reduce-imagery .dnd-cc-lineage-card {
@@ -574,7 +576,7 @@
 }
 
 /* Background's two extra pills (ability options, granted feat name) read better a touch
-   bigger than the standard card pill size, per direct user feedback. */
+   bigger than the standard card pill size. */
 .dnd-cc-step-background .dnd-cc-pill { font-size: 0.72rem; }
 
 .dnd-cc-seg-group {
@@ -782,7 +784,7 @@
   padding: 0;
   display: grid;
   /* Narrower columns than the grid used before, paired with .dnd-cc-card's own
-     aspect-ratio below - per direct user feedback the old 340px-wide/190px-tall cards
+     aspect-ratio below - the old 340px-wide/190px-tall cards
      read as too wide a rectangle, with most of a card's portrait-oriented art falling
      outside the visible frame. Still auto-fill, so resizing the window reflows to more
      or fewer columns naturally, this only sets what "default" looks like. */
@@ -835,7 +837,7 @@
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
-  /* A real browser layout quirk: `overflow: hidden` on a grid item with
+  /* A real browser layout bug: `overflow: hidden` on a grid item with
      `aspect-ratio` makes Chromium's grid-row auto-sizing treat this item's contribution
      to its row's height as 0 (per the CSS Sizing spec's automatic-minimum-size carve-out
      for non-visible overflow), instead of the aspect-ratio-derived height - harmless as
@@ -843,8 +845,8 @@
      but once the merged Class/Species/Background grid (see "Add Custom now flows
      inline" below) put several rows made up *entirely* of these cards, those rows
      collapsed to a few px with every card in them rendering stacked on top of each
-     other. An explicit `min-height` was tried first and didn't work - Chromium uses
-     that exact number as the row's full contribution instead of a floor
+     other. An explicit `min-height` was tried first and didn't work -
+     Chromium uses that exact number as the row's full contribution instead of a floor
      beneath the larger aspect-ratio size, so a fixed number always either collapsed the
      row back down or clipped a wider card short. `clip-path` achieves the exact same
      visual result (clipping the art/gradient to the card's own rounded corners) without
@@ -852,7 +854,7 @@
   clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
-/* Class cards specifically go fully square, per direct user feedback that the class
+/* Class cards specifically go fully square: the class
    symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
    frame better than the 3:4 portrait ratio the other two card grids use. */
 .dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
@@ -946,6 +948,22 @@
   font-size: 0.66rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* A selected card with a real choice still left unresolved (see hasUnresolved in
+   _prepareItemListContext) gets a clickable, warning-colored ribbon instead of the
+   plain checkmark one - clicking it redoes the pick so the player can actually answer
+   what was skipped, since Species/Background have no separate "redo" control the way
+   Class does. */
+.dnd-cc-card-resolve-ribbon {
+  width: 100%;
+  cursor: pointer;
+  background: rgba(230, 160, 30, 0.25);
+  border-color: #e6a01e;
+  color: #e6a01e;
+}
+.dnd-cc-card-resolve-ribbon:hover {
+  background: rgba(230, 160, 30, 0.4);
 }
 
 .dnd-cc-card-actions {
@@ -1745,7 +1763,7 @@
    state (flipped or not): front and back are both absolutely positioned to this one
    box, so neither face can ever stretch it - a stray row of content on one card
    growing the whole grid row (and every card in it) taller than its neighbors was a
-   real bug caught in the design pass, not a hypothetical one. */
+   real bug worth guarding against. */
 /* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
    cramped row of six. */
 .dnd-cc-ability-grid {
@@ -2561,8 +2579,8 @@
   border-radius: 8px;
 }
 
-/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, per user
-   feedback that the default sizing was cramped and hard to click precisely - increased
+/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms - the
+   default sizing was cramped and hard to click precisely - increased
    again in a third pass (no artificial min-height on the container this time, which
    just left a sparse step like Hit Points looking like mostly empty space - the fix is
    actually bigger content, not a taller empty box around small content). */
@@ -2786,8 +2804,8 @@
    column that resolves to the full container height regardless of how little content
    the sidebar actually has, so a plain `max-height` cap alone just clamped that same
    fixed 100% down to a fixed 45%, leaving a large empty gap above the results whenever
-   the collapsed search row didn't need anywhere near that much room (a real case:
-   an 84px-tall search row sitting in a 173px sidebar box). `height: auto !important`
+   the collapsed search row didn't need anywhere near that much room (an 84px-tall
+   search row sitting in a 173px sidebar box, for example). `height: auto !important`
    makes it size to its real content again, with max-height still capping it once a
    player expands a filter group with a lot of options. */
 .dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"] {
@@ -3527,11 +3545,8 @@
    collapses to 0 height in block flow while the menu itself still renders at full size
    via internal positioning, and the editable content area's text then starts at that
    same collapsed y-offset, landing directly underneath/behind the toolbar buttons -
-   checked via `document.elementFromPoint` on the actual typed text's own bounding-box
-   center: under `display: block` the topmost element there was a toolbar button, not
-   the text; under `display: flex; flex-direction: column`, it's the real text node.
-   The text was never actually invisible or uncolored, it was being visually covered by
-   the toolbar the whole time. */
+   the text was never actually invisible or uncolored, it was being visually covered
+   by the toolbar the whole time. */
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;

@@ -639,16 +639,26 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const themeTable = dnd5eType === "race" ? SPECIES_THEME_COLORS : dnd5eType === "background" ? BACKGROUND_THEME_COLORS : null;
     const cardColor = (name) => (themeTable ? reviewedCardColor(name, themeTable) : hashCardColor(name));
 
+    // A selected Species/Background can itself carry an unresolved choice (e.g. a real
+    // Human's own "Versatile" bonus-feat pick clicked past without answering) - there's
+    // no dedicated "redo" control for these the way Class has, so the card's own
+    // ribbon becomes the only way back to a resolvable state (see the template: a
+    // selected card with nothing left unresolved keeps the plain non-interactive
+    // ribbon, one that still has something missing gets a clickable "Resolve" ribbon
+    // instead, wired through the exact same _selectItem redo path already fixed there).
+    const selectedHasUnresolved = Boolean(selected) && hasUnresolvedAdvancement(selected);
+
     let list = items
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((item) => ({
         ...decorateCardPills(item),
         color: cardColor(item.name),
         lightColor: lightenColor(cardColor(item.name)),
-        selected: item.name === selected?.name
+        selected: item.name === selected?.name,
+        hasUnresolved: item.name === selected?.name && selectedHasUnresolved
       }));
 
-    // Backgrounds specifically get two extra pills, per direct user request: which
+    // Backgrounds specifically get two extra pills: which
     // abilities its Ability Score Improvement can raise, and the name of the feat it
     // grants (if any) - both read from each item's own real Advancement data via a
     // full-document fetch (the lightweight index used above has no advancement data at
@@ -728,6 +738,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         custom: false,
         selected: !!selectedMember,
         selectedLineageLabel: selectedMember?.lineageLabel ?? null,
+        // Carried over from the selected member's own flat-list `hasUnresolved` (see
+        // _prepareItemListContext) - the lineage sub-picker (_showLineagePicker) calls
+        // the exact same _selectItem as any other species card, so the same redo-when-
+        // unresolved fix already covers this once the UI actually lets a player reopen
+        // it (see the template: a resolved lineage pick shows a plain ribbon with no
+        // way back in, an unresolved one needs a real clickable one instead).
+        hasUnresolved: selectedMember?.hasUnresolved ?? false,
         // "Learn More" on a lineage group has no single item of its own to describe -
         // shows whichever lineage is currently selected, or the first one alphabetically
         // as a representative starting point otherwise.
@@ -1060,11 +1077,21 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       .filter((item) => item.type === "class")
       .reduce((sum, item) => sum + item.system.levels, 0);
     const canSwapOriginFeat = areFeatsAllowedAtLevel(totalLevel);
+    // An already-granted origin feat can carry its own unresolved choice (Skilled's own
+    // 3-skill pick, clicked past without answering) - the house rule above is meant to
+    // gate *gaining* a feat, not to trap a player with no way back to a resolvable state
+    // for one that's already mandatory and granted. Swapping (to a different feat, then
+    // back to the same one) is the only redo mechanism Species/Background-granted feats
+    // have, so the dropdown needs to stay reachable whenever that's the only way out.
+    const hasUnresolvedOrigin = featItems.some(
+      (item) => item.system.type?.subtype === ORIGIN_FEAT_SUBTYPE && hasUnresolvedAdvancement(item)
+    );
+    const originSwapEnabled = canSwapOriginFeat || hasUnresolvedOrigin;
     const ruleset = this.draft.ruleset === "2014" ? "2014" : "2024";
     const originFeatTermLink = await ruleLinkHtml("originFeat", ruleset, game.i18n.localize("DND-CC.Feats.OriginFeat"));
 
     let originFeatOptions = [];
-    if (hasOriginFeat && canSwapOriginFeat) {
+    if (hasOriginFeat && originSwapEnabled) {
       const allFeats = await getStepItems("feat", this.rulesetVersions);
       originFeatOptions = allFeats
         .filter((item) => item.subtype === ORIGIN_FEAT_SUBTYPE)
@@ -1108,7 +1135,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const feats = featItems.map((item) => {
       const subtype = item.system.type?.subtype ?? null;
       const isOrigin = subtype === ORIGIN_FEAT_SUBTYPE;
-      const canSwap = isOrigin && canSwapOriginFeat;
+      const canSwap = isOrigin && originSwapEnabled;
       // A feat can carry its own unresolved pick (Skilled's 3 skill/tool proficiencies,
       // Magic Initiate's cantrips, ...) the same way a class feature can - surfaced here
       // per-row, matching the Class step's own missingHint icon, not just in the rail.
@@ -2681,8 +2708,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
     if (!confirmed) return;
 
-    // A non-GM player can't actually delete their own draft actor - Foundry reserves
-    // Actor deletion for GMs regardless of per-document ownership - so
+    // A non-GM player can't actually delete their own draft actor -
+    // Foundry reserves Actor deletion for GMs regardless of per-document ownership - so
     // "Start Over" abandons it instead (see CharacterDraft#abandon) for anyone but a GM,
     // real deletion only where it's guaranteed to succeed.
     if (game.user.isGM) await this.draft.discard();
@@ -3491,8 +3518,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * one, read straight from its real `hint` text - dnd5e itself already writes a full,
    * accurate sentence there ("Your background allows you to increase your Intelligence,
    * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
-   * increase all three by 1."), matching a real Acolyte background. Reading
-   * this instead of computing our own summary from `configuration.locked`/`points`/`cap`
+   * increase all three by 1."). Reading this instead of computing our own summary from
+   * `configuration.locked`/`points`/`cap`
    * means the preview can never drift out of sync with what the actual Advancement flow
    * will say once picked, and needs no SRD text of our own - it's the same real
    * compendium data every other "Learn More" fact on this panel already reads.
@@ -3507,8 +3534,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Short ability abbreviations (e.g. ["INT", "WIS", "CHA"]) a background/species/class's
    * own AbilityScoreImprovement advancement offers - the *unlocked* keys in its
-   * `configuration.locked` list - the real field dnd5e itself uses to mark which
-   * abilities a given ASI can't touch. Short enough for a card-level pill,
+   * `configuration.locked` list, the real field dnd5e itself uses
+   * to mark which abilities a given ASI can't touch. Short enough for a card-level pill,
    * unlike the full `hint` sentence _abilityScoreImprovementHint reads for the detail panel.
    * @param {Item} item
    * @returns {string[]}
@@ -3709,7 +3736,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * "Add Custom" - creates a homebrew placeholder World Item (still finished by hand on
    * its own item sheet afterward for anything this form doesn't cover - full Advancement
-   * authoring is out of scope here, same explicit user decision as before), or adopts an
+   * authoring is out of scope here), or adopts an
    * already-existing World Item the GM/player authored outside the wizard. Either way
    * it's a real Item with a real UUID, so it slots into the exact same list/select/
    * advancement machinery as any compendium entry - getStepItems already includes
@@ -3720,8 +3747,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid was considered but not built - this list picker
-   * covers the same "link something I already made" need with far less risk.
+   * drag-and-drop onto a card grid was considered but not built - this list
+   * picker covers the same "link something I already made" need with far less risk.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
   _showCustomItemForm(dnd5eType) {
@@ -3928,8 +3955,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const primaryAbilities = Array.from(wrapper.querySelectorAll("[data-custom-primary-ability]:checked")).map(
         (el) => el.value
       );
-      // dnd5e's own schema wants the full "d#" string - a bare number fails validation
-      // with "must be a dice value in the format d#" - not the denomination as a number.
+      // dnd5e's own schema wants the full "d#" string (a bare number
+      // fails validation with "must be a dice value in the format d#"), not the
+      // denomination as a number.
       return {
         hd: { denomination: hitDie },
         primaryAbility: { value: primaryAbilities }
@@ -3967,8 +3995,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * gets cleaned up too instead of left behind as orphans - a plain
    * deleteEmbeddedDocuments would leave granted items like a species's feats behind.
    *
-   * The old item is removed *before* the new one is added - the only order that
-   * actually works: dnd5e itself rejects a second race/background item
+   * The old item is removed *before* the new one is added - this is the
+   * only order that actually works: dnd5e itself rejects a second race/background item
    * outright while one is already on the actor ("Only a single Species can be added to
    * a Player Character", logged straight from dnd5e's own validation) - a race/
    * background genuinely can't have both on the actor even briefly, unlike class,
@@ -3985,7 +4013,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (!item) return;
 
     const existing = this.draft.actor.items.find((i) => i.type === dnd5eType);
-    if (existing && existing.name === item.name) return;
+    // Picking the exact same card again is normally a safe no-op (re-visiting an
+    // already-completed step "just to check something" shouldn't risk silently erasing
+    // it) - but if the existing pick still has a real choice left unresolved (e.g. a
+    // background's own origin feat, like Skilled, whose own skill choice was clicked
+    // past without answering), there's otherwise no way to actually fix that: Species/
+    // Background have no per-item "redo" control the way Class does, and the origin-feat
+    // swap dropdown treats re-picking the same feat as a no-op too. Letting the same
+    // card force a real redo in that one case is the only way back to a resolvable state.
+    if (existing && existing.name === item.name && !hasUnresolvedAdvancement(existing)) return;
     if (existing) {
       const confirmed = await this._confirmItemReplace(existing, item);
       if (!confirmed) return;
@@ -4008,8 +4044,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // tagging (flags.<module>.equipmentSource), never through dnd5e's real Advancement -
     // removeItemWithAdvancement above has no way to know it exists, so swapping
     // backgrounds left the old kit sitting on the actor forever, tagged to a background
-    // that no longer exists (swapping Soldier for Sage left all 7 Soldier-granted
-    // items behind). Species never grants equipment, so this only
+    // that no longer exists. Species never grants equipment, so this only
     // applies to background. Runs regardless of whether the new background's own
     // Advancement flow completed or was cancelled, since the old background (and
     // whatever it granted) is already gone either way once `existing` was removed above.
@@ -4206,10 +4241,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // flags.dnd5e.advancementOrigin - dnd5e's own Advancement reversal below has no
     // way to know about them, since they were never granted through an Advancement
     // flow in the first place. Left alone, removing the class orphans them: they stay
-    // on the actor forever, tagged to a class identifier that no longer exists (build
-    // a Fighter, add spells via the Spells step, remove Fighter, add a different
-    // class: the old Fighter-tagged spells were still sitting there). Cleaned up
-    // explicitly here, the same way _clearEquipmentSource already handles
+    // on the actor forever, tagged to a class identifier that no longer exists.
+    // Cleaned up explicitly here, the same way _clearEquipmentSource already handles
     // the equivalent gap for equipment below.
     const classSourceKey = `class:${classItem.system.identifier}`;
     const orphanedSpells = this.draft.actor.items.filter(
@@ -4355,8 +4388,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * dnd5e has a real API built for exactly this, `AdvancementManager.forModifyChoices`,
    * but it never actually populates its own `.element` the way `forNewItem`/
    * `forDeletedItem`/`forLevelChange` do, so embedding it the same way just produces an
-   * empty host, checked directly against the running manager instance.
-   * Removing and re-adding the class (reusing the same primitives every other swap in
+   * empty host. Removing and re-adding the class (reusing the same primitives every other swap in
    * this app already relies on) redoes every choice from scratch rather than only the
    * missing one, which is more disruptive than a true "resume where I left off" would
    * be, but it's a real, working path instead of a broken one.
@@ -4416,9 +4448,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         // instead of leaving the actor with no class at all. dnd5e only writes a
         // Trait/ItemGrant advancement's resolved value onto the actor's real derived
         // traits (armor/weapon proficiencies, etc.) as a side effect of a manager flow
-        // actually running - directly recreating an item from already-resolved data,
-        // with no manager involved, leaves those derived traits empty even though the
-        // item's own stored advancement values look complete. So
+        // actually running - directly recreating an item from
+        // already-resolved data, with no manager involved, leaves those derived traits
+        // empty even though the item's own stored advancement values look complete. So
         // this still has to go through a real flow, not a plain re-create - it's just a
         // much lighter one than the original redo, since every step already shows its
         // previous answer instead of asking again, and only needs Next clicked through.
@@ -4451,9 +4483,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Add a feat found through the general "Browse Feats" grid - separate from
    * _changeOriginFeat's swap, this is a plain add with nothing to remove automatically.
-   * Warns (does not block) on two things (piling up two Origin feats and two Fighting
-   * Style feats is otherwise possible with no guard at all): the character's total
-   * level not meeting the feat's own real
+   * Warns (does not block) on two things (piling up two Origin feats and two
+   * Fighting Style feats with no guard at
+   * all): the character's total level not meeting the feat's own real
    * `system.prerequisites.level` yet, and already having another feat of the same
    * "normally singular" subtype (`origin`/`fightingStyle` - the two subtypes a
    * character's own granting sources, like a background or a Fighter's level-1 choice,
@@ -4629,9 +4661,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data (a real Dwarf
-    // Fighter build once showed HP as 10/13 at Review, not 13/13). A brand new character
-    // should always start at full health regardless of pick order, so top it off here.
+    // afterward without current following, since current isn't derived data. A brand new
+    // character should always start at full health regardless of pick order, so top it off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }

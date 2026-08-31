@@ -44,7 +44,13 @@
         </div>
         {{/if}}
         {{#if this.selected}}
+        {{#if this.hasUnresolved}}
+        <button type="button" class="dnd-cc-card-selected-ribbon dnd-cc-card-resolve-ribbon" data-uuid="{{this.uuid}}" title="{{localize 'DND-CC.ResolvePickTooltip'}}">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{localize "DND-CC.ResolvePick"}}
+        </button>
+        {{else}}
         <div class="dnd-cc-card-selected-ribbon"><i class="fa-solid fa-check"></i> {{localize "DND-CC.Selected"}}</div>
+        {{/if}}
         {{else}}
         <div class="dnd-cc-card-actions">
           <button type="button" class="dnd-cc-card-learn-more" data-learn-more="{{this.uuid}}">
