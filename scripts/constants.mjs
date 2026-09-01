@@ -1,7 +1,7 @@
 export const MODULE_ID = "foundryvtt-dnd-charecter-creator";
 
-/** Where the Settings panel's Feedback button sends a player's mailto: message. */
-export const FEEDBACK_EMAIL = "plaksiyillya@gmail.com";
+/** Where the Settings panel's website button opens - module page, docs, and back. */
+export const MODULE_WEBSITE_URL = "https://plaksiy.dev";
 
 export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
@@ -50,8 +50,9 @@ export const ORIGIN_FEAT_SUBTYPE = "origin";
 export const EQUIPMENT_ITEM_TYPES = ["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"];
 
 /**
- * Invented, generic fantasy character names for the Identity step's "Randomize"
- * button - a mix of short single names and two-part names. None of these are
+ * 100 invented, generic fantasy character names for the Identity step's "Randomize"
+ * button - a mix of short single names and two-part names, so short one-word options
+ * are available alongside longer ones. None of these are
  * drawn from any book, setting, or media property - safe, structural placeholder data
  * the same way LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
  */
@@ -119,8 +120,9 @@ export const CLASS_COMPLEXITY = {
  * keyed to the actual dominant non-neutral color in that class's real dnd5e/PHB icon art
  * (e.g. Cleric's icon background is a bright blue starfield, Sorcerer's is electric-blue
  * lightning, Wizard's is gold-lit), not a generic per-class stereotype. Fighter/Monk/
- * Paladin/Ranger intentionally diverge from their icon's own dominant tone by design. A
- * class not listed here (homebrew, third-party) falls back to the
+ * Paladin/Ranger were kept as explicit prior user choices even where they diverge from
+ * their icon's own dominant tone - a deliberate design decision from an earlier round,
+ * not an oversight. A class not listed here (homebrew, third-party) falls back to the
  * deterministic name-hash color every other card type uses (hashCardColor).
  */
 export const CLASS_THEME_COLORS = {

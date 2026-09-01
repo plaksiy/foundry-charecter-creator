@@ -64,9 +64,9 @@
       "ThemeDark": "Dark",
       "ThemeLight": "Light"
     },
-    "Feedback": {
-      "ButtonLabel": "Send Feedback",
-      "BodyPlaceholder": "Write your feedback, bug report, or feature request here..."
+    "Website": {
+      "ButtonLabel": "Visit plaksiy.dev",
+      "ButtonTitle": "Module page, documentation, and feedback"
     },
     "Discard": {
       "ButtonLabel": "Start Over",
@@ -95,14 +95,22 @@
       "ReduceImageryTitle": "Hide card artwork, gradients, and the edition badge, and show plain colored cards instead",
       "AccentColorLabel": "Accent color",
       "AccentColorOption": "Accent color: {color} (click to change)",
+      "MoreAccentsLabel": "More Colors & Gradients",
+      "CustomColorLabel": "Custom Color",
+      "CustomGradientLabel": "Custom Gradient",
       "AccentNeutral": "Neutral",
       "AccentRed": "Red",
       "AccentBlue": "Blue",
+      "AccentYellow": "Yellow",
       "AccentViolet": "Violet",
       "AccentGreen": "Green",
       "AccentAmber": "Amber",
       "AccentTeal": "Teal",
-      "AccentRose": "Rose"
+      "AccentRose": "Rose",
+      "GradientSunset": "Sunset",
+      "GradientOcean": "Ocean",
+      "GradientRoyal": "Royal",
+      "GradientForest": "Forest"
     },
     "GmAssist": {
       "WindowTitle": "Assisting: {name}"

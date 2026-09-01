@@ -132,6 +132,28 @@ Hooks.once("init", () => {
     default: "dark"
   });
 
+  // Backing storage for the Settings panel's own color picker and two-color gradient
+  // builder - only read/applied when accentColor is "custom"/"custom-gradient", so these
+  // three keep whatever the player last picked even while a preset is active.
+  game.settings.register(MODULE_ID, "customAccentColor", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "#8064f2"
+  });
+  game.settings.register(MODULE_ID, "customAccentGradientFrom", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "#7c5cff"
+  });
+  game.settings.register(MODULE_ID, "customAccentGradientTo", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "#22d3ee"
+  });
+
   const loadTemplates = foundry.applications.handlebars.loadTemplates;
   loadTemplates([
     `modules/${MODULE_ID}/templates/character-creator/step-ruleset.hbs`,
@@ -281,8 +303,8 @@ Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
 // itself does (see renderChatMessageHTML below, which disables it for a non-GM viewer
 // unless the `allowSelfLevelUp` house rule allows self-service). `xp.max` is dnd5e's own
 // real derived "XP needed for the *next*
-// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`),
-// so eligibility is a plain `value >= max` read off the actor's
+// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`), so
+// eligibility is a plain `value >= max` read off the actor's
 // own already-computed data - no separate threshold table of our own needed.
 // `game.user.isActiveGM` (not a plain isGM check) ensures exactly one connected client
 // fires this, even if more than one GM happens to be online - `updateActor` fires on every

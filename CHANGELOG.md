@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.8
+
+### New
+
+- **Accent colors reorganized**: the Settings panel now shows 5 primary colors (Neutral, Red, Blue, Yellow, Green) up front, with a "More Colors & Gradients" section for the rest - 4 more solid colors plus 4 built-in two-color gradients.
+- **Custom color and custom gradient**: pick any color you want, or build your own two-color gradient, from the same expanded section. Your choice is remembered.
+- The Settings panel's website button now opens the module's own site (plaksiy.dev) - module page and documentation, in one click - instead of opening your email client.
+
 ## 0.8.7
 
 ### New

@@ -46,9 +46,9 @@
       "ThemeDark": "Темна",
       "ThemeLight": "Світла"
     },
-    "Feedback": {
-      "ButtonLabel": "Надіслати відгук",
-      "BodyPlaceholder": "Напишіть тут свій відгук, повідомлення про баг або пропозицію..."
+    "Website": {
+      "ButtonLabel": "Відвідати plaksiy.dev",
+      "ButtonTitle": "Сторінка модуля, документація та відгуки"
     },
     "Discard": {
       "ButtonLabel": "Почати заново",
@@ -67,7 +67,10 @@
       "FontSizeLabel": "Розмір тексту",
       "FontSizeOption": "Розмір тексту: {size}",
       "ReduceImageryLabel": "Спростити",
-      "ReduceImageryTitle": "Сховати арт на картках і показувати прості кольорові картки"
+      "ReduceImageryTitle": "Сховати арт на картках і показувати прості кольорові картки",
+      "MoreAccentsLabel": "Більше кольорів і градієнтів",
+      "CustomColorLabel": "Свій колір",
+      "CustomGradientLabel": "Свій градієнт"
     },
     "GmAssist": {
       "WindowTitle": "Допомога: {name}"

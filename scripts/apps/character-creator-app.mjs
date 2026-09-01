@@ -9,7 +9,7 @@ import {
   CLASS_THEME_COLORS,
   COMPLEXITY_LEVELS,
   EQUIPMENT_ITEM_TYPES,
-  FEEDBACK_EMAIL,
+  MODULE_WEBSITE_URL,
   LIFESTYLE_TIERS,
   MAX_CLASS_LEVEL,
   MODULE_ID,
@@ -281,22 +281,56 @@ const FONT_SCALE_OPTIONS = [
 ];
 
 /**
- * Accent color options for the toolbar's color picker - "neutral" (a bone/silver tone,
- * not red) is the default per the colorblind-accessibility fix; "red" keeps today's
- * color available for anyone who wants it back. Each key matches a `.dnd-cc-accent-*`
- * CSS class defined in character-creator.css (neutral needs no class - it's the base
- * `.application.dnd-cc` definition itself).
+ * Accent color options for the Settings panel's color picker - "neutral" (a bone/
+ * silver tone, not red) is the default per the colorblind-accessibility fix; "red"
+ * keeps today's color available for anyone who wants it back. Each key matches a
+ * `.dnd-cc-accent-*` CSS class defined in character-creator.css (neutral needs no
+ * class - it's the base `.application.dnd-cc` definition itself). Split into a
+ * "primary" row (always visible) and a "more" row (behind the panel's own "More
+ * Colors & Gradients" toggle) so the common case - five solid colors - doesn't get
+ * crowded by every option at once.
  */
-const ACCENT_COLOR_OPTIONS = [
+const ACCENT_COLOR_PRIMARY = [
   { value: "neutral", labelKey: "DND-CC.Accessibility.AccentNeutral", swatch: "#e6e1d6" },
   { value: "red", labelKey: "DND-CC.Accessibility.AccentRed", swatch: "#df0000" },
   { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#4f7fd9" },
+  { value: "yellow", labelKey: "DND-CC.Accessibility.AccentYellow", swatch: "#d9b823" },
+  { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#2f9e44" }
+];
+const ACCENT_COLOR_MORE = [
   { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
-  { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#2f9e44" },
   { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" },
   { value: "teal", labelKey: "DND-CC.Accessibility.AccentTeal", swatch: "#1f9b8f" },
   { value: "rose", labelKey: "DND-CC.Accessibility.AccentRose", swatch: "#d6488a" }
 ];
+const ACCENT_GRADIENT_OPTIONS = [
+  { value: "gradient-sunset", labelKey: "DND-CC.Accessibility.GradientSunset", swatch: "linear-gradient(135deg, #df0000, #d99a2b)" },
+  { value: "gradient-ocean", labelKey: "DND-CC.Accessibility.GradientOcean", swatch: "linear-gradient(135deg, #4f7fd9, #1f9b8f)" },
+  { value: "gradient-royal", labelKey: "DND-CC.Accessibility.GradientRoyal", swatch: "linear-gradient(135deg, #9a63d1, #d6488a)" },
+  { value: "gradient-forest", labelKey: "DND-CC.Accessibility.GradientForest", swatch: "linear-gradient(135deg, #2f9e44, #d9b823)" }
+];
+// The full flat list - used wherever every option needs considering regardless of
+// which row it lives in (the active-swatch lookup, clearing every possible class
+// before applying the current one, ...).
+const ACCENT_COLOR_OPTIONS = [...ACCENT_COLOR_PRIMARY, ...ACCENT_COLOR_MORE, ...ACCENT_GRADIENT_OPTIONS];
+
+/**
+ * A readable text color (near-white or near-black) for a solid background hex, using
+ * the standard YIQ perceptive-brightness formula - the same "pick a legible contrast
+ * pair" need every preset accent's own hardcoded --dcc-accent-contrast value already
+ * covers, generalized here since a player-chosen custom color can't have one
+ * hardcoded in advance.
+ */
+function contrastForHex(hex) {
+  const match = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? "").trim());
+  if (!match) return "#ffffff";
+  const value = match[1];
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? "#141210" : "#ffffff";
+}
 
 /**
  * The window's default size - fixed regardless of the text-size setting (see
@@ -662,7 +696,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         hasUnresolved: item.name === selected?.name && selectedHasUnresolved
       }));
 
-    // Backgrounds specifically get two extra pills: which
+    // Backgrounds specifically get two extra pills, per direct user request: which
     // abilities its Ability Score Improvement can raise, and the name of the feat it
     // grants (if any) - both read from each item's own real Advancement data via a
     // full-document fetch (the lightweight index used above has no advancement data at
@@ -793,7 +827,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         levelOptions.push({ value, selected: value === item.system.levels });
       }
       const missing = unresolvedAdvancementTitles(item, item.system.levels);
-      // A live class Item's primaryAbility.value is a real Set, not an
+      // A class Item's primaryAbility.value is a real Set, not an
       // array - a plain .length check silently reads undefined (=> always falsy) on it,
       // the same Set-vs-array gotcha documented in choice-queue.mjs's countEntries.
       // Array.from normalizes a Set, an Array, or nothing uniformly.
@@ -1242,7 +1276,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the class item's own `system.spellcasting`, but a third-caster subclass (Eldritch
    * Knight, Arcane Trickster) grants spellcasting entirely through the *subclass*: the
    * class item's own block stays at `progression: "none"` with `type`/`ability` blank
-   * and `preparation.max: 0`, while the
+   * and `preparation.max: 0` (true of Eldritch Knight), while the
    * subclass's own `system.spellcasting` carries the real, fully-resolved values
    * (`progression: "third"`, `type: "spell"`, `ability: "int"`, `preparation.max: 3`).
    * Reading the class-level block unconditionally in this situation silently produced
@@ -1264,8 +1298,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * spelling and which item actually carries it varies by caster type, so every shape
    * has to be checked rather than assumed: a full/pact caster's own class-identifier
    * scale entry uses `cantrips-known` (Wizard, Sorcerer, Warlock, ...); Artificer's own
-   * class scale entry instead uses the plain key `cantrips` (Artificer
-   * showed 0 cantrips at level 1 despite a real `{cantrips: {value: 2}}` scale entry,
+   * class scale entry instead uses the plain key `cantrips` (Artificer otherwise
+   * shows 0 cantrips at level 1 despite a real `{cantrips: {value: 2}}` scale entry,
    * because the lookup only ever checked `cantrips-known` for the class's own scale); and
    * a third-caster subclass like Eldritch Knight defines it on the *subclass's* own scale
    * instead of the class's, under either key spelling. Checked in that order so every
@@ -1291,8 +1325,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Leveled-spell cap for a spellcasting class - almost always `preparation.max`
    * (`simplifyBonus(preparation.formula, rollData)`, computed by dnd5e itself), but a
-   * 2014-rule "known" caster (Sorcerer, Bard, Warlock, Ranger, per
-   * the real dnd5e.classes pack) has no `preparation.formula` at all: the 2024 pack
+   * 2014-rule "known" caster (Sorcerer, Bard, Warlock, Ranger - true of every one of
+   * them in the real dnd5e.classes pack) has no `preparation.formula` at all: the 2024 pack
    * gives every spellcasting class a real formula referencing a shared "max-prepared"
    * scale value, but the legacy pack never got that treatment - "Spells Known" there is
    * only a plain descriptive `ScaleValue` advancement (identifier "spells-known") never
@@ -1676,7 +1710,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
               : null,
             // An "(a) Greataxe or (b) any martial melee weapon"-style pick is a real OR
             // node with its own children (a fixed "linked" alternative plus a category
-            // one) - a real shape found on a real Barbarian kit, one the original
+            // one) - occurs on a real Barbarian kit, a shape the original
             // resolveBranch implementation anticipated ("not seen in any sampled
             // content but handled defensively") but never actually got UI for, so it
             // silently did nothing when picked. Each child already has a real, correct
@@ -2079,9 +2113,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * browser already shows correctly on its own, with nothing else on either step
    * visually depending on it. A full `.dnd-cc-content` re-render on every blur used to
    * run right as the player clicked into the *next* field, landing that click during a
-   * DOM swap and leaving its focus/selection in a broken state - a real bug (typing in
-   * one field, then clicking a different one, misplaced the second field's cursor)
-   * before this was removed.
+   * DOM swap and leaving its focus/selection in a broken state (typing in one field,
+   * then clicking a different one, misplaced the second field's cursor) before this
+   * re-render was removed.
    */
   async _updateAboutField(path, value) {
     await this.draft.actor.update({ [path]: value });
@@ -2627,7 +2661,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. As a real non-GM "player" user,
+   * Change the character's portrait. For a real non-GM "player" user,
    * Foundry's FilePicker requires the FILES_BROWSE permission, which the Player role
    * doesn't have by default - same class of gap as Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
@@ -2852,14 +2886,39 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // in character-creator.css already, so removing every accent class covers it.
     ACCENT_COLOR_OPTIONS.forEach((option) => root.classList.remove(`dnd-cc-accent-${option.value}`));
     const accentColor = String(game.settings.get(MODULE_ID, "accentColor"));
-    if (accentColor !== "neutral") root.classList.add(`dnd-cc-accent-${accentColor}`);
+    if (accentColor !== "neutral" && accentColor !== "custom" && accentColor !== "custom-gradient") {
+      root.classList.add(`dnd-cc-accent-${accentColor}`);
+    }
+
+    // A player-chosen color/gradient has no CSS class of its own (there's nothing to
+    // author in advance for an arbitrary hex) - set the same four tokens every preset
+    // class sets, directly as inline styles, and clear them the rest of the time so a
+    // stale inline value can never outrank a real preset class (inline style always
+    // wins over any stylesheet rule regardless of cascade layer).
+    const customProps = ["--dcc-accent", "--dcc-accent-bg", "--dcc-accent-contrast", "--dcc-border-strong"];
+    if (accentColor === "custom") {
+      const hex = String(game.settings.get(MODULE_ID, "customAccentColor"));
+      root.style.setProperty("--dcc-accent", hex);
+      root.style.setProperty("--dcc-accent-bg", hex);
+      root.style.setProperty("--dcc-accent-contrast", contrastForHex(hex));
+      root.style.setProperty("--dcc-border-strong", hex);
+    } else if (accentColor === "custom-gradient") {
+      const from = String(game.settings.get(MODULE_ID, "customAccentGradientFrom"));
+      const to = String(game.settings.get(MODULE_ID, "customAccentGradientTo"));
+      root.style.setProperty("--dcc-accent", from);
+      root.style.setProperty("--dcc-accent-bg", `linear-gradient(135deg, ${from}, ${to})`);
+      root.style.setProperty("--dcc-accent-contrast", contrastForHex(from));
+      root.style.setProperty("--dcc-border-strong", from);
+    } else {
+      customProps.forEach((prop) => root.style.removeProperty(prop));
+    }
 
     root.classList.toggle("dnd-cc-theme-light", String(game.settings.get(MODULE_ID, "theme")) === "light");
 
     this._renderHeaderToolbar();
 
-    // A GM Progress Dashboard quick level control opened this session with a level
-    // change already queued up - apply it once the draft/actor is actually ready rather
+    // A GM Progress Dashboard quick level control may have opened this window with a
+    // level change already queued up - apply it once the draft/actor is actually ready rather
     // than mutating anything from the dashboard itself, so the GM lands directly in
     // whatever embedded Advancement flow that change triggers (HP roll, ASI, subclass
     // pick, ...) instead of it happening silently in the background. Deferred to a fresh
@@ -3497,7 +3556,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * one, read straight from its real `hint` text - dnd5e itself already writes a full,
    * accurate sentence there ("Your background allows you to increase your Intelligence,
    * Wisdom, and Charisma scores; increase one of them by 2 and a different one by 1, or
-   * increase all three by 1."). Reading
+   * increase all three by 1."), true for a real Acolyte background. Reading
    * this instead of computing our own summary from `configuration.locked`/`points`/`cap`
    * means the preview can never drift out of sync with what the actual Advancement flow
    * will say once picked, and needs no SRD text of our own - it's the same real
@@ -3513,7 +3572,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Short ability abbreviations (e.g. ["INT", "WIS", "CHA"]) a background/species/class's
    * own AbilityScoreImprovement advancement offers - the *unlocked* keys in its
-   * `configuration.locked` list, the real field dnd5e itself uses
+   * `configuration.locked` list - the real field dnd5e itself uses
    * to mark which abilities a given ASI can't touch. Short enough for a card-level pill,
    * unlike the full `hint` sentence _abilityScoreImprovementHint reads for the detail panel.
    * @param {Item} item
@@ -3787,12 +3846,36 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   }
 
   /**
+   * One accent swatch button. A gradient option's `swatch` value is a real
+   * `linear-gradient(...)` CSS value rather than a plain hex color, so this always sets
+   * `background` (which accepts either) instead of `background-color` (which would
+   * silently ignore a gradient string and leave the swatch blank). "Neutral" has no
+   * fixed color of its own - it's just each theme's own default accent token - so its
+   * preview swatch is resolved against the currently-active theme instead of the
+   * option's own static `swatch` value, otherwise it would show the dark theme's own
+   * light tone even while the light theme is active (where neutral is actually dark).
+   */
+  _accentSwatchHtml(option, accentValue, theme) {
+    const esc = this._escapeHtml.bind(this);
+    const label = esc(game.i18n.localize(option.labelKey));
+    const swatch = option.value === "neutral"
+      ? (theme === "light" ? "#2a251e" : "#e6e1d6")
+      : option.swatch;
+    return `
+      <button type="button" class="dnd-cc-settings-swatch ${accentValue === option.value ? "active" : ""}"
+        style="background:${esc(swatch)}" data-set-accent="${esc(option.value)}"
+        aria-label="${label}" data-tooltip="${label}">
+      </button>
+    `;
+  }
+
+  /**
    * The single consolidated player-facing Settings panel - theme, accent color, text
-   * size, Simplify, a shortcut into the Sources panel, Feedback, and the diagnostic
-   * report, all in one place instead of a growing row of individually-learned header
-   * icons. Every control here writes straight to the same client-scoped settings the
-   * old per-icon toolbar buttons already used - this is a presentation change, not a new
-   * preference model.
+   * size, Simplify, a shortcut into the Sources panel, the module website, and the
+   * diagnostic report, all in one place instead of a growing row of individually-learned
+   * header icons. Every control here writes straight to the same client-scoped settings
+   * the old per-icon toolbar buttons already used - this is a presentation change, not a
+   * new preference model.
    */
   _showSettingsPanel() {
     const esc = this._escapeHtml.bind(this);
@@ -3800,6 +3883,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
     const fontScaleValue = String(game.settings.get(MODULE_ID, "fontScale"));
     const reduceImagery = game.settings.get(MODULE_ID, "reduceImagery");
+    const accentIsExtra = ACCENT_COLOR_MORE.some((o) => o.value === accentValue)
+      || ACCENT_GRADIENT_OPTIONS.some((o) => o.value === accentValue)
+      || accentValue === "custom" || accentValue === "custom-gradient";
+    const customColorValue = String(game.settings.get(MODULE_ID, "customAccentColor"));
+    const customGradientFrom = String(game.settings.get(MODULE_ID, "customAccentGradientFrom"));
+    const customGradientTo = String(game.settings.get(MODULE_ID, "customAccentGradientTo"));
 
     const wrapper = document.createElement("div");
     wrapper.className = "dnd-cc-detail-modal dnd-cc-settings-panel";
@@ -3828,12 +3917,26 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         <div class="dnd-cc-settings-section">
           <h3>${esc(game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"))}</h3>
           <div class="dnd-cc-settings-swatch-row">
-            ${ACCENT_COLOR_OPTIONS.map((option) => `
-              <button type="button" class="dnd-cc-settings-swatch ${accentValue === option.value ? "active" : ""}"
-                style="background-color:${esc(option.swatch)}" data-set-accent="${esc(option.value)}"
-                aria-label="${esc(game.i18n.localize(option.labelKey))}" data-tooltip="${esc(game.i18n.localize(option.labelKey))}">
-              </button>
-            `).join("")}
+            ${ACCENT_COLOR_PRIMARY.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+          </div>
+          <button type="button" class="dnd-cc-settings-more-toggle" data-toggle-more-accents>
+            <i class="fa-solid fa-palette"></i> ${esc(game.i18n.localize("DND-CC.Accessibility.MoreAccentsLabel"))}
+          </button>
+          <div class="dnd-cc-settings-swatch-row dnd-cc-settings-swatch-row-more" ${accentIsExtra ? "" : "hidden"}>
+            ${ACCENT_COLOR_MORE.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+            ${ACCENT_GRADIENT_OPTIONS.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+          </div>
+
+          <div class="dnd-cc-settings-custom-row" ${accentIsExtra ? "" : "hidden"}>
+            <label class="dnd-cc-settings-custom-item ${accentValue === "custom" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}">
+              <input type="color" value="${esc(customColorValue)}" data-custom-color />
+              <span>${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}</span>
+            </label>
+            <div class="dnd-cc-settings-custom-item dnd-cc-settings-custom-gradient ${accentValue === "custom-gradient" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}">
+              <input type="color" value="${esc(customGradientFrom)}" data-custom-gradient-from />
+              <input type="color" value="${esc(customGradientTo)}" data-custom-gradient-to />
+              <span>${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}</span>
+            </div>
           </div>
         </div>
 
@@ -3859,8 +3962,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           <button type="button" class="dnd-cc-settings-action" data-open-sources>
             <i class="fa-solid fa-book-atlas"></i> ${esc(game.i18n.localize("DND-CC.Sources.ButtonLabel"))}
           </button>
-          <button type="button" class="dnd-cc-settings-action" data-open-feedback>
-            <i class="fa-solid fa-comment-dots"></i> ${esc(game.i18n.localize("DND-CC.Feedback.ButtonLabel"))}
+          <button type="button" class="dnd-cc-settings-action" data-open-website>
+            <i class="fa-solid fa-globe"></i> ${esc(game.i18n.localize("DND-CC.Website.ButtonLabel"))}
           </button>
           <button type="button" class="dnd-cc-settings-action" data-open-diagnostics>
             <i class="fa-solid fa-stethoscope"></i> ${esc(game.i18n.localize("DND-CC.Diagnostics.ButtonLabel"))}
@@ -3894,6 +3997,31 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    wrapper.querySelector("[data-toggle-more-accents]")?.addEventListener("click", () => {
+      const nowHidden = !wrapper.querySelector(".dnd-cc-settings-swatch-row-more")?.hidden;
+      wrapper.querySelectorAll(".dnd-cc-settings-swatch-row-more, .dnd-cc-settings-custom-row").forEach((row) => {
+        row.hidden = nowHidden;
+      });
+    });
+
+    wrapper.querySelector("[data-custom-color]")?.addEventListener("change", async (event) => {
+      await game.settings.set(MODULE_ID, "customAccentColor", event.currentTarget.value);
+      await game.settings.set(MODULE_ID, "accentColor", "custom");
+      await reopen();
+    });
+
+    const applyCustomGradient = async () => {
+      const from = wrapper.querySelector("[data-custom-gradient-from]")?.value;
+      const to = wrapper.querySelector("[data-custom-gradient-to]")?.value;
+      if (!from || !to) return;
+      await game.settings.set(MODULE_ID, "customAccentGradientFrom", from);
+      await game.settings.set(MODULE_ID, "customAccentGradientTo", to);
+      await game.settings.set(MODULE_ID, "accentColor", "custom-gradient");
+      await reopen();
+    };
+    wrapper.querySelector("[data-custom-gradient-from]")?.addEventListener("change", applyCustomGradient);
+    wrapper.querySelector("[data-custom-gradient-to]")?.addEventListener("change", applyCustomGradient);
+
     wrapper.querySelectorAll("[data-set-font-scale]").forEach((el) => {
       el.addEventListener("click", async () => {
         await game.settings.set(MODULE_ID, "fontScale", el.dataset.setFontScale);
@@ -3907,39 +4035,21 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
 
     wrapper.querySelector("[data-open-sources]")?.addEventListener("click", () => this._showSourceFilter());
-    wrapper.querySelector("[data-open-feedback]")?.addEventListener("click", () => this._openFeedbackEmail());
+    wrapper.querySelector("[data-open-website]")?.addEventListener("click", () => this._openModuleWebsite());
     wrapper.querySelector("[data-open-diagnostics]")?.addEventListener("click", () => this._copyDiagnosticReport());
 
     this._showOverlay(wrapper);
   }
 
   /**
-   * Opens the player's own email client with a feedback message pre-addressed to the
-   * module author and pre-filled with the same short environment block the diagnostic
-   * report already gathers, so a bug report or a feature request naturally comes with
-   * the version/step context needed to act on it - the player only has to write the
-   * actual feedback text. A plain `mailto:` link needs no server, no API key, and no
-   * telemetry of any kind (matching this module's own "fully local" README claim) - the
-   * tradeoff is it only works if the player's OS has a mail client configured to handle
-   * `mailto:` links at all, which this can't detect or work around.
+   * Opens the module's own website in a new browser tab - documentation, feedback, and
+   * anything else the site grows to cover, all reachable without leaving Foundry open in
+   * the background. A genuine page load (unlike a `mailto:` link), so this uses
+   * `window.open` rather than a plain navigation, leaving the wizard itself untouched in
+   * its own tab.
    */
-  _openFeedbackEmail() {
-    const moduleData = game.modules.get(MODULE_ID);
-    const subject = `${game.i18n.localize("DND-CC.WindowTitle")} feedback (v${moduleData?.version ?? "?"})`;
-    const body = [
-      game.i18n.localize("DND-CC.Feedback.BodyPlaceholder"),
-      "",
-      "---",
-      `Module version: ${moduleData?.version ?? "unknown"}`,
-      `Foundry version: ${game.version}`,
-      `dnd5e system version: ${game.system?.version ?? "unknown"}`
-    ].join("\n");
-
-    // A plain navigation (not window.open) - a mailto: URL never actually loads a page,
-    // it just hands off to the OS's registered mail handler, so there's no document to
-    // show in a new tab and window.open would just leave one stray blank tab behind.
-    const mailto = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
+  _openModuleWebsite() {
+    window.open(MODULE_WEBSITE_URL, "_blank");
   }
 
   /**
@@ -3956,7 +4066,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * description, see _customFormExtraFields/_readCustomFormExtraFields) and "Use
    * Existing" (adopt an already-existing world Item of the right type by flagging it
    * homebrewStub, rather than only ever starting from a blank placeholder). Real
-   * drag-and-drop onto a card grid was considered but not built this pass - this list
+   * drag-and-drop onto a card grid was considered but not built - this list
    * picker covers the same "link something I already made" need with far less risk.
    * @param {"class"|"race"|"background"|"feat"|"spell"} dnd5eType
    */
@@ -4164,8 +4274,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       const primaryAbilities = Array.from(wrapper.querySelectorAll("[data-custom-primary-ability]:checked")).map(
         (el) => el.value
       );
-      // dnd5e's own schema wants the full "d#" string (a bare number
-      // fails validation with "must be a dice value in the format d#"), not the
+      // dnd5e's own schema wants the full "d#" string - a bare number
+      // fails validation with "must be a dice value in the format d#" - not the
       // denomination as a number.
       return {
         hd: { denomination: hitDie },
@@ -4253,7 +4363,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // tagging (flags.<module>.equipmentSource), never through dnd5e's real Advancement -
     // removeItemWithAdvancement above has no way to know it exists, so swapping
     // backgrounds left the old kit sitting on the actor forever, tagged to a background
-    // that no longer exists. Species never grants equipment, so this only
+    // that no longer exists (swapping Soldier for Sage would otherwise leave all 7
+    // Soldier-granted items behind). Species never grants equipment, so this only
     // applies to background. Runs regardless of whether the new background's own
     // Advancement flow completed or was cancelled, since the old background (and
     // whatever it granted) is already gone either way once `existing` was removed above.
@@ -4450,7 +4561,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // flags.dnd5e.advancementOrigin - dnd5e's own Advancement reversal below has no
     // way to know about them, since they were never granted through an Advancement
     // flow in the first place. Left alone, removing the class orphans them: they stay
-    // on the actor forever, tagged to a class identifier that no longer exists.
+    // on the actor forever, tagged to a class identifier that no longer exists -
+    // (build a Fighter, add spells via the Spells step, remove Fighter,
+    // add a different class: the old Fighter-tagged spells would otherwise still sit there).
     // Cleaned up explicitly here, the same way _clearEquipmentSource already handles
     // the equivalent gap for equipment below.
     const classSourceKey = `class:${classItem.system.identifier}`;
@@ -4597,7 +4710,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * dnd5e has a real API built for exactly this, `AdvancementManager.forModifyChoices`,
    * but it never actually populates its own `.element` the way `forNewItem`/
    * `forDeletedItem`/`forLevelChange` do, so embedding it the same way just produces an
-   * empty host. Removing and re-adding the class (reusing the same primitives every other swap in
+   * empty host - confirmed directly against the running manager instance, not assumed.
+   * Removing and re-adding the class (reusing the same primitives every other swap in
    * this app already relies on) redoes every choice from scratch rather than only the
    * missing one, which is more disruptive than a true "resume where I left off" would
    * be, but it's a real, working path instead of a broken one.
@@ -4692,9 +4806,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
   /**
    * Add a feat found through the general "Browse Feats" grid - separate from
    * _changeOriginFeat's swap, this is a plain add with nothing to remove automatically.
-   * Warns (does not block) on two things (piling up two Origin feats and two
-   * Fighting Style feats with no guard at
-   * all): the character's total level not meeting the feat's own real
+   * Warns (does not block) on two things that would otherwise let a character pile up
+   * two Origin feats and two Fighting Style feats with no guard at
+   * all: the character's total level not meeting the feat's own real
    * `system.prerequisites.level` yet, and already having another feat of the same
    * "normally singular" subtype (`origin`/`fightingStyle` - the two subtypes a
    * character's own granting sources, like a background or a Fighter's level-1 choice,
@@ -4870,8 +4984,9 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // Current HP can end up lagging behind max at this point - dnd5e's HitPointsAdvancement
     // sets current = max at the moment the Class step grants it, but a later step (e.g.
     // Species granting a flat per-level HP bonus like Dwarven Toughness) can raise max
-    // afterward without current following, since current isn't derived data. A brand new
-    // character should always start at full health regardless of pick order, so top it off here.
+    // afterward without current following, since current isn't derived data. A Dwarf
+    // Fighter built this way shows HP as 10/13 at Review, not 13/13. A brand new character
+    // should always start at full health regardless of pick order, so top it off here.
     if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
       await actor.update({ "system.attributes.hp.value": actor.system.attributes.hp.max });
     }
