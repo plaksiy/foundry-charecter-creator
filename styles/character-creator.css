@@ -41,6 +41,14 @@
      so picking a solid color instead of a gradient needs no separate handling anywhere
      that already reads --dcc-accent-bg. */
   --dcc-accent-bg: var(--dcc-accent);
+  /* A gradient spans a real range of brightness (e.g. "sunset" runs from a dark red to a
+     mid-bright amber) - a single flat --dcc-accent-contrast color can only ever be right
+     for one end of that range, leaving text illegible wherever it happens to sit over
+     the other end. A soft dark-plus-light double shadow keeps text readable across the
+     whole gradient regardless of exactly which point it lands on, without needing to
+     detect brightness per pixel. None for a solid accent, where the flat contrast color
+     alone is already exactly right and a shadow would just look muddy. */
+  --dcc-accent-text-shadow: none;
   --dcc-done: #3fae5c;
   --dcc-warn: #d9b23f;
   --dcc-danger: #8c1c1c;
@@ -75,6 +83,70 @@
   --dcc-accent: #2a251e;
   --dcc-accent-contrast: #fdfbf5;
   --dcc-border-strong: #2a251e;
+}
+
+/* Three more dark-native theme worlds, same idea as Light above (a full palette swap,
+   not just an accent color) - each with its own bg/surface/text set and its own
+   "neutral" accent tuned to suit it. Same "declared before the accent-color overrides"
+   rule applies, so a deliberately-picked accent (red/blue/...) always wins over the
+   theme's own default. */
+.application.dnd-cc.dnd-cc-theme-arcane {
+  --dcc-bg: #100e1a;
+  --dcc-surface: #1a1730;
+  --dcc-surface-alt: #241f42;
+  --dcc-border: #3d3566;
+  --dcc-text: #eae6fb;
+  --dcc-text-muted: #9c92c4;
+  --dcc-accent: #8064f2;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #8064f2;
+}
+.application.dnd-cc.dnd-cc-theme-wildwood {
+  --dcc-bg: #12180f;
+  --dcc-surface: #1b2416;
+  --dcc-surface-alt: #263320;
+  --dcc-border: #445533;
+  --dcc-text: #e9ecd8;
+  --dcc-text-muted: #a3ad8a;
+  --dcc-accent: #c98a2b;
+  --dcc-accent-contrast: #181206;
+  --dcc-border-strong: #c98a2b;
+}
+.application.dnd-cc.dnd-cc-theme-frostspire {
+  --dcc-bg: #0e1420;
+  --dcc-surface: #17202f;
+  --dcc-surface-alt: #1f2b3d;
+  --dcc-border: #34445c;
+  --dcc-text: #e6eef7;
+  --dcc-text-muted: #8fa3bd;
+  --dcc-accent: #5fb4e0;
+  --dcc-accent-contrast: #0b1420;
+  --dcc-border-strong: #5fb4e0;
+}
+/* Two more light-native worlds, alongside Light above - deliberately higher-contrast
+   (near-black text on a near-white surface, not a soft mid-tone) and each in a genuinely
+   different hue family from Light's own warm cream, not just another shade of it. */
+.application.dnd-cc.dnd-cc-theme-marble {
+  --dcc-bg: #eef0f2;
+  --dcc-surface: #ffffff;
+  --dcc-surface-alt: #e2e5ea;
+  --dcc-border: #b9c0c9;
+  --dcc-text: #14161a;
+  --dcc-text-muted: #4d525c;
+  --dcc-accent: #14161a;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #14161a;
+}
+.application.dnd-cc.dnd-cc-theme-meadow {
+  --dcc-bg: #eaf1de;
+  --dcc-surface: #f9fbf2;
+  --dcc-surface-alt: #dbe6c8;
+  --dcc-border: #aec293;
+  --dcc-text: #1c2a10;
+  --dcc-text-muted: #4f6440;
+  --dcc-accent: #1c2a10;
+  --dcc-accent-contrast: #f9fbf2;
+  --dcc-border-strong: #1c2a10;
 }
 
 /* The five "primary" solid accents, always visible in the Settings panel's own main
@@ -120,27 +192,36 @@
    own darker/more saturated endpoint reads poorly as a 1-2px line or small text, where
    a gradient would itself just look like a rendering glitch rather than a deliberate
    choice. */
+/* --dcc-accent-contrast here is picked from the gradient's own real endpoints (not the
+   lightened --dcc-accent above, which is tuned for thin borders/text sitting on the page
+   background, a different job) - checked both stops' actual brightness rather than
+   assumed. --dcc-accent-text-shadow adds a safety margin for whichever stop the flat
+   contrast color reads worse against, without needing to track brightness per pixel. */
 .application.dnd-cc.dnd-cc-accent-gradient-sunset {
   --dcc-accent: #e8834a;
-  --dcc-accent-contrast: #141210;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-accent-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 0, 0, 0.85);
   --dcc-border-strong: #e8834a;
   --dcc-accent-bg: linear-gradient(135deg, #df0000, #d99a2b);
 }
 .application.dnd-cc.dnd-cc-accent-gradient-ocean {
   --dcc-accent: #57c2d6;
-  --dcc-accent-contrast: #141210;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-accent-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --dcc-border-strong: #57c2d6;
   --dcc-accent-bg: linear-gradient(135deg, #3457d5, #1f9b8f);
 }
 .application.dnd-cc.dnd-cc-accent-gradient-pearl {
   --dcc-accent: #d6d3e6;
   --dcc-accent-contrast: #141210;
+  --dcc-accent-text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
   --dcc-border-strong: #d6d3e6;
   --dcc-accent-bg: linear-gradient(135deg, #ffffff, #e6e2f2, #eef2f5, #ffffff);
 }
 .application.dnd-cc.dnd-cc-accent-gradient-forest {
   --dcc-accent: #8fb562;
-  --dcc-accent-contrast: #141210;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-accent-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   --dcc-border-strong: #8fb562;
   --dcc-accent-bg: linear-gradient(135deg, #17512f, #5c7a34);
 }
@@ -352,14 +433,106 @@
   color: var(--dcc-text-muted);
 }
 
-/* Settings panel (_showSettingsPanel) - the consolidated home for theme/accent/text
-   size/Simplify/Sources/Feedback/diagnostics, replacing what used to be a row of
-   separately-learned header icons. Each .dnd-cc-settings-section is one control group;
-   h3 headings reuse the app's existing default h3 styling (accent-colored, Cinzel), no
-   override needed here. */
+/* Settings panel (_showSettingsPanel) - the consolidated home for theme/accent/status-
+   and-ability colors/text size/Simplify/Sources/Website/diagnostics, replacing what used
+   to be a row of separately-learned header icons. Two .dnd-cc-settings-group blocks
+   ("Customization" - everything visual - and "Other" - links/utilities) each hold
+   several .dnd-cc-settings-section control groups; h3 headings reuse the app's existing
+   default h3 styling (accent-colored, Cinzel), no override needed here. */
+.dnd-cc-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.dnd-cc-settings-group + .dnd-cc-settings-group {
+  margin-top: 1.3rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--dcc-border);
+}
+.dnd-cc-settings-group-title {
+  margin: 0 0 0.2rem;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dcc-text-muted);
+}
 .dnd-cc-settings-section h3 {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
+}
+/* Theme swatches reuse the plain accent-swatch button shape, plus a centered icon. Each
+   theme's own bg color varies from near-black to near-white, so a flat icon color can't
+   read well against all seven - the inline `color` set per swatch (contrastForHex, same
+   helper the custom accent color already uses) picks white or dark per swatch; the
+   shadow here is a light-icon safety net (harmless, effectively invisible on the dark-
+   icon swatches where it isn't needed). */
+.dnd-cc-settings-theme-swatch {
+  position: relative;
+  font-size: 0.85rem;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.75), 0 0 1px rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Status (done/warn) and ability colors share one compact "swatch on top, short label
+   below" layout - unlike the accent picker (which relies on a hover tooltip alone),
+   six ability colors sitting side by side genuinely need a visible label to stay
+   distinguishable at a glance, not just on hover. */
+.dnd-cc-settings-color-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+.dnd-cc-settings-color-item input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--dcc-border);
+  border-radius: 7px;
+  background: none;
+  cursor: pointer;
+}
+.dnd-cc-settings-color-item input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.dnd-cc-settings-color-item input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 5px;
+}
+.dnd-cc-settings-color-item span {
+  font-family: var(--dcc-font-ui);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--dcc-text-muted);
+}
+/* Same button-chrome fight as every other custom button in this file (see the shared
+   reset's own comment near the top) - a plain height/padding here loses to core's own
+   unlayered button sizing regardless of specificity. */
+.application.dnd-cc button.dnd-cc-settings-reset-appearance {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  height: auto !important;
+  padding: 0.4rem 0.8rem !important;
+  border-radius: 6px;
+  border: 1.5px solid var(--dcc-border);
+  background: transparent;
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-settings-reset-appearance:hover {
+  border-color: var(--dcc-danger);
+  color: var(--dcc-text);
 }
 .dnd-cc-settings-row {
   display: flex;
@@ -384,6 +557,7 @@
   border-color: var(--dcc-accent);
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 .dnd-cc-settings-swatch-row {
   display: flex;
@@ -485,22 +659,31 @@
   border: none;
   border-radius: 6px;
 }
+/* The two-color gradient control used to give each input its own border/radius, split
+   with asymmetric border widths and a negative margin to butt-join them into one pill -
+   fragile (subpixel rounding could leave a visible seam or double line at the join) and
+   only *looked* like one control while actually being two independently-bordered boxes.
+   One shared border+radius+clip on the wrapper is simpler and always renders as a clean
+   single rounded square, with only a thin divider between the two color halves. */
+.dnd-cc-settings-custom-gradient {
+  border: 2px solid var(--dcc-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
 .dnd-cc-settings-custom-gradient input[type="color"] {
-  width: 26px;
-  border-radius: 6px;
+  width: 17px;
+  height: 34px;
+  border: none;
+  border-radius: 0;
 }
 .dnd-cc-settings-custom-gradient input[type="color"]:first-of-type {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-right-width: 1px;
-}
-.dnd-cc-settings-custom-gradient input[type="color"]:last-of-type {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-left-width: 1px;
-  margin-left: -2px;
+  border-right: 1px solid var(--dcc-border);
 }
 .dnd-cc-settings-custom-item.active input[type="color"] {
+  border-color: var(--dcc-text);
+  box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 4px var(--dcc-accent);
+}
+.dnd-cc-settings-custom-gradient.active {
   border-color: var(--dcc-text);
   box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 4px var(--dcc-accent);
 }
@@ -646,6 +829,7 @@
 .dnd-cc-step.active .dnd-cc-step-icon,
 .dnd-cc-step.active .dnd-cc-step-label {
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 .dnd-cc-step.active .dnd-cc-step-label { font-weight: 700; }
 
@@ -785,9 +969,11 @@
   background: var(--dcc-accent-bg);
   border-color: var(--dcc-accent);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 .dnd-cc-footer .dnd-cc-next:hover:not(:disabled) {
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   filter: brightness(1.1);
 }
 .dnd-cc-footer .dnd-cc-next:disabled {
@@ -904,6 +1090,7 @@
 .dnd-cc-seg-group button.active {
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
 }
 
@@ -1269,7 +1456,7 @@
   text-transform: uppercase;
   cursor: pointer;
 }
-.dnd-cc-card-select:hover { background: var(--dcc-accent-bg); color: var(--dcc-accent-contrast); }
+.dnd-cc-card-select:hover { background: var(--dcc-accent-bg); color: var(--dcc-accent-contrast); text-shadow: var(--dcc-accent-text-shadow); }
 .dnd-cc-card-selected-ribbon {
   display: flex;
   align-items: center;
@@ -1285,6 +1472,7 @@
   background: var(--dcc-accent-bg);
   border: 1.5px solid var(--dcc-border-strong);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   font-size: 0.66rem;
@@ -2135,6 +2323,7 @@
   border-color: var(--dcc-accent);
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 
 .dnd-cc-method-caption {
@@ -2210,8 +2399,8 @@
 
 /* A small always-visible corner control makes "this flips" obvious without relying
    on the player discovering that the icon/name header itself is clickable - a plain
-   icon-only circle still isn't obviously a "flip this card" affordance on its own,
-   so it also carries a short visible label, not just a hover
+   icon-only circle still wasn't obviously a "flip this card" affordance on its own
+   (direct feedback), so it now also carries a short visible label, not just a hover
    title. `height`/`padding` need `!important` for the same reason documented on the
    shared `.application.dnd-cc button:not(.header-control)` reset above - that rule's
    own `height: auto !important` otherwise always wins over a plain (non-!important)
@@ -2265,6 +2454,7 @@
   border-radius: 999px;
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   font-size: 0.58rem;
@@ -2338,8 +2528,8 @@
 .dnd-cc-ability-card-control select { width: 100%; }
 .dnd-cc-ability-card-control .dnd-cc-ability-roll-button { width: 100%; justify-content: center; }
 
-/* Smaller field, bigger score/mod above - the dropdown/roll
-   button reads as too dominant next to the now-larger total/modifier. Needs the
+/* Smaller field, bigger score/mod above - direct feedback that the dropdown/roll
+   button read as too dominant next to the now-larger total/modifier. Needs the
    `.application.dnd-cc` prefix to actually beat the generic `.application.dnd-cc
    select`/input rule (2 classes + 1 type) on padding - a bare `.dnd-cc-ability-card-
    control select` (1 class + 1 type) loses that fight on specificity alone even
@@ -2501,6 +2691,7 @@
 }
 .dnd-cc-ability-pool-chip:not(.unclaimed) .dnd-cc-ability-pool-chip-value {
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 .dnd-cc-ability-pool-chip-holder {
   font-weight: 700;
@@ -2510,6 +2701,7 @@
 }
 .dnd-cc-ability-pool-chip:not(.unclaimed) .dnd-cc-ability-pool-chip-holder {
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
 }
 
 .dnd-cc-ability-pool-control {
@@ -3064,6 +3256,7 @@
 }
 .dnd-cc-advancement-body .item-control:has(.fa-trash):hover {
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   background: var(--dcc-accent-bg);
   border-radius: 4px;
 }
@@ -3081,6 +3274,7 @@
   background: var(--dcc-accent-bg);
   border-color: var(--dcc-accent);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   font-weight: 700;
 }
 .dnd-cc-advancement-body nav.flexrow button[data-action="previous"],
@@ -3170,6 +3364,7 @@
   border: 1px solid var(--dcc-accent);
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -3345,7 +3540,7 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.dnd-cc-randomize-button:hover { background: var(--dcc-accent-bg); color: var(--dcc-accent-contrast); }
+.dnd-cc-randomize-button:hover { background: var(--dcc-accent-bg); color: var(--dcc-accent-contrast); text-shadow: var(--dcc-accent-text-shadow); }
 
 .dnd-cc-gm-progress-open {
   display: inline-flex;
@@ -3527,6 +3722,7 @@
   border: 1.5px solid var(--dcc-accent);
   border-radius: 8px;
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   font-size: 0.82rem;
@@ -4128,6 +4324,7 @@
      invisible. --dcc-accent-contrast already resolves correctly per accent color
      (dark for the light neutral/amber variants, white for red/blue/violet). */
   color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   cursor: pointer;
 }
 .dnd-cc-finalize-button i { color: inherit; }

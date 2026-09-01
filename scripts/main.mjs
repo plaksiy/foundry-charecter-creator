@@ -154,6 +154,34 @@ Hooks.once("init", () => {
     default: "#22d3ee"
   });
 
+  // The rail's "done"/"warn" status colors and the six ability-score accent hues, all
+  // independently customizable from the Settings panel same as accentColor above - these
+  // defaults match the values already hardcoded on .application.dnd-cc in
+  // character-creator.css, so a player who never touches these controls sees no change
+  // at all; only an explicit customization overrides the theme's own default via an
+  // inline style (see _onRender).
+  game.settings.register(MODULE_ID, "doneColor", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "#3fae5c"
+  });
+  game.settings.register(MODULE_ID, "warnColor", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "#d9b23f"
+  });
+  const abilityColorDefaults = { str: "#d97a5a", dex: "#6fae6a", con: "#d9b25a", int: "#6f93c9", wis: "#5fa89c", cha: "#b16fc2" };
+  for (const [key, value] of Object.entries(abilityColorDefaults)) {
+    game.settings.register(MODULE_ID, `abilityColor${key.charAt(0).toUpperCase()}${key.slice(1)}`, {
+      scope: "client",
+      config: false,
+      type: String,
+      default: value
+    });
+  }
+
   const loadTemplates = foundry.applications.handlebars.loadTemplates;
   loadTemplates([
     `modules/${MODULE_ID}/templates/character-creator/step-ruleset.hbs`,

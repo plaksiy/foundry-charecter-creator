@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0
+
+### New
+
+- **Seven full themes**: alongside Dark and Light, the Settings panel now offers five more complete visual themes - Arcane Ledger (indigo/violet), Wildwood (mossy green/amber), Frostspire (icy blue), Marble (cool white/grey, high contrast), and Meadow (pale sage green, high contrast). Each redefines the whole palette, not just the accent color, and your chosen accent still applies on top of any of them.
+- **Status colors are now customizable**: the step rail's "complete" (green) and "needs attention" (amber) colors each have their own color picker.
+- **Ability colors are now customizable**: all six ability score colors (Strength through Charisma) can be individually recolored.
+- **Reset Colors & Theme to Default**: a new button undoes any theme/accent/status/ability color customization in one click, without touching your text size or Simplify preference.
+- The Settings panel is now split into two clearly labeled sections - Customization (everything visual) and Other (Sources, website, diagnostics) - instead of one long list.
+
+### Fixed
+
+- Text on a gradient accent (the step rail's active item, primary buttons, active tabs) could be illegible where the gradient ran darker or lighter than the single flat color used to pick contrast - now computed from the gradient's real range, with a safety shadow for the rest.
+- The custom-gradient color picker's two swatches could show a visible seam or mismatched corner at their join - now a single clean rounded shape.
+
 ## 0.8.9
 
 ### New

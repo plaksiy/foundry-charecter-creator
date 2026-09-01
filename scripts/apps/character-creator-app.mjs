@@ -290,6 +290,23 @@ const FONT_SCALE_OPTIONS = [
  * Colors & Gradients" toggle) so the common case - five solid colors - doesn't get
  * crowded by every option at once.
  */
+/**
+ * Five full palette worlds, not just an accent swap - each redefines bg/surface/text/
+ * border tokens (see the .dnd-cc-theme-* classes in character-creator.css). "dark" is
+ * the base .application.dnd-cc definition itself (no class needed, same as "neutral" in
+ * the accent picker below), so it's listed here only for the Settings panel's own
+ * picker UI, not for the class-toggling logic (which skips it deliberately).
+ */
+const THEME_OPTIONS = [
+  { value: "dark", labelKey: "DND-CC.SettingsPanel.ThemeDark", swatch: "#0c0b0b", icon: "fa-moon" },
+  { value: "light", labelKey: "DND-CC.SettingsPanel.ThemeLight", swatch: "#f3ede0", icon: "fa-sun" },
+  { value: "arcane", labelKey: "DND-CC.SettingsPanel.ThemeArcane", swatch: "#1a1730", icon: "fa-wand-sparkles" },
+  { value: "wildwood", labelKey: "DND-CC.SettingsPanel.ThemeWildwood", swatch: "#1b2416", icon: "fa-leaf" },
+  { value: "frostspire", labelKey: "DND-CC.SettingsPanel.ThemeFrostspire", swatch: "#17202f", icon: "fa-snowflake" },
+  { value: "marble", labelKey: "DND-CC.SettingsPanel.ThemeMarble", swatch: "#eef0f2", icon: "fa-chess-board" },
+  { value: "meadow", labelKey: "DND-CC.SettingsPanel.ThemeMeadow", swatch: "#eaf1de", icon: "fa-seedling" }
+];
+
 const ACCENT_COLOR_PRIMARY = [
   { value: "neutral", labelKey: "DND-CC.Accessibility.AccentNeutral", swatch: "#e6e1d6" },
   { value: "red", labelKey: "DND-CC.Accessibility.AccentRed", swatch: "#df0000" },
@@ -2891,25 +2908,54 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     // class sets, directly as inline styles, and clear them the rest of the time so a
     // stale inline value can never outrank a real preset class (inline style always
     // wins over any stylesheet rule regardless of cascade layer).
-    const customProps = ["--dcc-accent", "--dcc-accent-bg", "--dcc-accent-contrast", "--dcc-border-strong"];
+    const customProps = ["--dcc-accent", "--dcc-accent-bg", "--dcc-accent-contrast", "--dcc-border-strong", "--dcc-accent-text-shadow"];
     if (accentColor === "custom") {
       const hex = String(game.settings.get(MODULE_ID, "customAccentColor"));
       root.style.setProperty("--dcc-accent", hex);
       root.style.setProperty("--dcc-accent-bg", hex);
       root.style.setProperty("--dcc-accent-contrast", contrastForHex(hex));
       root.style.setProperty("--dcc-border-strong", hex);
+      root.style.setProperty("--dcc-accent-text-shadow", "none");
     } else if (accentColor === "custom-gradient") {
       const from = String(game.settings.get(MODULE_ID, "customAccentGradientFrom"));
       const to = String(game.settings.get(MODULE_ID, "customAccentGradientTo"));
+      // A gradient's two stops can call for opposite contrast colors (one dark, one
+      // light) - checking only the first stop, as an earlier version of this did, picks
+      // a contrast color that can be flatly wrong wherever text lands on the *other*
+      // stop. White wins whenever either stop is on the dark side; the safety
+      // text-shadow below covers the remaining risk either way, same as the four preset
+      // gradients above.
+      const fromIsDark = contrastForHex(from) === "#ffffff";
+      const toIsDark = contrastForHex(to) === "#ffffff";
+      const contrast = (fromIsDark || toIsDark) ? "#ffffff" : "#141210";
       root.style.setProperty("--dcc-accent", from);
       root.style.setProperty("--dcc-accent-bg", `linear-gradient(135deg, ${from}, ${to})`);
-      root.style.setProperty("--dcc-accent-contrast", contrastForHex(from));
+      root.style.setProperty("--dcc-accent-contrast", contrast);
       root.style.setProperty("--dcc-border-strong", from);
+      root.style.setProperty(
+        "--dcc-accent-text-shadow",
+        contrast === "#ffffff"
+          ? "0 1px 3px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 0, 0, 0.85)"
+          : "0 1px 1px rgba(255, 255, 255, 0.75)"
+      );
     } else {
       customProps.forEach((prop) => root.style.removeProperty(prop));
     }
 
-    root.classList.toggle("dnd-cc-theme-light", String(game.settings.get(MODULE_ID, "theme")) === "light");
+    const themeValue = String(game.settings.get(MODULE_ID, "theme"));
+    THEME_OPTIONS.forEach((option) => root.classList.remove(`dnd-cc-theme-${option.value}`));
+    if (themeValue !== "dark") root.classList.add(`dnd-cc-theme-${themeValue}`);
+
+    // Status colors and the six ability hues are always-applied personal overrides
+    // (unlike accentColor, there's no "preset class" system for these - just one client
+    // setting per color, defaulting to exactly what the CSS itself already hardcodes, so
+    // a player who never opens these controls sees zero visual change).
+    root.style.setProperty("--dcc-done", String(game.settings.get(MODULE_ID, "doneColor")));
+    root.style.setProperty("--dcc-warn", String(game.settings.get(MODULE_ID, "warnColor")));
+    for (const key of ABILITY_KEYS) {
+      const settingKey = `abilityColor${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+      root.style.setProperty(`--dcc-${key}`, String(game.settings.get(MODULE_ID, settingKey)));
+    }
 
     this._renderHeaderToolbar();
 
@@ -3884,6 +3930,12 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const customColorValue = String(game.settings.get(MODULE_ID, "customAccentColor"));
     const customGradientFrom = String(game.settings.get(MODULE_ID, "customAccentGradientFrom"));
     const customGradientTo = String(game.settings.get(MODULE_ID, "customAccentGradientTo"));
+    const doneColor = String(game.settings.get(MODULE_ID, "doneColor"));
+    const warnColor = String(game.settings.get(MODULE_ID, "warnColor"));
+    const abilityColors = ABILITY_KEYS.map((key) => ({
+      key,
+      value: String(game.settings.get(MODULE_ID, `abilityColor${key.charAt(0).toUpperCase()}${key.slice(1)}`))
+    }));
 
     const wrapper = document.createElement("div");
     wrapper.className = "dnd-cc-detail-modal dnd-cc-settings-panel";
@@ -3897,72 +3949,112 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         </button>
       </div>
       <div class="dnd-cc-detail-body">
-        <div class="dnd-cc-settings-section">
-          <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeLabel"))}</h3>
-          <div class="dnd-cc-settings-row">
-            <button type="button" class="dnd-cc-settings-choice ${theme !== "light" ? "active" : ""}" data-set-theme="dark">
-              <i class="fa-solid fa-moon"></i> ${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeDark"))}
-            </button>
-            <button type="button" class="dnd-cc-settings-choice ${theme === "light" ? "active" : ""}" data-set-theme="light">
-              <i class="fa-solid fa-sun"></i> ${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeLight"))}
-            </button>
-          </div>
-        </div>
+        <div class="dnd-cc-settings-group">
+          <h2 class="dnd-cc-settings-group-title">${esc(game.i18n.localize("DND-CC.SettingsPanel.GroupCustomization"))}</h2>
 
-        <div class="dnd-cc-settings-section">
-          <h3>${esc(game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"))}</h3>
-          <div class="dnd-cc-settings-swatch-row">
-            ${ACCENT_COLOR_PRIMARY.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.ThemeLabel"))}</h3>
+            <div class="dnd-cc-settings-swatch-row">
+              ${THEME_OPTIONS.map((option) => `
+                <button type="button" class="dnd-cc-settings-swatch dnd-cc-settings-theme-swatch ${theme === option.value ? "active" : ""}"
+                  style="background:${esc(option.swatch)}; color:${esc(contrastForHex(option.swatch))}" data-set-theme="${esc(option.value)}"
+                  aria-label="${esc(game.i18n.localize(option.labelKey))}" data-tooltip="${esc(game.i18n.localize(option.labelKey))}">
+                  <i class="fa-solid ${esc(option.icon)}"></i>
+                </button>
+              `).join("")}
+            </div>
           </div>
-          <button type="button" class="dnd-cc-settings-more-toggle" data-toggle-more-accents>
-            <i class="fa-solid fa-palette"></i> ${esc(game.i18n.localize("DND-CC.Accessibility.MoreAccentsLabel"))}
-          </button>
-          <div class="dnd-cc-settings-more-panel ${accentIsExtra ? "is-open" : ""}">
-            <div class="dnd-cc-settings-more-panel-inner">
-              <div class="dnd-cc-settings-swatch-row dnd-cc-settings-gradient-row">
-                ${ACCENT_GRADIENT_OPTIONS.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
-                <label class="dnd-cc-settings-custom-item ${accentValue === "custom" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}">
-                  <input type="color" value="${esc(customColorValue)}" data-custom-color />
-                  <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
-                </label>
-                <div class="dnd-cc-settings-custom-item dnd-cc-settings-custom-gradient ${accentValue === "custom-gradient" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}">
-                  <input type="color" value="${esc(customGradientFrom)}" data-custom-gradient-from />
-                  <input type="color" value="${esc(customGradientTo)}" data-custom-gradient-to />
-                  <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
+
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.Accessibility.AccentColorLabel"))}</h3>
+            <div class="dnd-cc-settings-swatch-row">
+              ${ACCENT_COLOR_PRIMARY.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+            </div>
+            <button type="button" class="dnd-cc-settings-more-toggle" data-toggle-more-accents>
+              <i class="fa-solid fa-palette"></i> ${esc(game.i18n.localize("DND-CC.Accessibility.MoreAccentsLabel"))}
+            </button>
+            <div class="dnd-cc-settings-more-panel ${accentIsExtra ? "is-open" : ""}">
+              <div class="dnd-cc-settings-more-panel-inner">
+                <div class="dnd-cc-settings-swatch-row dnd-cc-settings-gradient-row">
+                  ${ACCENT_GRADIENT_OPTIONS.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+                  <label class="dnd-cc-settings-custom-item ${accentValue === "custom" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}">
+                    <input type="color" value="${esc(customColorValue)}" data-custom-color />
+                    <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
+                  </label>
+                  <div class="dnd-cc-settings-custom-item dnd-cc-settings-custom-gradient ${accentValue === "custom-gradient" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}">
+                    <input type="color" value="${esc(customGradientFrom)}" data-custom-gradient-from />
+                    <input type="color" value="${esc(customGradientTo)}" data-custom-gradient-to />
+                    <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="dnd-cc-settings-section">
-          <h3>${esc(game.i18n.localize("DND-CC.Accessibility.FontSizeLabel"))}</h3>
-          <div class="dnd-cc-settings-row">
-            ${FONT_SCALE_OPTIONS.map((option) => `
-              <button type="button" class="dnd-cc-settings-choice ${fontScaleValue === option.value ? "active" : ""}" data-set-font-scale="${esc(option.value)}">
-                ${esc(option.label)}
-              </button>
-            `).join("")}
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.StatusColorsLabel"))}</h3>
+            <div class="dnd-cc-settings-swatch-row">
+              <label class="dnd-cc-settings-color-item" data-tooltip="${esc(game.i18n.localize("DND-CC.SettingsPanel.DoneColorLabel"))}">
+                <input type="color" value="${esc(doneColor)}" data-set-done-color />
+                <span>${esc(game.i18n.localize("DND-CC.SettingsPanel.DoneColorShort"))}</span>
+              </label>
+              <label class="dnd-cc-settings-color-item" data-tooltip="${esc(game.i18n.localize("DND-CC.SettingsPanel.WarnColorLabel"))}">
+                <input type="color" value="${esc(warnColor)}" data-set-warn-color />
+                <span>${esc(game.i18n.localize("DND-CC.SettingsPanel.WarnColorShort"))}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.AbilityColorsLabel"))}</h3>
+            <div class="dnd-cc-settings-swatch-row">
+              ${abilityColors.map((a) => `
+                <label class="dnd-cc-settings-color-item" data-tooltip="${esc(CONFIG.DND5E.abilities[a.key]?.label ?? a.key)}">
+                  <input type="color" value="${esc(a.value)}" data-set-ability-color="${esc(a.key)}" />
+                  <span>${esc(a.key.toUpperCase())}</span>
+                </label>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.Accessibility.FontSizeLabel"))}</h3>
+            <div class="dnd-cc-settings-row">
+              ${FONT_SCALE_OPTIONS.map((option) => `
+                <button type="button" class="dnd-cc-settings-choice ${fontScaleValue === option.value ? "active" : ""}" data-set-font-scale="${esc(option.value)}">
+                  ${esc(option.label)}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="dnd-cc-settings-section">
+            <label class="dnd-cc-settings-checkbox-row">
+              <input type="checkbox" data-toggle-imagery ${reduceImagery ? "checked" : ""} />
+              ${esc(game.i18n.localize("DND-CC.Accessibility.ReduceImageryTitle"))}
+            </label>
+          </div>
+
+          <div class="dnd-cc-settings-section">
+            <button type="button" class="dnd-cc-settings-reset-appearance" data-reset-appearance>
+              <i class="fa-solid fa-rotate-left"></i> ${esc(game.i18n.localize("DND-CC.SettingsPanel.ResetAppearance"))}
+            </button>
           </div>
         </div>
 
-        <div class="dnd-cc-settings-section">
-          <label class="dnd-cc-settings-checkbox-row">
-            <input type="checkbox" data-toggle-imagery ${reduceImagery ? "checked" : ""} />
-            ${esc(game.i18n.localize("DND-CC.Accessibility.ReduceImageryTitle"))}
-          </label>
-        </div>
-
-        <div class="dnd-cc-settings-section dnd-cc-settings-actions">
-          <button type="button" class="dnd-cc-settings-action" data-open-sources>
-            <i class="fa-solid fa-book-atlas"></i> ${esc(game.i18n.localize("DND-CC.Sources.ButtonLabel"))}
-          </button>
-          <button type="button" class="dnd-cc-settings-action" data-open-website>
-            <i class="fa-solid fa-globe"></i> ${esc(game.i18n.localize("DND-CC.Website.ButtonLabel"))}
-          </button>
-          <button type="button" class="dnd-cc-settings-action" data-open-diagnostics>
-            <i class="fa-solid fa-stethoscope"></i> ${esc(game.i18n.localize("DND-CC.Diagnostics.ButtonLabel"))}
-          </button>
+        <div class="dnd-cc-settings-group">
+          <h2 class="dnd-cc-settings-group-title">${esc(game.i18n.localize("DND-CC.SettingsPanel.GroupOther"))}</h2>
+          <div class="dnd-cc-settings-section dnd-cc-settings-actions">
+            <button type="button" class="dnd-cc-settings-action" data-open-sources>
+              <i class="fa-solid fa-book-atlas"></i> ${esc(game.i18n.localize("DND-CC.Sources.ButtonLabel"))}
+            </button>
+            <button type="button" class="dnd-cc-settings-action" data-open-website>
+              <i class="fa-solid fa-globe"></i> ${esc(game.i18n.localize("DND-CC.Website.ButtonLabel"))}
+            </button>
+            <button type="button" class="dnd-cc-settings-action" data-open-diagnostics>
+              <i class="fa-solid fa-stethoscope"></i> ${esc(game.i18n.localize("DND-CC.Diagnostics.ButtonLabel"))}
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -3990,6 +4082,44 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         await game.settings.set(MODULE_ID, "accentColor", el.dataset.setAccent);
         await reopen();
       });
+    });
+
+    wrapper.querySelector("[data-set-done-color]")?.addEventListener("change", async (event) => {
+      await game.settings.set(MODULE_ID, "doneColor", event.currentTarget.value);
+      await reopen();
+    });
+    wrapper.querySelector("[data-set-warn-color]")?.addEventListener("change", async (event) => {
+      await game.settings.set(MODULE_ID, "warnColor", event.currentTarget.value);
+      await reopen();
+    });
+    wrapper.querySelectorAll("[data-set-ability-color]").forEach((el) => {
+      el.addEventListener("change", async (event) => {
+        const key = event.currentTarget.dataset.setAbilityColor;
+        const settingKey = `abilityColor${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+        await game.settings.set(MODULE_ID, settingKey, event.currentTarget.value);
+        await reopen();
+      });
+    });
+
+    wrapper.querySelector("[data-reset-appearance]")?.addEventListener("click", async () => {
+      // Resets exactly the settings this panel's own Customization group controls -
+      // theme, accent (including any custom color/gradient), status colors, ability
+      // colors - back to their shipped defaults. Deliberately leaves Text Size and
+      // Simplify untouched, since those are accessibility choices, not "look" choices,
+      // and a player picking this button to undo an experiment with colors shouldn't
+      // also lose an unrelated readability preference.
+      const settingsToReset = [
+        "theme", "accentColor", "customAccentColor", "customAccentGradientFrom", "customAccentGradientTo",
+        "doneColor", "warnColor"
+      ];
+      for (const key of settingsToReset) {
+        await game.settings.set(MODULE_ID, key, game.settings.settings.get(`${MODULE_ID}.${key}`).default);
+      }
+      for (const key of ABILITY_KEYS) {
+        const settingKey = `abilityColor${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+        await game.settings.set(MODULE_ID, settingKey, game.settings.settings.get(`${MODULE_ID}.${settingKey}`).default);
+      }
+      await reopen();
     });
 
     wrapper.querySelector("[data-toggle-more-accents]")?.addEventListener("click", () => {
