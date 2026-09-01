@@ -300,11 +300,12 @@ const FONT_SCALE_OPTIONS = [
 const THEME_OPTIONS = [
   { value: "dark", labelKey: "DND-CC.SettingsPanel.ThemeDark", swatch: "#0c0b0b", icon: "fa-moon" },
   { value: "light", labelKey: "DND-CC.SettingsPanel.ThemeLight", swatch: "#f3ede0", icon: "fa-sun" },
-  { value: "arcane", labelKey: "DND-CC.SettingsPanel.ThemeArcane", swatch: "#1a1730", icon: "fa-wand-sparkles" },
+  { value: "sepia", labelKey: "DND-CC.SettingsPanel.ThemeSepia", swatch: "#261c12", icon: "fa-mug-hot" },
   { value: "wildwood", labelKey: "DND-CC.SettingsPanel.ThemeWildwood", swatch: "#1b2416", icon: "fa-leaf" },
-  { value: "frostspire", labelKey: "DND-CC.SettingsPanel.ThemeFrostspire", swatch: "#17202f", icon: "fa-snowflake" },
+  { value: "frostspire", labelKey: "DND-CC.SettingsPanel.ThemeFrostspire", swatch: "#142238", icon: "fa-snowflake" },
   { value: "marble", labelKey: "DND-CC.SettingsPanel.ThemeMarble", swatch: "#eef0f2", icon: "fa-chess-board" },
-  { value: "meadow", labelKey: "DND-CC.SettingsPanel.ThemeMeadow", swatch: "#eaf1de", icon: "fa-seedling" }
+  { value: "meadow", labelKey: "DND-CC.SettingsPanel.ThemeMeadow", swatch: "#e2f0d4", icon: "fa-seedling" },
+  { value: "honeycomb", labelKey: "DND-CC.SettingsPanel.ThemeHoneycomb", swatch: "#faf1de", icon: "fa-cookie" }
 ];
 
 const ACCENT_COLOR_PRIMARY = [

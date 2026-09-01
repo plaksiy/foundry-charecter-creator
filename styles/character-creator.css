@@ -85,22 +85,10 @@
   --dcc-border-strong: #2a251e;
 }
 
-/* Three more dark-native theme worlds, same idea as Light above (a full palette swap,
-   not just an accent color) - each with its own bg/surface/text set and its own
-   "neutral" accent tuned to suit it. Same "declared before the accent-color overrides"
-   rule applies, so a deliberately-picked accent (red/blue/...) always wins over the
-   theme's own default. */
-.application.dnd-cc.dnd-cc-theme-arcane {
-  --dcc-bg: #100e1a;
-  --dcc-surface: #1a1730;
-  --dcc-surface-alt: #241f42;
-  --dcc-border: #3d3566;
-  --dcc-text: #eae6fb;
-  --dcc-text-muted: #9c92c4;
-  --dcc-accent: #8064f2;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #8064f2;
-}
+/* More dark-native theme worlds, same idea as Light above (a full palette swap, not just
+   an accent color) - each with its own bg/surface/text set and its own "neutral" accent
+   tuned to suit it. Same "declared before the accent-color overrides" rule applies, so a
+   deliberately-picked accent (red/blue/...) always wins over the theme's own default. */
 .application.dnd-cc.dnd-cc-theme-wildwood {
   --dcc-bg: #12180f;
   --dcc-surface: #1b2416;
@@ -112,20 +100,36 @@
   --dcc-accent-contrast: #181206;
   --dcc-border-strong: #c98a2b;
 }
+/* Pushed noticeably more saturated than a first pass - the original blue leaned so
+   muted/desaturated it barely read as "icy blue" next to the other dark themes. */
 .application.dnd-cc.dnd-cc-theme-frostspire {
-  --dcc-bg: #0e1420;
-  --dcc-surface: #17202f;
-  --dcc-surface-alt: #1f2b3d;
-  --dcc-border: #34445c;
-  --dcc-text: #e6eef7;
-  --dcc-text-muted: #8fa3bd;
-  --dcc-accent: #5fb4e0;
-  --dcc-accent-contrast: #0b1420;
-  --dcc-border-strong: #5fb4e0;
+  --dcc-bg: #0a1220;
+  --dcc-surface: #142238;
+  --dcc-surface-alt: #1c3050;
+  --dcc-border: #2e5c8c;
+  --dcc-text: #eaf4ff;
+  --dcc-text-muted: #7fb3e0;
+  --dcc-accent: #3ec1f0;
+  --dcc-accent-contrast: #071018;
+  --dcc-border-strong: #3ec1f0;
 }
-/* Two more light-native worlds, alongside Light above - deliberately higher-contrast
-   (near-black text on a near-white surface, not a soft mid-tone) and each in a genuinely
-   different hue family from Light's own warm cream, not just another shade of it. */
+/* A warm, low-glare dark theme (brown/amber rather than the cooler tones of Wildwood/
+   Frostspire) - easier on the eyes for long sessions than a stark near-black background,
+   like reading by a warm lamp instead of a screen's own cold black. */
+.application.dnd-cc.dnd-cc-theme-sepia {
+  --dcc-bg: #1c140d;
+  --dcc-surface: #261c12;
+  --dcc-surface-alt: #332415;
+  --dcc-border: #5c4530;
+  --dcc-text: #ecdcc4;
+  --dcc-text-muted: #b89b78;
+  --dcc-accent: #d29552;
+  --dcc-accent-contrast: #1c140d;
+  --dcc-border-strong: #d29552;
+}
+/* Light-native worlds, alongside Light above - deliberately higher-contrast (near-black
+   text on a near-white surface, not a soft mid-tone) and each in a genuinely different
+   hue family from Light's own warm cream, not just another shade of it. */
 .application.dnd-cc.dnd-cc-theme-marble {
   --dcc-bg: #eef0f2;
   --dcc-surface: #ffffff;
@@ -137,16 +141,31 @@
   --dcc-accent-contrast: #ffffff;
   --dcc-border-strong: #14161a;
 }
+/* Pushed a shade more saturated than a first pass, which read as too close to a plain
+   pale grey - now unmistakably green rather than just "light and slightly tinted". */
 .application.dnd-cc.dnd-cc-theme-meadow {
-  --dcc-bg: #eaf1de;
-  --dcc-surface: #f9fbf2;
-  --dcc-surface-alt: #dbe6c8;
-  --dcc-border: #aec293;
-  --dcc-text: #1c2a10;
-  --dcc-text-muted: #4f6440;
-  --dcc-accent: #1c2a10;
-  --dcc-accent-contrast: #f9fbf2;
-  --dcc-border-strong: #1c2a10;
+  --dcc-bg: #e2f0d4;
+  --dcc-surface: #f3faec;
+  --dcc-surface-alt: #cee0b3;
+  --dcc-border: #93b56c;
+  --dcc-text: #16260a;
+  --dcc-text-muted: #43602c;
+  --dcc-accent: #16260a;
+  --dcc-accent-contrast: #f3faec;
+  --dcc-border-strong: #16260a;
+}
+/* A warm counterpart to Marble/Meadow - honey and gold rather than cool stone or green,
+   for the same "light theme, different mood" reason those two exist. */
+.application.dnd-cc.dnd-cc-theme-honeycomb {
+  --dcc-bg: #faf1de;
+  --dcc-surface: #fffbf2;
+  --dcc-surface-alt: #f0e2c0;
+  --dcc-border: #d9bd85;
+  --dcc-text: #2e2210;
+  --dcc-text-muted: #6b552f;
+  --dcc-accent: #2e2210;
+  --dcc-accent-contrast: #fffbf2;
+  --dcc-border-strong: #2e2210;
 }
 
 /* The five "primary" solid accents, always visible in the Settings panel's own main
@@ -231,15 +250,25 @@
   border-bottom: 1px solid var(--dcc-border);
 }
 /* Foundry's own native window-title text and header-control (gear/trash/close) icon
-   color is a fixed light tone, meant for a dark titlebar - never overridden for the
-   dark "oath" theme since it already reads fine there, but the light theme's own
-   header background is ALSO light, so that same native light-on-light text/icon color
-   became functionally invisible (title and controls both resolve to
-   rgb(247,243,232), the header background to rgb(255,252,245) - a 3-unit difference).
-   Only the light theme needs this override; dark theme is untouched. */
+   color is a fixed light tone, meant for a dark titlebar - never overridden for a
+   dark-native theme (Dark/Wildwood/Frostspire/Sepia) since it already reads fine there,
+   but a light-native theme's own header background (--dcc-surface) is ALSO light, so
+   that same native light-on-light text/icon color becomes functionally invisible. Every
+   light-native theme needs this override, not just "Light" itself - Marble/Meadow/
+   Honeycomb are just as light and were missing it entirely until this list grew to
+   include them. */
 .application.dnd-cc.dnd-cc-theme-light .window-header,
 .application.dnd-cc.dnd-cc-theme-light .window-header .window-title,
-.application.dnd-cc.dnd-cc-theme-light .header-control {
+.application.dnd-cc.dnd-cc-theme-light .header-control,
+.application.dnd-cc.dnd-cc-theme-marble .window-header,
+.application.dnd-cc.dnd-cc-theme-marble .window-header .window-title,
+.application.dnd-cc.dnd-cc-theme-marble .header-control,
+.application.dnd-cc.dnd-cc-theme-meadow .window-header,
+.application.dnd-cc.dnd-cc-theme-meadow .window-header .window-title,
+.application.dnd-cc.dnd-cc-theme-meadow .header-control,
+.application.dnd-cc.dnd-cc-theme-honeycomb .window-header,
+.application.dnd-cc.dnd-cc-theme-honeycomb .window-header .window-title,
+.application.dnd-cc.dnd-cc-theme-honeycomb .header-control {
   color: var(--dcc-text);
 }
 
