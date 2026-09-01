@@ -78,46 +78,34 @@
 }
 
 /* The five "primary" solid accents, always visible in the Settings panel's own main
-   swatch row - neutral (the theme's own default, no class needed), red, blue, yellow,
-   green. --dcc-accent-bg isn't set here since it just inherits the solid --dcc-accent
-   from the base rule above, same as neutral. */
+   swatch row - neutral (the theme's own default, no class needed), red, royal blue,
+   amber, and a richer emerald green. --dcc-accent-bg isn't set here since it just
+   inherits the solid --dcc-accent from the base rule above, same as neutral. */
 .application.dnd-cc.dnd-cc-accent-red {
   --dcc-accent: #df0000;
   --dcc-accent-contrast: #ffffff;
   --dcc-border-strong: #df0000;
 }
 .application.dnd-cc.dnd-cc-accent-blue {
-  --dcc-accent: #4f7fd9;
+  --dcc-accent: #3457d5;
   --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #4f7fd9;
-}
-.application.dnd-cc.dnd-cc-accent-yellow {
-  --dcc-accent: #d9b823;
-  --dcc-accent-contrast: #141210;
-  --dcc-border-strong: #d9b823;
-}
-.application.dnd-cc.dnd-cc-accent-green {
-  --dcc-accent: #2f9e44;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #2f9e44;
-}
-
-/* Four more solid accents, tucked behind the Settings panel's own "More Colors &
-   Gradients" toggle instead of cluttering the main row. */
-.application.dnd-cc.dnd-cc-accent-violet {
-  --dcc-accent: #9a63d1;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #9a63d1;
+  --dcc-border-strong: #3457d5;
 }
 .application.dnd-cc.dnd-cc-accent-amber {
   --dcc-accent: #d99a2b;
   --dcc-accent-contrast: #141210;
   --dcc-border-strong: #d99a2b;
 }
-.application.dnd-cc.dnd-cc-accent-teal {
-  --dcc-accent: #1f9b8f;
+.application.dnd-cc.dnd-cc-accent-green {
+  --dcc-accent: #1f7a4d;
   --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #1f9b8f;
+  --dcc-border-strong: #1f7a4d;
+}
+
+.application.dnd-cc.dnd-cc-accent-violet {
+  --dcc-accent: #9a63d1;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #9a63d1;
 }
 .application.dnd-cc.dnd-cc-accent-rose {
   --dcc-accent: #d6488a;
@@ -125,36 +113,36 @@
   --dcc-border-strong: #d6488a;
 }
 
-/* Gradient accents - also behind "More Colors & Gradients". --dcc-accent stays a real
-   solid color (the gradient's own "hot" end) for borders/text/small pills, where a
-   gradient would read as a rendering glitch rather than a deliberate choice - only
-   --dcc-accent-bg (large filled areas: primary buttons, active tabs, card-select hover)
-   actually paints with the gradient. Each pairs two of the existing solid accent hues
-   rather than inventing new colors, so a gradient choice still feels like part of the
-   same palette. */
+/* Gradient accents - also behind "More Colors & Gradients". --dcc-accent-bg (large
+   filled areas: primary buttons, active tabs, card-select hover) paints with the full
+   gradient; --dcc-accent/--dcc-border-strong (thin borders, pill outlines, link text)
+   instead use a lighter tone blended from the gradient's own two stops - a gradient's
+   own darker/more saturated endpoint reads poorly as a 1-2px line or small text, where
+   a gradient would itself just look like a rendering glitch rather than a deliberate
+   choice. */
 .application.dnd-cc.dnd-cc-accent-gradient-sunset {
-  --dcc-accent: #df0000;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #df0000;
+  --dcc-accent: #e8834a;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #e8834a;
   --dcc-accent-bg: linear-gradient(135deg, #df0000, #d99a2b);
 }
 .application.dnd-cc.dnd-cc-accent-gradient-ocean {
-  --dcc-accent: #4f7fd9;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #4f7fd9;
-  --dcc-accent-bg: linear-gradient(135deg, #4f7fd9, #1f9b8f);
+  --dcc-accent: #57c2d6;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #57c2d6;
+  --dcc-accent-bg: linear-gradient(135deg, #3457d5, #1f9b8f);
 }
-.application.dnd-cc.dnd-cc-accent-gradient-royal {
-  --dcc-accent: #9a63d1;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #9a63d1;
-  --dcc-accent-bg: linear-gradient(135deg, #9a63d1, #d6488a);
+.application.dnd-cc.dnd-cc-accent-gradient-pearl {
+  --dcc-accent: #d6d3e6;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #d6d3e6;
+  --dcc-accent-bg: linear-gradient(135deg, #ffffff, #e6e2f2, #eef2f5, #ffffff);
 }
 .application.dnd-cc.dnd-cc-accent-gradient-forest {
-  --dcc-accent: #2f9e44;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #2f9e44;
-  --dcc-accent-bg: linear-gradient(135deg, #2f9e44, #d9b823);
+  --dcc-accent: #8fb562;
+  --dcc-accent-contrast: #141210;
+  --dcc-border-strong: #8fb562;
+  --dcc-accent-bg: linear-gradient(135deg, #17512f, #5c7a34);
 }
 
 .application.dnd-cc .window-header {
@@ -402,11 +390,36 @@
   gap: 0.55rem;
   flex-wrap: wrap;
 }
-.dnd-cc-settings-swatch-row-more {
+/* Collapsed by default (a plain CSS "height" transition can't animate to/from an
+   intrinsic "auto" height anyway) - the actual expand/collapse animation is driven by
+   the Web Animations API in the toggle's own click handler, not a CSS `transition`
+   here, since a declared transition on this property reproducibly got stuck part-way
+   and never reached its target in this app's real Electron/Chromium runtime. This rule
+   only needs to cover the two resting states: fully collapsed, and already-open on
+   first paint (no animation involved, just a static class + this max-height cap) when
+   the panel opens pre-expanded because a custom/secondary color is already active. */
+.dnd-cc-settings-more-panel {
+  max-height: 0;
+  overflow: hidden;
   margin-top: 0.55rem;
+  /* A generic transition rule elsewhere in this stylesheet (or Foundry's own core CSS)
+     otherwise applies here too, and an active transition on this exact element in this
+     app's real Electron/Chromium runtime reproducibly gets max-height stuck at its
+     starting value forever (confirmed by toggling this exact declaration on and off
+     with everything else held constant) - not merely a cosmetic animation glitch, but
+     one that leaves the panel permanently collapsed. Disabled outright; the actual open/
+     close animation is driven by the Web Animations API in the toggle's own click
+     handler instead, which isn't affected by this. */
+  transition: none !important;
 }
-.dnd-cc-settings-swatch-row-more[hidden] {
-  display: none;
+.dnd-cc-settings-more-panel.is-open {
+  max-height: 220px;
+}
+.dnd-cc-settings-gradient-row {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--dcc-border);
+  align-items: center;
 }
 /* Same button-chrome fight as .dnd-cc-settings-choice/.dnd-cc-settings-swatch above. */
 .application.dnd-cc button.dnd-cc-settings-more-toggle {
@@ -429,30 +442,25 @@
   border-color: var(--dcc-accent);
   color: var(--dcc-text);
 }
-.dnd-cc-settings-custom-row {
-  display: flex;
-  gap: 1.1rem;
-  margin-top: 0.7rem;
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--dcc-border);
-}
-.dnd-cc-settings-custom-row[hidden] {
-  display: none;
-}
 .dnd-cc-settings-custom-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  position: relative;
   cursor: pointer;
 }
-.dnd-cc-settings-custom-item span {
-  font-family: var(--dcc-font-ui);
+/* A plain "+" centered over the swatch(es), signaling "pick your own" - a bare color
+   input next to a row of fixed presets otherwise gives no visual hint that it's
+   editable rather than just another preset. pointer-events:none so the icon never
+   blocks clicks meant for the color input(s) underneath it. */
+.dnd-cc-settings-custom-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-size: 0.7rem;
-  color: var(--dcc-text-muted);
-}
-.dnd-cc-settings-custom-item.active span {
-  color: var(--dcc-text);
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7), 0 0 1px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
 }
 /* Chromium's native color swatch carries its own internal padding/border by default -
    stripped here so it fills the same 34px rounded-square footprint as every other
@@ -993,6 +1001,12 @@
   border-color: var(--dcc-accent);
   background: var(--dcc-surface-alt);
   box-shadow: 0 0 0 1px var(--dcc-accent);
+  /* border-image-source only accepts an <image> value (a gradient qualifies, a plain
+     hex string doesn't) - when --dcc-accent-bg is a solid color this is simply invalid
+     and ignored, leaving the border-color above in effect; when it's a real gradient,
+     this renders that gradient along the border instead of a single flat hue. */
+  border-image-source: var(--dcc-accent-bg);
+  border-image-slice: 1;
 }
 .dnd-cc-ruleset-card h3 {
   margin: 0;
@@ -1263,9 +1277,14 @@
   gap: 0.4rem;
   padding: 0.5rem 0.5rem;
   border-radius: 6px;
-  background: rgba(223,0,0,0.25);
-  border: 1.5px solid var(--dcc-accent);
-  color: #fff;
+  /* A fully-opaque accent fill (not a translucent tint) so this always reads as a clear
+     highlight regardless of which accent color or gradient is active - a hardcoded
+     low-alpha red used to sit here, which barely stood out against a dark card under
+     most accent choices and never reflected the player's own pick. --dcc-accent-contrast
+     is computed for whatever's actually behind it, so the text stays legible either way. */
+  background: var(--dcc-accent-bg);
+  border: 1.5px solid var(--dcc-border-strong);
+  color: var(--dcc-accent-contrast);
   font-family: var(--dcc-font-ui);
   font-weight: 700;
   font-size: 0.66rem;
@@ -2037,6 +2056,12 @@
   width: 100%;
   max-width: 42rem;
   font-family: var(--dcc-font-ui);
+  /* Foundry's own core CSS gives every <table> a fixed semi-transparent dark background
+     (unlayered, so it beats this layered module stylesheet regardless of specificity -
+     the same cascade-layers fight documented elsewhere in this file) - blends in under
+     the dark theme, reads as a muddy gray box under the light theme's own light card
+     background. Forced transparent so the table always shows its own card's surface. */
+  background: transparent !important;
 }
 
 .dnd-cc-ability-table th {
@@ -2056,6 +2081,15 @@
   font-size: 0.88rem;
 }
 
+/* Foundry's own core CSS applies a default table row zebra-stripe (unlayered, so it
+   normally beats this layered module stylesheet regardless of specificity - the same
+   cascade-layers fight documented elsewhere in this file for buttons/selects) - harmless
+   under the dark theme where a dark stripe blends in, but a jarring dark gray band under
+   the light theme's own light surface. Forced transparent so every row always matches
+   its own card's background instead of Foundry's own hardcoded stripe color. */
+.dnd-cc-ability-table tr {
+  background: transparent !important;
+}
 .dnd-cc-ability-table tr[data-ability] {
   border-left: 3px solid transparent;
 }
@@ -2161,7 +2195,6 @@
   backface-visibility: hidden;
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
-  border-top: 3px solid var(--card-accent);
   background: var(--dcc-surface);
   overflow: hidden;
   display: flex;
@@ -2177,8 +2210,8 @@
 
 /* A small always-visible corner control makes "this flips" obvious without relying
    on the player discovering that the icon/name header itself is clickable - a plain
-   icon-only circle still wasn't obviously a "flip this card" affordance on its own
-   (direct feedback), so it now also carries a short visible label, not just a hover
+   icon-only circle still isn't obviously a "flip this card" affordance on its own,
+   so it also carries a short visible label, not just a hover
    title. `height`/`padding` need `!important` for the same reason documented on the
    shared `.application.dnd-cc button:not(.header-control)` reset above - that rule's
    own `height: auto !important` otherwise always wins over a plain (non-!important)
@@ -2305,8 +2338,8 @@
 .dnd-cc-ability-card-control select { width: 100%; }
 .dnd-cc-ability-card-control .dnd-cc-ability-roll-button { width: 100%; justify-content: center; }
 
-/* Smaller field, bigger score/mod above - direct feedback that the dropdown/roll
-   button read as too dominant next to the now-larger total/modifier. Needs the
+/* Smaller field, bigger score/mod above - the dropdown/roll
+   button reads as too dominant next to the now-larger total/modifier. Needs the
    `.application.dnd-cc` prefix to actually beat the generic `.application.dnd-cc
    select`/input rule (2 classes + 1 type) on padding - a bare `.dnd-cc-ability-card-
    control select` (1 class + 1 type) loses that fight on specificity alone even
@@ -3968,27 +4001,47 @@
   display: grid;
   /* 4 columns (not 3) so all 4 always-present sections (Abilities/Skills/Feats/
      Equipment) share one row instead of the 4th - previously Equipment - dropping to a
-     mostly-empty row of its own below. `align-items: start` (not the grid default
-     `stretch`) is the other half of that same fix: a sparse card (an empty "No feats
-     yet" Feats section, most often) no longer gets force-stretched to match its
-     tallest row-mate (usually Abilities' fixed 6-row table) - direct feedback that a
-     short section reading as artificially tall, with a large empty gap below its real
-     content, looked broken. */
+     mostly-empty row of its own below. `align-items: start` is the grid's own default
+     for any item that doesn't opt back into stretching (see the
+     :not(.dnd-cc-review-card-compact) rule below) - Feats/Equipment specifically stay
+     sized to their own real content instead of being force-stretched to match a taller
+     row-mate, since a short "No feats yet" card padded out with dead space to match
+     Abilities' fixed table looked broken. */
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
   gap: 0.7rem;
   margin-bottom: 0.9rem;
 }
+/* Abilities/Skills/Spells (never .dnd-cc-review-card-compact) stretch to match the
+   row's own height instead of each sitting at its own natural size - reads as one even
+   row of equal cards, matching how Abilities' own fixed-height table already looks.
+   Feats/Equipment are deliberately excluded (see the compact class and the stack rule
+   below) since forcing them to match a taller neighbor is exactly what looked broken
+   before this rule existed. */
+.dnd-cc-review-grid > .dnd-cc-review-card:not(.dnd-cc-review-card-compact) {
+  align-self: stretch;
+}
+/* When Spells is present (5 sections total), Feats and Equipment are wrapped together
+   in one .dnd-cc-review-stack grid cell (see step-review.hbs) instead of each being its
+   own top-level grid item - a plain grid placement (each in its own row) left a large
+   dead gap between a short Feats card and Equipment below it, since that gap's height
+   was set by row 1's tallest occupant (Abilities/Spells), not by Feats' own actual
+   content. A flex column instead sizes the pair to exactly their own combined height,
+   independent of any sibling column's height. */
+.dnd-cc-review-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
 .dnd-cc-review-card {
   display: flex;
   flex-direction: column;
-  /* A fixed height (not just a cap) so every card in the row renders the same size
-     regardless of how much content it actually has - a short card (e.g. "No feats yet")
-     just has some breathing room at the bottom of its own box instead of the whole row
-     reading as jagged/mismatched heights. A long list (many proficient skills, a big
-     spell list) scrolls internally instead of growing the card - and therefore its
-     whole grid row - without bound. */
-  height: 280px;
+  /* A cap, not a fixed height - a card sizes to its own real content (a short "No feats
+     yet" card stays short, instead of padding itself out with dead space to match a
+     taller neighbor like the Abilities table), while a genuinely long list (many
+     proficient skills, a big spell list) scrolls internally past this cap instead of
+     growing the card - and therefore its whole grid row - without bound. */
+  max-height: 280px;
   overflow-y: auto;
   padding: 0.7rem 0.9rem;
   background: var(--dcc-surface);

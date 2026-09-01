@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.9
+
+### New
+
+- **Accent colors refined**: the main row now shows 7 colors (Neutral, Red, Blue, Amber, Green, Violet, Rose) instead of 5, with tuned hues (a richer blue and green, amber in place of yellow) and one fewer redundant color behind "More Colors & Gradients".
+- The "Pearl" gradient (replacing the old "Royal" gradient) is a soft white shimmer with a faint iridescent tint.
+- Custom color and custom gradient controls now have a small "+" marker so they read as customizable rather than as another fixed swatch.
+- A gradient accent now renders as an actual gradient on the selected ruleset card's border, not just on filled buttons.
+
+### Fixed
+
+- The "Selected" ribbon on a card was a fixed translucent red regardless of your chosen accent color, and barely stood out on some cards - it now fills solidly with your actual accent color (or gradient).
+- The "More Colors & Gradients" section could open in a visibly broken, cut-off state.
+- Ability Score cards no longer show a mismatched colored strip along their top edge.
+- The Abilities table on the Review step showed a dark gray background under the Light theme instead of matching the page.
+- Review step layout: Abilities, Skills, and Spells now consistently match each other's height, while Feats and Equipment size to their own content instead of leaving empty space or a large gap between them.
+
 ## 0.8.8
 
 ### New

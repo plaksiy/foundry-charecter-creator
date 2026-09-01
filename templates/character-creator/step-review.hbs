@@ -54,18 +54,34 @@
       {{/if}}
     </section>
 
-    <section class="dnd-cc-review-card">
-      <h3>{{localize "DND-CC.Steps.Feats"}}</h3>
-      {{#if feats.length}}
-      {{#each feats}}
-      <div class="dnd-cc-review-line"><span>{{{this.nameLink}}}</span><span>{{#if this.subtypeLabel}}{{this.subtypeLabel}}{{/if}}</span></div>
-      {{/each}}
-      {{else}}
-      <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
-      {{/if}}
-    </section>
-
     {{#if hasSpellcasting}}
+    {{! Feats+Equipment share one grid cell here, stacked tightly by their own real
+        content height, instead of each sitting in its own explicit grid row - a plain
+        two-row grid placement left a large dead gap between a short Feats card and
+        Equipment below it, sized by row 1's tallest occupant (Abilities/Spells) rather
+        than by Feats' own (usually much shorter) content. }}
+    <div class="dnd-cc-review-stack">
+      <section class="dnd-cc-review-card dnd-cc-review-card-compact">
+        <h3>{{localize "DND-CC.Steps.Feats"}}</h3>
+        {{#if feats.length}}
+        {{#each feats}}
+        <div class="dnd-cc-review-line"><span>{{{this.nameLink}}}</span><span>{{#if this.subtypeLabel}}{{this.subtypeLabel}}{{/if}}</span></div>
+        {{/each}}
+        {{else}}
+        <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
+        {{/if}}
+      </section>
+      <section class="dnd-cc-review-card dnd-cc-review-card-compact">
+        <h3>{{localize "DND-CC.Steps.Equipment"}}</h3>
+        <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Equipment.Currency"}}</span><span>{{currencyText}}</span></div>
+        {{#if equipment.length}}
+        <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Equipment.Inventory"}}</span><span>{{equipment.length}}</span></div>
+        {{else}}
+        <p class="dnd-cc-empty-state">{{localize "DND-CC.Equipment.NoneYet"}}</p>
+        {{/if}}
+      </section>
+    </div>
+
     <section class="dnd-cc-review-card">
       <h3>{{localize "DND-CC.Steps.Spells"}}</h3>
       {{#each spellcastingGroups}}
@@ -80,9 +96,19 @@
       <div class="dnd-cc-review-line"><span>{{this.label}}</span><span>{{#each this.items}}{{#unless @first}}, {{/unless}}{{this.name}}{{/each}}</span></div>
       {{/each}}
     </section>
-    {{/if}}
+    {{else}}
+    <section class="dnd-cc-review-card dnd-cc-review-card-compact">
+      <h3>{{localize "DND-CC.Steps.Feats"}}</h3>
+      {{#if feats.length}}
+      {{#each feats}}
+      <div class="dnd-cc-review-line"><span>{{{this.nameLink}}}</span><span>{{#if this.subtypeLabel}}{{this.subtypeLabel}}{{/if}}</span></div>
+      {{/each}}
+      {{else}}
+      <p class="dnd-cc-empty-state">{{localize "DND-CC.Feats.NoneYet"}}</p>
+      {{/if}}
+    </section>
 
-    <section class="dnd-cc-review-card">
+    <section class="dnd-cc-review-card dnd-cc-review-card-compact">
       <h3>{{localize "DND-CC.Steps.Equipment"}}</h3>
       <div class="dnd-cc-review-line"><span>{{localize "DND-CC.Equipment.Currency"}}</span><span>{{currencyText}}</span></div>
       {{#if equipment.length}}
@@ -91,6 +117,7 @@
       <p class="dnd-cc-empty-state">{{localize "DND-CC.Equipment.NoneYet"}}</p>
       {{/if}}
     </section>
+    {{/if}}
   </div>
 
   {{#if pendingReview}}

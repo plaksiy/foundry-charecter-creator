@@ -293,26 +293,22 @@ const FONT_SCALE_OPTIONS = [
 const ACCENT_COLOR_PRIMARY = [
   { value: "neutral", labelKey: "DND-CC.Accessibility.AccentNeutral", swatch: "#e6e1d6" },
   { value: "red", labelKey: "DND-CC.Accessibility.AccentRed", swatch: "#df0000" },
-  { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#4f7fd9" },
-  { value: "yellow", labelKey: "DND-CC.Accessibility.AccentYellow", swatch: "#d9b823" },
-  { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#2f9e44" }
-];
-const ACCENT_COLOR_MORE = [
-  { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
+  { value: "blue", labelKey: "DND-CC.Accessibility.AccentBlue", swatch: "#3457d5" },
   { value: "amber", labelKey: "DND-CC.Accessibility.AccentAmber", swatch: "#d99a2b" },
-  { value: "teal", labelKey: "DND-CC.Accessibility.AccentTeal", swatch: "#1f9b8f" },
+  { value: "green", labelKey: "DND-CC.Accessibility.AccentGreen", swatch: "#1f7a4d" },
+  { value: "violet", labelKey: "DND-CC.Accessibility.AccentViolet", swatch: "#9a63d1" },
   { value: "rose", labelKey: "DND-CC.Accessibility.AccentRose", swatch: "#d6488a" }
 ];
 const ACCENT_GRADIENT_OPTIONS = [
   { value: "gradient-sunset", labelKey: "DND-CC.Accessibility.GradientSunset", swatch: "linear-gradient(135deg, #df0000, #d99a2b)" },
-  { value: "gradient-ocean", labelKey: "DND-CC.Accessibility.GradientOcean", swatch: "linear-gradient(135deg, #4f7fd9, #1f9b8f)" },
-  { value: "gradient-royal", labelKey: "DND-CC.Accessibility.GradientRoyal", swatch: "linear-gradient(135deg, #9a63d1, #d6488a)" },
-  { value: "gradient-forest", labelKey: "DND-CC.Accessibility.GradientForest", swatch: "linear-gradient(135deg, #2f9e44, #d9b823)" }
+  { value: "gradient-ocean", labelKey: "DND-CC.Accessibility.GradientOcean", swatch: "linear-gradient(135deg, #3457d5, #1f9b8f)" },
+  { value: "gradient-pearl", labelKey: "DND-CC.Accessibility.GradientPearl", swatch: "linear-gradient(135deg, #ffffff, #e6e2f2, #eef2f5, #ffffff)" },
+  { value: "gradient-forest", labelKey: "DND-CC.Accessibility.GradientForest", swatch: "linear-gradient(135deg, #17512f, #5c7a34)" }
 ];
 // The full flat list - used wherever every option needs considering regardless of
 // which row it lives in (the active-swatch lookup, clearing every possible class
 // before applying the current one, ...).
-const ACCENT_COLOR_OPTIONS = [...ACCENT_COLOR_PRIMARY, ...ACCENT_COLOR_MORE, ...ACCENT_GRADIENT_OPTIONS];
+const ACCENT_COLOR_OPTIONS = [...ACCENT_COLOR_PRIMARY, ...ACCENT_GRADIENT_OPTIONS];
 
 /**
  * A readable text color (near-white or near-black) for a solid background hex, using
@@ -2917,8 +2913,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     this._renderHeaderToolbar();
 
-    // A GM Progress Dashboard quick level control may have opened this window with a
-    // level change already queued up - apply it once the draft/actor is actually ready rather
+    // A GM Progress Dashboard quick level control opened this session with a level
+    // change already queued up - apply it once the draft/actor is actually ready rather
     // than mutating anything from the dashboard itself, so the GM lands directly in
     // whatever embedded Advancement flow that change triggers (HP roll, ASI, subclass
     // pick, ...) instead of it happening silently in the background. Deferred to a fresh
@@ -3883,8 +3879,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
     const fontScaleValue = String(game.settings.get(MODULE_ID, "fontScale"));
     const reduceImagery = game.settings.get(MODULE_ID, "reduceImagery");
-    const accentIsExtra = ACCENT_COLOR_MORE.some((o) => o.value === accentValue)
-      || ACCENT_GRADIENT_OPTIONS.some((o) => o.value === accentValue)
+    const accentIsExtra = ACCENT_GRADIENT_OPTIONS.some((o) => o.value === accentValue)
       || accentValue === "custom" || accentValue === "custom-gradient";
     const customColorValue = String(game.settings.get(MODULE_ID, "customAccentColor"));
     const customGradientFrom = String(game.settings.get(MODULE_ID, "customAccentGradientFrom"));
@@ -3922,20 +3917,20 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
           <button type="button" class="dnd-cc-settings-more-toggle" data-toggle-more-accents>
             <i class="fa-solid fa-palette"></i> ${esc(game.i18n.localize("DND-CC.Accessibility.MoreAccentsLabel"))}
           </button>
-          <div class="dnd-cc-settings-swatch-row dnd-cc-settings-swatch-row-more" ${accentIsExtra ? "" : "hidden"}>
-            ${ACCENT_COLOR_MORE.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
-            ${ACCENT_GRADIENT_OPTIONS.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
-          </div>
-
-          <div class="dnd-cc-settings-custom-row" ${accentIsExtra ? "" : "hidden"}>
-            <label class="dnd-cc-settings-custom-item ${accentValue === "custom" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}">
-              <input type="color" value="${esc(customColorValue)}" data-custom-color />
-              <span>${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}</span>
-            </label>
-            <div class="dnd-cc-settings-custom-item dnd-cc-settings-custom-gradient ${accentValue === "custom-gradient" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}">
-              <input type="color" value="${esc(customGradientFrom)}" data-custom-gradient-from />
-              <input type="color" value="${esc(customGradientTo)}" data-custom-gradient-to />
-              <span>${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}</span>
+          <div class="dnd-cc-settings-more-panel ${accentIsExtra ? "is-open" : ""}">
+            <div class="dnd-cc-settings-more-panel-inner">
+              <div class="dnd-cc-settings-swatch-row dnd-cc-settings-gradient-row">
+                ${ACCENT_GRADIENT_OPTIONS.map((option) => this._accentSwatchHtml(option, accentValue, theme)).join("")}
+                <label class="dnd-cc-settings-custom-item ${accentValue === "custom" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomColorLabel"))}">
+                  <input type="color" value="${esc(customColorValue)}" data-custom-color />
+                  <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
+                </label>
+                <div class="dnd-cc-settings-custom-item dnd-cc-settings-custom-gradient ${accentValue === "custom-gradient" ? "active" : ""}" data-tooltip="${esc(game.i18n.localize("DND-CC.Accessibility.CustomGradientLabel"))}">
+                  <input type="color" value="${esc(customGradientFrom)}" data-custom-gradient-from />
+                  <input type="color" value="${esc(customGradientTo)}" data-custom-gradient-to />
+                  <i class="fa-solid fa-plus dnd-cc-settings-custom-icon"></i>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3998,10 +3993,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     });
 
     wrapper.querySelector("[data-toggle-more-accents]")?.addEventListener("click", () => {
-      const nowHidden = !wrapper.querySelector(".dnd-cc-settings-swatch-row-more")?.hidden;
-      wrapper.querySelectorAll(".dnd-cc-settings-swatch-row-more, .dnd-cc-settings-custom-row").forEach((row) => {
-        row.hidden = nowHidden;
-      });
+      // A CSS `transition` (or a Web Animations API equivalent) on this element's
+      // max-height reproducibly gets stuck and never reaches its real target in this
+      // app's actual Electron/Chromium runtime - an instant, correct reveal beats a
+      // half-animated one that leaves the panel stuck collapsed or torn mid-frame,
+      // which is exactly the "things shift around and it's unpleasant" complaint this
+      // was meant to fix in the first place, not something to reintroduce.
+      wrapper.querySelector(".dnd-cc-settings-more-panel")?.classList.toggle("is-open");
     });
 
     wrapper.querySelector("[data-custom-color]")?.addEventListener("change", async (event) => {

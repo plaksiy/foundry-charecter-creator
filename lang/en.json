@@ -101,15 +101,13 @@
       "AccentNeutral": "Neutral",
       "AccentRed": "Red",
       "AccentBlue": "Blue",
-      "AccentYellow": "Yellow",
       "AccentViolet": "Violet",
       "AccentGreen": "Green",
       "AccentAmber": "Amber",
-      "AccentTeal": "Teal",
       "AccentRose": "Rose",
       "GradientSunset": "Sunset",
       "GradientOcean": "Ocean",
-      "GradientRoyal": "Royal",
+      "GradientPearl": "Pearl",
       "GradientForest": "Forest"
     },
     "GmAssist": {
