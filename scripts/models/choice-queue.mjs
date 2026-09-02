@@ -7,7 +7,7 @@
  * actor at the right time and report whether it completed.
  */
 
-import { ABILITY_KEYS } from "../constants.mjs";
+import { ABILITY_KEYS, MODULE_ID } from "../constants.mjs";
 import { CharacterDraft } from "./character-draft.mjs";
 import { getRulesetMismatchedSourceSlugs } from "../services/compendium-sources.mjs";
 
@@ -96,15 +96,13 @@ function runAdvancementManager(manager, container) {
     if (container) {
       rendering.then(() => {
         // A container can arrive here already carrying a leftover `visibility: hidden`
-        // from a PRIOR manager's own close() (see above) - real for any call site that
+        // from a PRIOR manager's own close() (see above) - applies to any call site that
         // runs more than one manager through the same container in a row (e.g.
         // _selectItem's remove-then-add swap, _reviewClass's remove-then-add redo,
         // _changeOriginFeat's add-then-remove) without an app-level re-render in
         // between. Left uncleared, the new manager's own content renders correctly but
-        // stays invisible until the caller's outer render() eventually fires - confirmed
-        // live: swapping an already-selected species left the whole rest of the new
-        // species' Advancement flow rendering behind an invisible panel. Clearing it here
-        // is a no-op for the common single-manager-per-container case.
+        // stays invisible until the caller's outer render() eventually fires. Clearing
+        // it here is a no-op for the common single-manager-per-container case.
         container.style.visibility = "";
         // A manager whose steps are all `automatic` (a removeItemWithAdvancement
         // reversal, most commonly) can finish and call its own close() - which nulls
@@ -114,8 +112,8 @@ function runAdvancementManager(manager, container) {
         // still "succeeds" in that case, but per the Element.append() spec any non-Node
         // argument is coerced to a string first - stringifying `undefined` inserts a
         // literal "undefined" text node into the container. A species
-        // swap's removal manager left exactly this stray text node sitting before the
-        // next manager's own element once the container was actually visible again.
+        // swap's removal manager can leave exactly this stray text node sitting before
+        // the next manager's own element once the container is visible again.
         if (manager.element) container.append(manager.element);
       });
     }
@@ -128,12 +126,16 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely - meaning clicking it always popped out a real floating window mid-wizard, and never got the
+// entirely (per `SubclassFlow.#browseCompendium`'s source). That
+// meant clicking it always popped out a real floating window mid-wizard, and never got the
 // ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
 // way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
 // real `SubclassFlow` that overrides just the `browse` action, swapped in for the real one
 // via `SubclassAdvancement.metadata.apps.flow` - the actual class `AdvancementManager` asks
-// for when it needs to render a Subclass step.
+// for when it needs to render a Subclass step (`advancement.constructor.
+// metadata.apps.flow` is what gets instantiated, read fresh from a *getter* each time, so
+// simply overwriting `metadata.apps.flow` on a snapshot object doesn't stick - the getter
+// itself has to be wrapped instead).
 
 let embeddedSubclassFlowClass = null;
 let subclassFlowPatched = false;
@@ -179,7 +181,68 @@ function getEmbeddedSubclassFlowClass() {
 
         const host = document.createElement("div");
         host.className = "dnd-cc-advancement-body dnd-cc-browser-body";
-        this.element.replaceChildren(host);
+
+        // A player whose homebrew subclass doesn't exist yet used to have to cancel out
+        // of this exact screen, go create it from the Class step's own separate "Add
+        // Custom Subclass" tile, then come back - this does it right here instead. The
+        // parent class's own identifier (this.item.identifier) is already known from
+        // context, so unlike the Class-step version of this form there's nothing to ask
+        // except a name. Applies the new stub immediately via the same
+        // advancement.apply(...) path a real compendium pick already uses - no drag-
+        // and-drop needed, since Subclass advancement grants by uuid either way.
+        const addCustomButton = document.createElement("button");
+        addCustomButton.type = "button";
+        addCustomButton.className = "dnd-cc-browser-add-custom";
+        addCustomButton.innerHTML = `<i class="fa-solid fa-plus"></i> ${game.i18n.localize("DND-CC.AddCustomSubclass")}`;
+        addCustomButton.addEventListener("click", async () => {
+          // Same "Create Items" world-permission gap _showCustomItemForm's own create
+          // handler guards against - a non-GM player lacks it by default in Foundry.
+          if (!game.user.can("ITEM_CREATE")) {
+            ui.notifications.warn(game.i18n.localize("DND-CC.CustomForm.NoCreatePermission"));
+            return;
+          }
+
+          const name = await foundry.applications.api.DialogV2.prompt({
+            window: { title: game.i18n.localize("DND-CC.AddCustomSubclass") },
+            content: `
+              <p>${game.i18n.format("DND-CC.CustomForm.HintSubclassQuick", { className: this.item.name })}</p>
+              <input type="text" name="custom-subclass-name" style="width: 100%;" autofocus />
+            `,
+            ok: {
+              label: game.i18n.localize("DND-CC.CustomForm.Create"),
+              callback: (_event, button) => button.form.elements["custom-subclass-name"].value.trim()
+            }
+          }).catch(() => null);
+          if (!name) return;
+
+          let created;
+          try {
+            created = await Item.create({
+              type: "subclass",
+              name,
+              flags: { [MODULE_ID]: { homebrewStub: true } },
+              system: { classIdentifier: this.item.identifier }
+            });
+          } catch (error) {
+            console.error(`${MODULE_ID} | Failed to create custom subclass`, error);
+            ui.notifications.error(game.i18n.localize("DND-CC.CustomForm.CreateFailed"));
+            return;
+          }
+
+          await this.advancement.apply(this.level, { uuid: created.uuid });
+          created.sheet.render(true);
+
+          // The embedded browser is still open underneath, mid-await inside
+          // runCompendiumBrowser below - closing it here resolves that promise with
+          // null (same as a real Cancel), which is correct: the choice this browser was
+          // showing is already resolved a different way now.
+          const browserApp = Array.from(foundry.applications.instances.values()).find(
+            (a) => a.constructor.name === "EmbeddedCompendiumBrowser"
+          );
+          browserApp?.close();
+        });
+
+        this.element.replaceChildren(addCustomButton, host);
 
         const result = await runCompendiumBrowser({ filters, selection: { min: 1, max: 1 } }, host, excludedSourceSlugs);
         if (result?.size) {
@@ -610,7 +673,7 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
  * The Source filter's own list of `<filter-state>` options is itself populated
  * asynchronously the first time a CompendiumBrowser instance is ever created in a
  * session (it has to index every enabled pack to know what sources even exist) -
- * is genuinely slower than our own code reaching this point on a
+ * genuinely slower than our own code reaching this point on a
  * cold first open, so a plain immediate `querySelector` for the target filter-state can
  * come up empty even though the exact same lookup succeeds instantly on a second open
  * later in the same session (the index is cached after the first build). The old
@@ -680,10 +743,10 @@ function waitForFiltersPartReplacement(sidebar, staleElement) {
 /**
  * Collapses the sidebar's filter panel down to Search + Price (moved into one row
  * together) plus a single "Filters" toggle covering everything else (Attunement,
- * Weapon Mastery, Rarity, Properties, Source, ...) - direct feedback on a live
- * screenshot was that the default panel (search on its own row, then every filter
- * group stacked below, several of them already collapsed-but-still-taking-a-header's-
- * worth-of-space) read as cluttered for what's usually just "type a name and go."
+ * Weapon Mastery, Rarity, Properties, Source, ...) - the default panel (search on its
+ * own row, then every filter group stacked below, several of them already
+ * collapsed-but-still-taking-a-header's-worth-of-space) reads as cluttered for what's
+ * usually just "type a name and go."
  *
  * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't
  * hold on its own - dnd5e re-renders `[data-application-part=
@@ -719,7 +782,9 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
     // dnd5e replaces the whole `filters` part with a fresh element at least once after
     // the browser's first paint (its own locked-type-filter init), so this can run more
     // than once - each pass's own price filter must replace whatever an earlier pass
-    // already moved into searchRow, not pile up alongside it.
+    // already moved into searchRow, not pile up alongside it - without
+    // this cleanup, several re-renders leave several duplicate price-range rows stacked
+    // in the search row.
     searchRow.querySelectorAll('.filter[data-filter-id="price"]').forEach((el) => el.remove());
     const priceFilter = filtersPart.querySelector('.filter[data-filter-id="price"]');
     if (priceFilter) searchRow.append(priceFilter);
@@ -736,7 +801,7 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
       toggle.className = "dnd-cc-browser-filters-toggle";
       toggle.innerHTML = '<i class="fa-solid fa-sliders"></i> ' + game.i18n.localize("DND-CC.Equipment.MoreFilters");
       // Looks up the filters part fresh on every click rather than closing over the
-      // element resolved this pass - a later re-render swaps in a new filtersPart
+      // element resolved here - a later re-render swaps in a new filtersPart
       // element (see above) without this toggle being recreated, so a closed-over
       // reference would silently keep toggling a detached, no-longer-visible one.
       toggle.addEventListener("click", () => sidebar.querySelector('[data-application-part="filters"]')?.classList.toggle("is-open"));
@@ -761,8 +826,8 @@ export function hasItemOfType(actor, type) {
 }
 
 /**
- * Every real player choice on `item` that's still unanswered - that
- * dnd5e's own AdvancementManager deliberately never disables "Next"/"Complete" for an
+ * Every real player choice on `item` that's still unanswered - dnd5e's own
+ * AdvancementManager deliberately never disables "Next"/"Complete" for an
  * unanswered Trait/ItemChoice/AbilityScoreImprovement/Subclass pick (e.g. a Fighter's
  * Fighting Style, a Dragonborn's damage resistance, a class's Skill Proficiencies, a
  * level-3 subclass pick), so an item can land on the actor with a genuine choice
@@ -790,7 +855,7 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
     // stops a genuinely inapplicable grant from being reported as a missed choice -
-    // a real original-class Bard, whose "secondary" 1-skill/
+    // an original-class Bard's own "secondary" 1-skill/
     // 1-tool grants never appear as steps during a normal add, yet still carry an empty
     // `value` forever since nothing ever resolves them.
     if (!advancement.appliesToClass) continue;
@@ -810,8 +875,8 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
       // `value.added` shows up two different shapes in the wild depending on whether
       // the advancement can apply at more than one level: a flat {itemId: uuid} map
       // when there's only ever one choice tier (e.g. a Fighting Style), or a
-      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic) -
-      // both. Counting values that are themselves objects as nested
+      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
+      // Counting values that are themselves objects as nested
       // per-level entries, and anything else as one flat entry, covers both without
       // needing to know in advance which shape a given advancement uses.
       let added = 0;
@@ -824,15 +889,13 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     if (advancement.type === "AbilityScoreImprovement") {
       // A real completed choice is either `value.assignments` (points actually spent
       // on abilities) or `value.feat` ("choose a feat instead," the real 2024 option at
-      // some levels) - reading dnd5e's own AbilityScoreImprovement#
+      // some levels), per dnd5e's own AbilityScoreImprovement#
       // apply(). An untouched advancement still carries `value: {type: "asi"}` (dnd5e
       // sets `type` eagerly, before any real choice is made), which has one real key
-      // and previously satisfied the old plain `countEntries(value) === 0` check -
-      // clicking straight through a real Soldier background's ASI step
-      // with no interaction left the actor's ability scores completely unchanged, yet
-      // this check reported the background as fully resolved. `countEntries` isn't
-      // reused here since both real shapes are plain objects the count would treat as
-      // "non-empty" the moment they exist at all, same false-positive as before.
+      // and would satisfy a naive `countEntries(value) === 0` check even though
+      // nothing was actually chosen and the actor's ability scores are unchanged.
+      // `countEntries` isn't reused here since both real shapes are plain objects the
+      // count would treat as "non-empty" the moment they exist at all.
       const hasAssignments = advancement.value?.assignments && Object.keys(advancement.value.assignments).length > 0;
       const hasFeat = advancement.value?.feat && Object.keys(advancement.value.feat).length > 0;
       if (!hasAssignments && !hasFeat) titles.push(advancement.title);
@@ -890,13 +953,12 @@ export function isStepComplete(actor, stepId) {
 
 /**
  * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds -
- * show up as a real `Set` for some Trait configurations (e.g. a
+ * these show up as a real `Set` for some Trait configurations (e.g. a
  * Weapon Mastery pick), a plain object for others, and occasionally a `Map`. A naive
  * `.length` check silently reads `undefined` (=> treated as empty) on anything but a
- * real array, which is exactly what caused a genuinely-completed choice (a real Set
- * with entries) to misreport as unresolved - a real Barbarian
- * build. Handles all three shapes so the count is right regardless of which one a
- * given advancement happens to use.
+ * real array, which misreports a genuinely-completed choice (a real Set
+ * with entries) as unresolved. Handles all three shapes so the count is right
+ * regardless of which one a given advancement happens to use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
  */

@@ -9,7 +9,18 @@
 - **Class step: "what you get by level"** - a class's Learn More panel now has a collapsible table showing every feature it grants at each level 1-20, so you can see what's ahead before committing (or check an already-picked class's future).
 - **Equipment step improvements**: your starting gear is now grouped into collapsible sections by where it came from (class, background, or bought/homebrew); the manual "Add Item" shop shows a running itemized cart (each selected item and its price) instead of just a total; a new "Bonus Starting Gold" house rule lets a GM grant extra starting currency on top of the normal kit.
 - **Two more House Rules**: "Banned Feats" (hide specific feats from the Feats step, same as the existing banned species/classes) and "Disable Multiclassing" (a character can only ever have one class).
-- **Four gradient themes**: Twilight (dusk purple), Ember (forge red-orange), Aurora (arcane teal-violet), and Bloodmoon (dark red-black) - alongside the eight solid-color themes, each sweeps the whole wizard's background through a real multi-stop gradient instead of one flat color.
+- **Five gradient themes**: Twilight (dusk purple), Ember (forge red-orange), Aurora (arcane teal-violet), Bloodmoon (dark red-black), and Sunspire (rich gold) - alongside the seven solid-color themes, each sweeps the whole wizard's background through a real multi-stop gradient instead of one flat color.
+- **Two more accent gradients**: Dusk (violet to pink) and Radiant (amber to cream), in the Settings panel's "More Colors & Gradients" section.
+- **Type a hex code directly** for a custom accent color or gradient, right next to its own color picker, instead of only being able to pick from the OS color dialog.
+- **Add Custom Subclass**: the subclass picker (shown once a class reaches its subclass level) now has its own "Add Custom Subclass" button, the same quick-placeholder-then-finish-on-its-own-sheet flow every other "Add Custom" button already offers.
+
+### Changed
+
+- The Light theme now uses the palette that used to be a separate "Marble" theme; Marble itself has been removed as a distinct option.
+
+### Fixed
+
+- Every "Add Custom" button (class, species, background, feat, subclass) silently did nothing for a player who lacked Foundry's "Create Items" permission, which is off by default for the Player role. It now shows a clear warning explaining what permission is missing; see the Installation section of the README.
 
 ### Removed
 

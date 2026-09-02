@@ -74,15 +74,15 @@
    violet/green/amber) are mid-tone enough to keep working unmodified against either
    background and aren't redefined here. */
 .application.dnd-cc.dnd-cc-theme-light {
-  --dcc-bg: #f3ede0;
-  --dcc-surface: #fffcf5;
-  --dcc-surface-alt: #ece3d0;
-  --dcc-border: #c7bca2;
-  --dcc-text: #221e18;
-  --dcc-text-muted: #6b6252;
-  --dcc-accent: #2a251e;
-  --dcc-accent-contrast: #fdfbf5;
-  --dcc-border-strong: #2a251e;
+  --dcc-bg: #eef0f2;
+  --dcc-surface: #ffffff;
+  --dcc-surface-alt: #e2e5ea;
+  --dcc-border: #b9c0c9;
+  --dcc-text: #14161a;
+  --dcc-text-muted: #4d525c;
+  --dcc-accent: #14161a;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-border-strong: #14161a;
 }
 
 /* More dark-native theme worlds, same idea as Light above (a full palette swap, not just
@@ -127,20 +127,6 @@
   --dcc-accent-contrast: #1c140d;
   --dcc-border-strong: #d29552;
 }
-/* Light-native worlds, alongside Light above - deliberately higher-contrast (near-black
-   text on a near-white surface, not a soft mid-tone) and each in a genuinely different
-   hue family from Light's own warm cream, not just another shade of it. */
-.application.dnd-cc.dnd-cc-theme-marble {
-  --dcc-bg: #eef0f2;
-  --dcc-surface: #ffffff;
-  --dcc-surface-alt: #e2e5ea;
-  --dcc-border: #b9c0c9;
-  --dcc-text: #14161a;
-  --dcc-text-muted: #4d525c;
-  --dcc-accent: #14161a;
-  --dcc-accent-contrast: #ffffff;
-  --dcc-border-strong: #14161a;
-}
 /* Pushed a shade more saturated than a first pass, which read as too close to a plain
    pale grey - now unmistakably green rather than just "light and slightly tinted". */
 .application.dnd-cc.dnd-cc-theme-meadow {
@@ -154,7 +140,7 @@
   --dcc-accent-contrast: #f3faec;
   --dcc-border-strong: #16260a;
 }
-/* A warm counterpart to Marble/Meadow - honey and gold rather than cool stone or green,
+/* A warm counterpart to Light/Meadow - honey and gold rather than cool stone or green,
    for the same "light theme, different mood" reason those two exist. */
 .application.dnd-cc.dnd-cc-theme-honeycomb {
   --dcc-bg: #faf1de;
@@ -213,7 +199,7 @@
   --dcc-border-strong: #5ee0c4;
 }
 /* A dark, ominous red-to-black sweep - necromantic/vampiric in mood, the most dramatic
-   of the four gradient themes. A pale bone-gold accent (not another red) keeps buttons
+   of the gradient themes. A pale bone-gold accent (not another red) keeps buttons
    and active states legible against it rather than blending into the gradient itself. */
 .application.dnd-cc.dnd-cc-theme-bloodmoon {
   --dcc-bg: linear-gradient(160deg, #1a0505 0%, #3d0a0a 50%, #0a0303 100%);
@@ -225,6 +211,25 @@
   --dcc-accent: #e8b84a;
   --dcc-accent-contrast: #1a0505;
   --dcc-border-strong: #e8b84a;
+}
+/* A warm mahogany-to-gold sweep - a fifth gradient theme, radiant/regal in mood rather
+   than moody or dark like the other four. The bright stop is a saturated, orange-leaning
+   gold with no green in it (an earlier pass leaned olive/khaki there and read as cheap
+   rather than luxurious) - every stop keeps red clearly ahead of green for a warm,
+   metallic gold rather than a dusty one. Kept in a uniformly dark tonal range throughout
+   (never brightening to a pale cream) specifically so plain light text stays legible
+   everywhere on the gradient, the same reason every other gradient theme here stays
+   dark end-to-end instead of sweeping into a light range. */
+.application.dnd-cc.dnd-cc-theme-sunspire {
+  --dcc-bg: linear-gradient(135deg, #1a0f05 0%, #5c2f0a 35%, #c98a1a 70%, #3d1f08 100%);
+  --dcc-surface: #33210c;
+  --dcc-surface-alt: #452c10;
+  --dcc-border: #7a5518;
+  --dcc-text: #fff2d9;
+  --dcc-text-muted: #d9b876;
+  --dcc-accent: #e0a530;
+  --dcc-accent-contrast: #1a0f05;
+  --dcc-border-strong: #e0a530;
 }
 
 /* The five "primary" solid accents, always visible in the Settings panel's own main
@@ -303,6 +308,20 @@
   --dcc-border-strong: #8fb562;
   --dcc-accent-bg: linear-gradient(135deg, #17512f, #5c7a34);
 }
+.application.dnd-cc.dnd-cc-accent-gradient-dusk {
+  --dcc-accent: #b06aa8;
+  --dcc-accent-contrast: #ffffff;
+  --dcc-accent-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --dcc-border-strong: #b06aa8;
+  --dcc-accent-bg: linear-gradient(135deg, #6a3fa0, #d6488a);
+}
+.application.dnd-cc.dnd-cc-accent-gradient-radiant {
+  --dcc-accent: #d9a94a;
+  --dcc-accent-contrast: #141210;
+  --dcc-accent-text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+  --dcc-border-strong: #d9a94a;
+  --dcc-accent-bg: linear-gradient(135deg, #d99a2b, #f5e6b8);
+}
 
 .application.dnd-cc .window-header {
   background: var(--dcc-surface);
@@ -313,15 +332,11 @@
    dark-native theme (Dark/Wildwood/Frostspire/Sepia) since it already reads fine there,
    but a light-native theme's own header background (--dcc-surface) is ALSO light, so
    that same native light-on-light text/icon color becomes functionally invisible. Every
-   light-native theme needs this override, not just "Light" itself - Marble/Meadow/
-   Honeycomb are just as light and were missing it entirely until this list grew to
-   include them. */
+   light-native theme needs this override, not just "Light" itself - Meadow/Honeycomb
+   are just as light and were missing it entirely until this list grew to include them. */
 .application.dnd-cc.dnd-cc-theme-light .window-header,
 .application.dnd-cc.dnd-cc-theme-light .window-header .window-title,
 .application.dnd-cc.dnd-cc-theme-light .header-control,
-.application.dnd-cc.dnd-cc-theme-marble .window-header,
-.application.dnd-cc.dnd-cc-theme-marble .window-header .window-title,
-.application.dnd-cc.dnd-cc-theme-marble .header-control,
 .application.dnd-cc.dnd-cc-theme-meadow .window-header,
 .application.dnd-cc.dnd-cc-theme-meadow .window-header .window-title,
 .application.dnd-cc.dnd-cc-theme-meadow .header-control,
@@ -380,7 +395,8 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them. without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
+   overflows the fixed box and visually overlaps whatever sits next to them. Without this,
+   a ruleset card computes to `height: 34px` while its own h3+p content spans
    48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
    buttons) is excluded from the font-family override specifically - it broke the Font
    Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
@@ -389,8 +405,8 @@
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity - computed styles that this is exactly why a
-   plain (non-!important) override here lost to core's own button sizing despite being
+   selector specificity - which is why a
+   plain (non-!important) override here loses to core's own button sizing despite being
    more specific. `!important` on a layered declaration outranks a normal unlayered one,
    which is the correct, spec-sanctioned way to override core chrome from here - not a
    hack. Every button/select override in this file that fights Foundry's own default
@@ -446,7 +462,7 @@
    directly into the native ApplicationV2 window-header instead (see _onRender). The
    rail's own portrait+name block (formerly here) was removed once the Identity step
    gave name/portrait a real, more prominent home - keeping both was redundant, and the
-   rail copy wasn't obviously clickable by design. The rail now starts
+   rail copy wasn't obviously clickable per direct user feedback. The rail now starts
    right under the native window header with just the step list. */
 
 /* Text size / Simplify / Sources / Start Over now live as native window-header
@@ -774,6 +790,36 @@
   border-color: var(--dcc-text);
   box-shadow: 0 0 0 2px var(--dcc-surface), 0 0 0 4px var(--dcc-accent);
 }
+/* Plain hex text fields, grouped directly under their own swatch (a small vertical
+   stack sitting inline in the swatch row) rather than off in a separate unlabeled row -
+   which swatch a given hex field controls should be obvious from position alone.
+   Typing one bridges into that swatch's own real <input type="color"> (see the
+   data-hex-for wiring in _onRender). */
+.dnd-cc-settings-custom-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+/* Stacked vertically, not side by side - the gradient swatch itself is only 34px wide
+   (two 17px color-halves), so two 74px-wide hex fields side by side would be far wider
+   than the swatch they sit under, throwing off the whole row's wrapping. Stacking keeps
+   this whole control's width close to one hex field's own width instead. */
+.dnd-cc-settings-custom-stack-gradient { align-items: center; }
+.dnd-cc-settings-hex-pair { display: flex; flex-direction: column; gap: 0.25rem; }
+.dnd-cc-settings-hex-input {
+  width: 62px;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--dcc-border);
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: lowercase;
+}
+.dnd-cc-settings-hex-input:focus { border-color: var(--dcc-accent); outline: none; }
 /* Needs the same !important + specificity bump as every other custom button that
    fights Foundry's own default chrome (see the shared button reset's own comment near
    the top of this file) - a plain width/height here always lost to that reset's own
@@ -1149,7 +1195,7 @@
 }
 
 /* Background's two extra pills (ability options, granted feat name) read better a touch
-   bigger than the standard card pill size, by design. */
+   bigger than the standard card pill size, per direct user feedback. */
 .dnd-cc-step-background .dnd-cc-pill { font-size: 0.72rem; }
 
 .dnd-cc-seg-group {
@@ -1412,10 +1458,10 @@
      full-width label, stretches to fill its own row track's height. For every OTHER
      row (the cards themselves) that's a no-op since aspect-ratio already forces their
      real height regardless of align-items. But a row holding *only* this label has
-     nothing else to anchor its own auto height, and combination
-     let the row's own computed auto-height balloon to 134px for one line of text
-     (a real, reproducible browser quirk, not a misread - forcing align-self: start
-     alone measurably dropped it back to 21px) - reading as a large empty gap above the
+     nothing else to anchor its own auto height, and that combination
+     balloons the row's own computed auto-height to 134px for one line of text
+     (a reproducible browser quirk - forcing align-self: start
+     alone drops it back to 21px) - reading as a large empty gap above the
      group's real cards below. align-self: start opts this one item out of stretching
      to match whatever its row was otherwise computing. */
   align-self: start;
@@ -1455,8 +1501,7 @@
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
-  /* A real browser layout bug - toggling this exact
-     property with the rest held constant. `overflow: hidden` on a grid item with
+  /* A real browser layout quirk: `overflow: hidden` on a grid item with
      `aspect-ratio` makes Chromium's grid-row auto-sizing treat this item's contribution
      to its row's height as 0 (per the CSS Sizing spec's automatic-minimum-size carve-out
      for non-visible overflow), instead of the aspect-ratio-derived height - harmless as
@@ -1464,7 +1509,7 @@
      but once the merged Class/Species/Background grid (see "Add Custom now flows
      inline" below) put several rows made up *entirely* of these cards, those rows
      collapsed to a few px with every card in them rendering stacked on top of each
-     other. An explicit `min-height` was tried first and didn't work -
+     other. An explicit `min-height` was tried first and didn't work:
      Chromium uses that exact number as the row's full contribution instead of a floor
      beneath the larger aspect-ratio size, so a fixed number always either collapsed the
      row back down or clipped a wider card short. `clip-path` achieves the exact same
@@ -1473,7 +1518,7 @@
   clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
-/* Class cards specifically go fully square, by design that the class
+/* Class cards specifically go fully square, per direct user feedback that the class
    symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
    frame better than the 3:4 portrait ratio the other two card grids use. */
 .dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
@@ -2433,9 +2478,9 @@
 /* One color-keyed flip card per ability - the same --dcc-str/dex/con/int/wis/cha
    tokens the Skills table already keys its rows off. Fixed height, identical in every
    state (flipped or not): front and back are both absolutely positioned to this one
-   box, so neither face can ever stretch it - a stray row of content on one card
-   growing the whole grid row (and every card in it) taller than its neighbors was a
-   bug caught in the design pass, not a hypothetical one. */
+   box, so neither face can ever stretch it - without this, a stray row of content on
+   one card grows the whole grid row (and every card in it) taller than its
+   neighbors. */
 /* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
    cramped row of six. */
 .dnd-cc-ability-grid {
@@ -3151,6 +3196,33 @@
 }
 .dnd-cc-add-item-btn:hover { border-color: var(--dcc-accent); color: var(--dcc-accent); border-style: solid; }
 
+/* The embedded subclass browser's own "Add Custom Subclass" button, sitting above the
+   browser host - same dashed-outline look as .dnd-cc-add-item-btn, but needs the usual
+   !important + specificity bump to win against Foundry's own unlayered default button
+   chrome (height/padding), same reason every other custom button in this file needs it. */
+.application.dnd-cc button.dnd-cc-browser-add-custom {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  height: auto !important;
+  padding: 0.5rem 0.9rem !important;
+  margin-bottom: 0.5rem;
+  background: transparent;
+  border: 1.5px dashed var(--dcc-border);
+  border-radius: 8px;
+  color: var(--dcc-text-muted);
+  font-family: var(--dcc-font-ui);
+  font-weight: 700;
+  font-size: 0.76rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.application.dnd-cc button.dnd-cc-browser-add-custom:hover {
+  border-color: var(--dcc-accent);
+  color: var(--dcc-accent);
+  border-style: solid;
+}
+
 /*
  * Embedded Advancement UI - the real dnd5e AdvancementManager, rendered chromeless and
  * relocated in here instead of floating as its own popup window (see
@@ -3253,8 +3325,8 @@
   border-radius: 8px;
 }
 
-/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms - the
-   default sizing was cramped and hard to click precisely - increased
+/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, per user
+   feedback that the default sizing was cramped and hard to click precisely - increased
    again in a third pass (no artificial min-height on the container this time, which
    just left a sparse step like Hit Points looking like mostly empty space - the fix is
    actually bigger content, not a taller empty box around small content). */
@@ -3341,7 +3413,7 @@
    `.item-control` sits in dnd5e's own `li.item.flexrow` alongside `.item-name` (which
    takes its own natural width), and without an explicit flex-basis a plain button
    picks up `flex: 1 1 0%` from that flex row and stretches to fill all the row's
-   remaining width - computed style (a 423px-wide button in a 65px
+   remaining width (a 423px-wide button in a 65px
    row). `flex: none` keeps it sized to its icon content only, so the hover fill below
    paints a small icon-sized box instead of a giant one spanning most of the row. */
 .dnd-cc-advancement-body .item-control:has(.fa-trash) {
@@ -3384,8 +3456,8 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input - the real markup. The two looked visually
-   identical before (same box, same weight), making it hard to tell at a glance which
+   min!=max input. The two otherwise look visually
+   identical (same box, same weight), making it hard to tell at a glance which
    scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
@@ -3481,7 +3553,8 @@
    column that resolves to the full container height regardless of how little content
    the sidebar actually has, so a plain `max-height` cap alone just clamped that same
    fixed 100% down to a fixed 45%, leaving a large empty gap above the results whenever
-   the collapsed search row didn't need anywhere near that much room. `height: auto !important`
+   the collapsed search row doesn't need anywhere near that much room (e.g.
+   an 84px-tall search row sitting in a 173px sidebar box). `height: auto !important`
    makes it size to its real content again, with max-height still capping it once a
    player expands a filter group with a lot of options. */
 .dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"] {
@@ -4249,19 +4322,14 @@
 .dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
 .dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
 
-/* display: flex/flex-direction: column - NOT block. This is the real fix for the
-   long-reported "can't see the cursor or text while typing in Backstory" bug: dnd5e's
+/* display: flex/flex-direction: column - NOT block. dnd5e's
    own <prose-mirror> internally needs to be a flex column so its toolbar
    (.menu-container > menu.editor-menu) and its editable content area stack vertically.
-   `display: block` (what this rule used to say) breaks that - the toolbar's own wrapper
+   `display: block` breaks that - the toolbar's own wrapper
    collapses to 0 height in block flow while the menu itself still renders at full size
    via internal positioning, and the editable content area's text then starts at that
-   same collapsed y-offset, landing directly underneath/behind the toolbar buttons.
-   `document.elementFromPoint` on the actual typed text's own
-   bounding-box center: under `display: block` the topmost element there was a toolbar
-   button, not the text; under `display: flex; flex-direction: column`, it's the real
-   text node. Root-caused this way, not guessed - the text was never actually invisible
-   or uncolored, it was being visually covered by the toolbar the whole time. */
+   same collapsed y-offset, landing directly underneath/behind the toolbar buttons -
+   the text isn't invisible or uncolored, it's visually covered by the toolbar. */
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;

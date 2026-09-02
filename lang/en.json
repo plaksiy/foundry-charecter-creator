@@ -68,13 +68,13 @@
       "ThemeSepia": "Sepia",
       "ThemeWildwood": "Wildwood",
       "ThemeFrostspire": "Frostspire",
-      "ThemeMarble": "Marble",
       "ThemeMeadow": "Meadow",
       "ThemeHoneycomb": "Honeycomb",
       "ThemeTwilight": "Twilight",
       "ThemeEmber": "Ember",
       "ThemeAurora": "Aurora",
       "ThemeBloodmoon": "Bloodmoon",
+      "ThemeSunspire": "Sunspire",
       "StatusColorsLabel": "Status Colors",
       "DoneColorLabel": "\"Complete\" color (step rail, checkmarks)",
       "DoneColorShort": "OK",
@@ -117,6 +117,8 @@
       "MoreAccentsLabel": "More Colors & Gradients",
       "CustomColorLabel": "Custom Color",
       "CustomGradientLabel": "Custom Gradient",
+      "GradientFromLabel": "Custom Gradient - Start Color",
+      "GradientToLabel": "Custom Gradient - End Color",
       "AccentNeutral": "Neutral",
       "AccentRed": "Red",
       "AccentBlue": "Blue",
@@ -127,7 +129,9 @@
       "GradientSunset": "Sunset",
       "GradientOcean": "Ocean",
       "GradientPearl": "Pearl",
-      "GradientForest": "Forest"
+      "GradientForest": "Forest",
+      "GradientDusk": "Dusk",
+      "GradientRadiant": "Radiant"
     },
     "GmAssist": {
       "WindowTitle": "Assisting: {name}"
@@ -196,6 +200,7 @@
       "TabExisting": "Use Existing",
       "Hint": "Creates a placeholder you can finish authoring on its own item sheet afterward (proficiencies, advancement, etc.).",
       "HintSubclass": "Creates a placeholder you can finish authoring on its own item sheet afterward. Once it's ready, drag it from the Items sidebar onto the native subclass choice screen when your class reaches its subclass level - a custom subclass isn't offered automatically the way compendium ones are.",
+      "HintSubclassQuick": "Creates a placeholder subclass for {className} and picks it right away - you can finish authoring it on its own item sheet afterward (features, spellcasting, and so on).",
       "HintEquipment": "Creates a blank item directly in your inventory, which you can then finish authoring on its own item sheet (price, weight, damage, armor class, and so on).",
       "ItemType": "Item Type",
       "Name": "Name",
@@ -213,6 +218,7 @@
       "Cantrip": "Cantrip",
       "Create": "Create",
       "CreateFailed": "Couldn't create that item - check the console for details.",
+      "NoCreatePermission": "Your GM needs to enable the \"Create Items\" permission for your role before you can add custom content - ask them to check Configure Permissions.",
       "ExistingHint": "Adopt an item you already created outside the wizard - it'll show up in this grid from now on.",
       "UseThis": "Use This",
       "NoExisting": "No unused items of this type found."
