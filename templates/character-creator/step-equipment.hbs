@@ -66,15 +66,26 @@
 
   <div class="dnd-cc-divider"><span>{{localize "DND-CC.Equipment.Inventory"}}</span></div>
 
-  {{#if inventory.length}}
-  <div class="dnd-cc-item-chips">
-    {{#each inventory}}
-    <span class="dnd-cc-item-chip">
-      <img src="{{this.img}}" alt="" />
-      {{this.name}}{{this.quantityText}}
-      {{#if this.priceText}}<span class="dnd-cc-item-chip-price">{{this.priceText}}</span>{{/if}}
-      <button type="button" class="dnd-cc-item-chip-remove" data-remove-equipment="{{this.id}}" aria-label="{{localize 'DND-CC.Equipment.Remove'}}"><i class="fa-solid fa-xmark"></i></button>
-    </span>
+  {{#if inventoryGroups.length}}
+  <div class="dnd-cc-equipment-accordion">
+    {{#each inventoryGroups}}
+    <div class="dnd-cc-equipment-accordion-group is-open">
+      <button type="button" class="dnd-cc-equipment-accordion-toggle" data-equipment-group-toggle>
+        <i class="fa-solid fa-chevron-right"></i>
+        <span>{{this.label}}</span>
+        <span class="dnd-cc-equipment-accordion-count">{{this.items.length}}</span>
+      </button>
+      <div class="dnd-cc-item-chips dnd-cc-equipment-accordion-body">
+        {{#each this.items}}
+        <span class="dnd-cc-item-chip">
+          <img src="{{this.img}}" alt="" />
+          {{this.name}}{{this.quantityText}}
+          {{#if this.priceText}}<span class="dnd-cc-item-chip-price">{{this.priceText}}</span>{{/if}}
+          <button type="button" class="dnd-cc-item-chip-remove" data-remove-equipment="{{this.id}}" aria-label="{{localize 'DND-CC.Equipment.Remove'}}"><i class="fa-solid fa-xmark"></i></button>
+        </span>
+        {{/each}}
+      </div>
+    </div>
     {{/each}}
   </div>
   {{else}}

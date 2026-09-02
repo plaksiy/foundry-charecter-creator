@@ -159,6 +159,8 @@
     {{/if}}
   </ul>
   {{/if}}
+  {{else if multiclassBlocked}}
+  <p class="dnd-cc-empty-state">{{localize "DND-CC.Class.MulticlassDisabled"}}</p>
   {{else}}
   <p class="dnd-cc-empty-state">{{localize "DND-CC.Class.MaxLevelReached"}}</p>
   {{/if}}

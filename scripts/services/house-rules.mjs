@@ -11,11 +11,14 @@ const DEFAULT_HOUSE_RULES = {
   minFeatLevel: 1,
   bannedSpecies: [],
   bannedClasses: [],
+  bannedFeats: [],
+  disableMulticlass: false,
   allowSelfLevelUp: false,
   pointBuyBudget: 27,
   pointBuyMin: 8,
   pointBuyMax: 15,
-  allowRerolls: true
+  allowRerolls: true,
+  bonusStartingGoldGp: 0
 };
 
 /** @returns {typeof DEFAULT_HOUSE_RULES} */
@@ -49,6 +52,29 @@ export function isSpeciesBanned(uuid) {
  */
 export function isClassBanned(uuid) {
   return getHouseRules().bannedClasses.includes(uuid);
+}
+
+/**
+ * Hide a specific feat (e.g. a supplement feat a GM considers too strong or off-theme)
+ * from the Feats step's "Browse Feats" grid - same "ban individual items, not whole
+ * sources" precedent as bannedSpecies/bannedClasses.
+ * @param {string} uuid - compendium uuid of a feat item
+ */
+export function isFeatBanned(uuid) {
+  return getHouseRules().bannedFeats.includes(uuid);
+}
+
+/**
+ * Whether a character may add a second (or further) class at this table. Off by
+ * default - multiclassing stays available unless a GM explicitly turns it off. Checked
+ * only where a *new* class would be added (the addable-class grid and its own randomize
+ * button); an already-multiclassed character built before this rule was turned on keeps
+ * every class it already has, since this only gates adding more, not removing what's
+ * already there.
+ * @returns {boolean}
+ */
+export function isMulticlassDisabled() {
+  return getHouseRules().disableMulticlass === true;
 }
 
 /**
@@ -97,4 +123,16 @@ export function getPointBuyRange() {
  */
 export function isRerollAllowed() {
   return getHouseRules().allowRerolls !== false;
+}
+
+/**
+ * Extra starting gold (in GP-equivalent) a GM grants on top of whatever a character's
+ * class/background kit or "take gold instead" branch already provides - 0 by default,
+ * since the standard rules have no such bonus. Applied once per draft the first time the
+ * Equipment step is opened (see CharacterDraft#ensureBonusStartingGold), not re-applied
+ * on every render.
+ * @returns {number}
+ */
+export function getBonusStartingGoldGp() {
+  return getHouseRules().bonusStartingGoldGp || 0;
 }

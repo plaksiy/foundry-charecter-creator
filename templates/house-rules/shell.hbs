@@ -40,6 +40,12 @@
   </section>
 
   <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.BonusStartingGold"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.BonusStartingGoldHint"}}</p>
+    <input type="number" name="bonusStartingGoldGp" min="0" value="{{bonusStartingGoldGp}}">
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
     <h3>{{localize "DND-CC.HouseRules.DisallowedAlignments"}}</h3>
     <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.DisallowedAlignmentsHint"}}</p>
     <div class="dnd-cc-house-rules-checkgrid">
@@ -87,14 +93,33 @@
   </section>
 
   <section class="dnd-cc-house-rules-section">
+    <h3>{{localize "DND-CC.HouseRules.BannedFeats"}}</h3>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.BannedFeatsHint"}}</p>
+    <div class="dnd-cc-house-rules-checkgrid">
+      {{#each featOptions}}
+      <label>
+        <input type="hidden" name="feats.{{@index}}.uuid" value="{{this.uuid}}">
+        <input type="checkbox" name="feats.{{@index}}.banned" {{#if this.banned}}checked{{/if}}>
+        {{this.name}}
+      </label>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="dnd-cc-house-rules-section">
     <h3>{{localize "DND-CC.HouseRules.Leveling"}}</h3>
     <div class="dnd-cc-house-rules-checkgrid">
       <label>
         <input type="checkbox" name="allowSelfLevelUp" {{#if allowSelfLevelUp}}checked{{/if}}>
         {{localize "DND-CC.HouseRules.AllowSelfLevelUp"}}
       </label>
+      <label>
+        <input type="checkbox" name="disableMulticlass" {{#if disableMulticlass}}checked{{/if}}>
+        {{localize "DND-CC.HouseRules.DisableMulticlass"}}
+      </label>
     </div>
     <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.AllowSelfLevelUpHint"}}</p>
+    <p class="dnd-cc-house-rules-hint">{{localize "DND-CC.HouseRules.DisableMulticlassHint"}}</p>
   </section>
 
   <footer class="dnd-cc-house-rules-footer">

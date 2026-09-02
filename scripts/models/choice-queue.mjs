@@ -101,8 +101,10 @@ function runAdvancementManager(manager, container) {
         // _selectItem's remove-then-add swap, _reviewClass's remove-then-add redo,
         // _changeOriginFeat's add-then-remove) without an app-level re-render in
         // between. Left uncleared, the new manager's own content renders correctly but
-        // stays invisible until the caller's outer render() eventually fires. Clearing
-        // it here is a no-op for the common single-manager-per-container case.
+        // stays invisible until the caller's outer render() eventually fires - confirmed
+        // live: swapping an already-selected species left the whole rest of the new
+        // species' Advancement flow rendering behind an invisible panel. Clearing it here
+        // is a no-op for the common single-manager-per-container case.
         container.style.visibility = "";
         // A manager whose steps are all `automatic` (a removeItemWithAdvancement
         // reversal, most commonly) can finish and call its own close() - which nulls
@@ -111,7 +113,9 @@ function runAdvancementManager(manager, container) {
         // same render() call for a fully-automatic flow. `container.append(undefined)`
         // still "succeeds" in that case, but per the Element.append() spec any non-Node
         // argument is coerced to a string first - stringifying `undefined` inserts a
-        // literal "undefined" text node into the container.
+        // literal "undefined" text node into the container. a species
+        // swap's removal manager left exactly this stray text node sitting before the
+        // next manager's own element once the container was actually visible again.
         if (manager.element) container.append(manager.element);
       });
     }
@@ -124,16 +128,13 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely (per `SubclassFlow.#browseCompendium`'s source). That
+// entirely. That
 // meant clicking it always popped out a real floating window mid-wizard, and never got the
 // ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
 // way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
 // real `SubclassFlow` that overrides just the `browse` action, swapped in for the real one
 // via `SubclassAdvancement.metadata.apps.flow` - the actual class `AdvancementManager` asks
-// for when it needs to render a Subclass step (`advancement.constructor.
-// metadata.apps.flow` is what gets instantiated, read fresh from a *getter* each time, so
-// simply overwriting `metadata.apps.flow` on a snapshot object doesn't stick - the getter
-// itself has to be wrapped instead).
+// for when it needs to render a Subclass step.
 
 let embeddedSubclassFlowClass = null;
 let subclassFlowPatched = false;
@@ -461,12 +462,12 @@ export async function triggerAdvancement(actor, itemData, container) {
 
   if (!manager.steps.length) {
     // An item with no Advancement at all (e.g. a flat-benefit feat like Alert) makes
-    // `forNewItem` produce a manager with zero steps - calling `manager.render(true)`
-    // on that throws ("Cannot read properties of null (reading 'flow')", dnd5e's own
-    // render logic assumes a current step always exists) rather than rendering an
-    // empty-but-harmless panel, permanently stalling the embedded host with no way to
-    // recover short of closing the wizard. `removeItemWithAdvancement` below already
-    // guards the equivalent case for removal - this mirrors it for adding.
+    // `forNewItem` produce a manager with zero steps - calling
+    // `manager.render(true)` on that throws ("Cannot read properties of null (reading
+    // 'flow')", dnd5e's own render logic assumes a current step always exists) rather
+    // than rendering an empty-but-harmless panel, permanently stalling the embedded host
+    // with no way to recover short of closing the wizard. `removeItemWithAdvancement`
+    // below already guards the equivalent case for removal - this mirrors it for adding.
     await actor.createEmbeddedDocuments("Item", [itemData]);
     return true;
   }
@@ -570,7 +571,8 @@ export function runCompendiumBrowser(options, container, excludedSourceSlugs) {
  * Collapse every filter group and exclude the generic SRD source packs (plus any
  * ruleset-mismatched book, see excludedSourceSlugs) by default, so the results grid is
  * visible immediately instead of buried under a fully-expanded filter sidebar (Level,
- * School, several Spell List groups, Properties, and Source all expanded at once).
+ * School, several Spell List groups, Properties, and Source all expanded at once, a real
+ * complaint from live use).
  * @param {HTMLElement} browserElement
  * @param {string[]} [excludedSourceSlugs]
  */
@@ -597,18 +599,19 @@ async function collapseFiltersByDefault(browserElement, excludedSourceSlugs = []
  * Click a `<filter-state>` 3-state toggle (0 unset -> 1 require -> -1 exclude) twice to
  * land on "exclude". dnd5e fully replaces
  * `[data-application-part="filters"]` with a brand new element after EVERY filter change
- * (not just once after the browser's first paint) - reusing the same element reference
- * for a second `.click()` therefore silently no-ops on an already-detached node instead
- * of advancing its state, which is why a straight `el.click(); el.click();` reliably got
- * stuck on "require" instead of ever reaching "exclude". Re-queries the element fresh
- * before each click and waits for the replacement (or a timeout, in case this particular
- * click doesn't trigger one - e.g. the filter doesn't exist at all for this browser's
- * tab/type context) before issuing the next one.
+ * (not just once after the browser's first paint, which is what an earlier version of
+ * this function assumed) - reusing the same element reference for a second `.click()`
+ * therefore silently no-ops on an already-detached node instead of advancing its state,
+ * which is why a straight `el.click(); el.click();` reliably got stuck on "require"
+ * instead of ever reaching "exclude". Re-queries the element fresh before each click and
+ * waits for the replacement (or a timeout, in case this particular click doesn't trigger
+ * one - e.g. the filter doesn't exist at all for this browser's tab/type context) before
+ * issuing the next one.
  *
  * The Source filter's own list of `<filter-state>` options is itself populated
  * asynchronously the first time a CompendiumBrowser instance is ever created in a
  * session (it has to index every enabled pack to know what sources even exist) -
- * this is genuinely slower than our own code reaching this point on a
+ * is genuinely slower than our own code reaching this point on a
  * cold first open, so a plain immediate `querySelector` for the target filter-state can
  * come up empty even though the exact same lookup succeeds instantly on a second open
  * later in the same session (the index is cached after the first build). The old
@@ -678,10 +681,10 @@ function waitForFiltersPartReplacement(sidebar, staleElement) {
 /**
  * Collapses the sidebar's filter panel down to Search + Price (moved into one row
  * together) plus a single "Filters" toggle covering everything else (Attunement,
- * Weapon Mastery, Rarity, Properties, Source, ...) - the default panel (search on its
- * own row, then every filter group stacked below, several of them already collapsed-
- * but-still-taking-a-header's-worth-of-space) reads as cluttered for what's usually
- * just "type a name and go."
+ * Weapon Mastery, Rarity, Properties, Source, ...) - direct feedback on a live
+ * screenshot was that the default panel (search on its own row, then every filter
+ * group stacked below, several of them already collapsed-but-still-taking-a-header's-
+ * worth-of-space) read as cluttered for what's usually just "type a name and go."
  *
  * Unlike collapseFiltersByDefault's plain clicks, a one-time DOM move here doesn't
  * hold on its own - dnd5e re-renders `[data-application-part=
@@ -717,9 +720,7 @@ function arrangeEmbeddedBrowserFilters(browserElement) {
     // dnd5e replaces the whole `filters` part with a fresh element at least once after
     // the browser's first paint (its own locked-type-filter init), so this can run more
     // than once - each pass's own price filter must replace whatever an earlier pass
-    // already moved into searchRow, not pile up alongside it (without
-    // this cleanup, several re-renders left several duplicate price-range rows stacked
-    // in the search row).
+    // already moved into searchRow, not pile up alongside it.
     searchRow.querySelectorAll('.filter[data-filter-id="price"]').forEach((el) => el.remove());
     const priceFilter = filtersPart.querySelector('.filter[data-filter-id="price"]');
     if (priceFilter) searchRow.append(priceFilter);
@@ -761,8 +762,8 @@ export function hasItemOfType(actor, type) {
 }
 
 /**
- * Every real player choice on `item` that's still unanswered - dnd5e's own
- * AdvancementManager deliberately never disables "Next"/"Complete" for an
+ * Every real player choice on `item` that's still unanswered - that
+ * dnd5e's own AdvancementManager deliberately never disables "Next"/"Complete" for an
  * unanswered Trait/ItemChoice/AbilityScoreImprovement/Subclass pick (e.g. a Fighter's
  * Fighting Style, a Dragonborn's damage resistance, a class's Skill Proficiencies, a
  * level-3 subclass pick), so an item can land on the actor with a genuine choice
@@ -790,7 +791,7 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     // item (or vice versa) never gets a step to answer in the first place. Skipping it
     // here too, instead of just here-locally reading `configuration.choices`, is what
     // stops a genuinely inapplicable grant from being reported as a missed choice -
-    // an original-class Bard's "secondary" 1-skill/
+    // a real original-class Bard, whose "secondary" 1-skill/
     // 1-tool grants never appear as steps during a normal add, yet still carry an empty
     // `value` forever since nothing ever resolves them.
     if (!advancement.appliesToClass) continue;
@@ -810,8 +811,8 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
       // `value.added` shows up two different shapes in the wild depending on whether
       // the advancement can apply at more than one level: a flat {itemId: uuid} map
       // when there's only ever one choice tier (e.g. a Fighting Style), or a
-      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
-      // Counting values that are themselves objects as nested
+      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic) -
+      // both. Counting values that are themselves objects as nested
       // per-level entries, and anything else as one flat entry, covers both without
       // needing to know in advance which shape a given advancement uses.
       let added = 0;
@@ -824,7 +825,7 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
     if (advancement.type === "AbilityScoreImprovement") {
       // A real completed choice is either `value.assignments` (points actually spent
       // on abilities) or `value.feat` ("choose a feat instead," the real 2024 option at
-      // some levels) - per dnd5e's own AbilityScoreImprovement#
+      // some levels) - reading dnd5e's own AbilityScoreImprovement#
       // apply(). An untouched advancement still carries `value: {type: "asi"}` (dnd5e
       // sets `type` eagerly, before any real choice is made), which has one real key
       // and previously satisfied the old plain `countEntries(value) === 0` check -
@@ -890,11 +891,12 @@ export function isStepComplete(actor, stepId) {
 
 /**
  * How many entries a dnd5e-tracked "chosen"/"added" collection actually holds -
- * these show up as a real `Set` for some Trait configurations (e.g. a
+ * show up as a real `Set` for some Trait configurations (e.g. a
  * Weapon Mastery pick), a plain object for others, and occasionally a `Map`. A naive
  * `.length` check silently reads `undefined` (=> treated as empty) on anything but a
  * real array, which is exactly what caused a genuinely-completed choice (a real Set
- * with entries) to misreport as unresolved. Handles all three shapes so the count is right regardless of which one a
+ * with entries) to misreport as unresolved - a real Barbarian
+ * build. Handles all three shapes so the count is right regardless of which one a
  * given advancement happens to use.
  * @param {Set|Map|object|Array|null|undefined} value
  * @returns {number}
@@ -959,9 +961,9 @@ export function itemsGrantedBy(actor, sourceItemId) {
  * `targetLevel` - shown on the Class step's "Level Up" card before the player commits,
  * so raising a level isn't a blind action. Built from the exact same generic
  * `advancement.levels`/`advancement.title` data dnd5e itself already tracks on every
- * Advancement type (the base `Advancement#levels` getter: `[this.level]` for a
- * single-level type, every level 1-20 for HitPoints, whatever multi-level set an
- * ItemChoice like Metamagic actually configures) rather
+ * Advancement type (the base `Advancement#levels` getter, confirmed by reading dnd5e's
+ * own source: `[this.level]` for a single-level type, every level 1-20 for HitPoints,
+ * whatever multi-level set an ItemChoice like Metamagic actually configures) rather
  * than guessing per-type what
  * "gains a level" even means. Reuses the same `[classItem, classItem.subclass]` source
  * pair itemsAtRiskFromLevelDecrease already uses, for the same multiclass-subclass

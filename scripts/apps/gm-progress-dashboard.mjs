@@ -78,8 +78,8 @@ export class GmProgressDashboard extends HandlebarsApplicationMixin(ApplicationV
    * Live-updating: re-renders itself whenever a player's draft (or a finished PC) actor
    * changes, instead of requiring the GM to click Refresh - a GM watching this while
    * several players build characters at once wants the rows to move on their own.
-   * Debounced (a single advancement step can fire several rapid actor updates in a row,
-   * e.g. a Trait/ItemGrant cascade) and scoped to `type === "character"`
+   * Debounced (a single advancement step can fire several rapid actor updates in a row -
+   * during a Trait/ItemGrant cascade) and scoped to `type === "character"`
    * so an unrelated NPC/vehicle update elsewhere in the world doesn't trigger a redraw.
    * Registered in `_onFirstRender` (once per open dashboard, not per render) and torn
    * down in `_onClose` so a closed-and-reopened dashboard never accumulates duplicate

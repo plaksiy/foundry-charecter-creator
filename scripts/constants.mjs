@@ -51,8 +51,8 @@ export const EQUIPMENT_ITEM_TYPES = ["weapon", "equipment", "consumable", "tool"
 
 /**
  * 100 invented, generic fantasy character names for the Identity step's "Randomize"
- * button - a mix of short single names and two-part names, so short one-word options
- * are available alongside longer ones. None of these are
+ * button - a mix of short single names and two-part names, by design
+ * that short one-word options be included alongside longer ones. None of these are
  * drawn from any book, setting, or media property - safe, structural placeholder data
  * the same way LIFESTYLE_TIERS/CLASS_COMPLEXITY are, not narrative content.
  */

@@ -86,6 +86,23 @@ Hooks.once("init", () => {
     default: {}
   });
 
+  // A path/URL to a fillable PDF character sheet the GM personally supplies - never
+  // bundled with this module, since the sheet's own layout/artwork is the copyrighted
+  // work of whoever authored that specific PDF. "Export to Official PDF Sheet" (see
+  // pdf-form-export.mjs) fills this file's own form fields; empty means the feature
+  // isn't configured yet at this table. A native config:true setting with filePicker
+  // gets Foundry's own browse button for free in the standard Module Settings screen,
+  // rather than needing a custom picker UI of our own.
+  game.settings.register(MODULE_ID, "officialPdfTemplatePath", {
+    name: "DND-CC.Settings.OfficialPdfTemplate.Name",
+    hint: "DND-CC.Settings.OfficialPdfTemplate.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "",
+    filePicker: "any"
+  });
+
   game.settings.registerMenu(MODULE_ID, "houseRulesMenu", {
     name: "DND-CC.HouseRules.MenuName",
     label: "DND-CC.HouseRules.MenuLabel",
@@ -331,8 +348,7 @@ Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
 // itself does (see renderChatMessageHTML below, which disables it for a non-GM viewer
 // unless the `allowSelfLevelUp` house rule allows self-service). `xp.max` is dnd5e's own
 // real derived "XP needed for the *next*
-// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`), so
-// eligibility is a plain `value >= max` read off the actor's
+// level" (Actor5e#prepareDerivedData: `xp.max = getLevelExp(currentLevel)`, so eligibility is a plain `value >= max` read off the actor's
 // own already-computed data - no separate threshold table of our own needed.
 // `game.user.isActiveGM` (not a plain isGM check) ensures exactly one connected client
 // fires this, even if more than one GM happens to be online - `updateActor` fires on every

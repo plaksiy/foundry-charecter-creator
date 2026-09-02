@@ -181,7 +181,11 @@
       "Description": "Description",
       "Features": "Features",
       "AbilityScoreImprovement": "Ability Score Improvement",
-      "OpenInCompendium": "Open in Compendium"
+      "OpenInCompendium": "Open in Compendium",
+      "ShowLevelPreview": "Show what you get by level",
+      "HideLevelPreview": "Hide level-by-level preview",
+      "LevelPreviewLevel": "Level",
+      "LevelPreviewFeatures": "Gains"
     },
     "CustomForm": {
       "TabCreate": "Create New",
@@ -250,6 +254,7 @@
       "AddAnother": "Add Another Class",
       "Choose": "Choose a Class",
       "MaxLevelReached": "Character level 20 reached - remove or lower a class to add another.",
+      "MulticlassDisabled": "Your GM has disabled multiclassing at this table - a character can only have one class.",
       "RemoveTitle": "Remove This Class?",
       "RemoveWarning": "Removing {name} will remove everything it granted, including the following:",
       "LevelDecreaseTitle": "Lower This Class's Level?",
@@ -325,7 +330,12 @@
       "NoneYet": "No equipment yet. Pick a starting kit above, or add your own items.",
       "MoreFilters": "Filters",
       "AvailableBudget": "Available: {available}",
-      "SelectionCost": "Selected: {price} - {remaining} left after buying"
+      "SelectionCost": "Selected: {price} - {remaining} left after buying",
+      "SourceGroup": {
+        "class": "From your class",
+        "background": "From your background",
+        "other": "Bought or homebrewed"
+      }
     },
     "Species": {
       "Intro": "Choose a species to see its traits and choices. You can change your mind and pick a different species before moving on.",
@@ -456,6 +466,11 @@
       "ExportJournal": "Export to Journal",
       "ExportJournalSuccess": "Created a Journal Entry for {name}.",
       "JournalPageName": "Character Summary",
+      "ExportOfficialPdf": "Export to Official PDF Sheet",
+      "OfficialPdfNoTemplate": "Your GM hasn't set up a PDF sheet template yet - ask them to choose one in Foundry's Module Settings, under D&D Character Creator.",
+      "OfficialPdfChooseFirst": "Choose a fillable PDF sheet template first, in Foundry's Module Settings under D&D Character Creator.",
+      "OfficialPdfLoadFailed": "Couldn't load the PDF template at \"{path}\" - check that the file still exists there.",
+      "OfficialPdfFillFailed": "Something went wrong filling in the PDF. Check the browser console for details.",
       "BuildCharacter": "Build Character",
       "FinalizeTitle": "Finish Character Creation?",
       "FinalizeConfirm": "This will finish creating {name} and add them to your Actor Directory. You can still edit the character afterward from its sheet.",
@@ -480,6 +495,10 @@
       "RequireGmReview": {
         "Name": "Require GM review before finalizing",
         "Hint": "When enabled, a player's \"Build Character\" submits the finished character for GM approval instead of finalizing it directly. The GM approves it from a whispered chat card. Off by default - GMs themselves are never gated by this."
+      },
+      "OfficialPdfTemplate": {
+        "Name": "Official PDF sheet template",
+        "Hint": "A fillable PDF character sheet you already own (this module doesn't provide one - the sheet's own layout is someone else's copyrighted work). Once set, every player's \"Export to Official PDF Sheet\" button on the Review step fills it in with their character's real stats. Leave empty to leave that button disabled."
       }
     },
     "CompendiumSources": {
@@ -524,15 +543,21 @@
       "AllowRerolls": "Allow rerolling a rolled ability score",
       "DisallowedAlignments": "Disallowed Alignments",
       "DisallowedAlignmentsHint": "Checked alignments won't be offered on the About step. None disallowed by default.",
+      "BonusStartingGold": "Bonus Starting Gold",
+      "BonusStartingGoldHint": "Extra gold (GP-equivalent) granted on top of whatever a class/background kit or \"take gold instead\" branch already provides. Applied once, the first time a character opens the Equipment step. 0 by default (no bonus).",
       "MinFeatLevel": "Minimum Feat Level",
       "MinFeatLevelHint": "The level a character needs to reach before an origin feat can be swapped on the Feats step. Set to 0 to disable feat swapping entirely.",
       "BannedSpecies": "Banned Species",
       "BannedSpeciesHint": "Checked species won't be offered on the Species step, regardless of ruleset.",
       "BannedClasses": "Banned Classes",
       "BannedClassesHint": "Checked classes won't be offered on the Class step, regardless of ruleset - useful for hiding a class you don't want at your table without disabling the whole book it came from.",
+      "BannedFeats": "Banned Feats",
+      "BannedFeatsHint": "Checked feats won't be offered in the Feats step's Browse Feats grid or the origin feat swap dropdown, regardless of ruleset.",
       "Leveling": "Leveling",
       "AllowSelfLevelUp": "Allow players to level up their own characters",
       "AllowSelfLevelUpHint": "When a character earns enough XP to level up, always notify you (the GM). If this is also checked, the player is notified too and can open Level Up themselves instead of waiting on you.",
+      "DisableMulticlass": "Disable multiclassing",
+      "DisableMulticlassHint": "When checked, a character can only ever have one class - the \"Multiclass into a New Class\" option disappears once a class is picked. Characters that already have more than one class keep them.",
       "Save": "Save"
     },
     "StepOrder": {

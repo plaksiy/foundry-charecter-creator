@@ -16,7 +16,7 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
     },
     position: {
       width: 640,
-      height: 680
+      height: 760
     },
     form: {
       handler: HouseRulesConfig.onSubmit,
@@ -66,17 +66,30 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
         banned: rules.bannedClasses.includes(item.uuid)
       }));
 
+    const featItems = await getStepItems("feat", ["2014", "2024"]);
+    const featOptions = featItems
+      .filter((item) => item.typeValue === "feat")
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((item) => ({
+        uuid: item.uuid,
+        name: item.name,
+        banned: rules.bannedFeats.includes(item.uuid)
+      }));
+
     return {
       abilityMethodOptions,
       alignmentOptions,
       minFeatLevel: rules.minFeatLevel,
       speciesOptions,
       classOptions,
+      featOptions,
+      disableMulticlass: rules.disableMulticlass === true,
       allowSelfLevelUp: rules.allowSelfLevelUp === true,
       pointBuyBudget: rules.pointBuyBudget,
       pointBuyMin: rules.pointBuyMin,
       pointBuyMax: rules.pointBuyMax,
-      allowRerolls: rules.allowRerolls !== false
+      allowRerolls: rules.allowRerolls !== false,
+      bonusStartingGoldGp: rules.bonusStartingGoldGp || 0
     };
   }
 
@@ -102,6 +115,10 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       .filter((entry) => entry.banned === true)
       .map((entry) => entry.uuid);
 
+    const bannedFeats = Object.values(data.feats ?? {})
+      .filter((entry) => entry.banned === true)
+      .map((entry) => entry.uuid);
+
     // A GM could type a min above the max (or vice versa) - swap rather than reject, so
     // Point Buy's own range check (pointBuyMin/pointBuyMax in character-draft.mjs) never
     // ends up with an inverted, permanently-impossible range from a simple typo.
@@ -112,6 +129,7 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
     if (pointBuyMin > pointBuyMax) [pointBuyMin, pointBuyMax] = [pointBuyMax, pointBuyMin];
 
     const pointBuyBudget = Number(data.pointBuyBudget);
+    const bonusStartingGoldGp = Number(data.bonusStartingGoldGp);
 
     await game.settings.set(MODULE_ID, "houseRules", {
       abilityMethods,
@@ -119,11 +137,14 @@ export class HouseRulesConfig extends HandlebarsApplicationMixin(ApplicationV2) 
       minFeatLevel: Number(data.minFeatLevel) || 0,
       bannedSpecies,
       bannedClasses,
+      bannedFeats,
+      disableMulticlass: data.disableMulticlass === true,
       allowSelfLevelUp: data.allowSelfLevelUp === true,
       pointBuyBudget: Number.isFinite(pointBuyBudget) ? pointBuyBudget : 27,
       pointBuyMin,
       pointBuyMax,
-      allowRerolls: data.allowRerolls === true
+      allowRerolls: data.allowRerolls === true,
+      bonusStartingGoldGp: Number.isFinite(bonusStartingGoldGp) ? Math.max(0, bonusStartingGoldGp) : 0
     });
   }
 }

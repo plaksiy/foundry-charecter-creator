@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0
+
+### New
+
+- **Export to Official PDF Sheet**: the Review step can now fill in a real fillable PDF character sheet (any one you already own - this module never bundles a copy of it, since its layout is someone else's copyrighted work). A game master points the module at their own PDF from Foundry's own Module Settings screen (a standard file picker, no custom UI needed); once set, every player's export button fills in name, class, species, background, ability scores, saving throws, skills (with proficiency boxes), currency, languages, proficiencies, class features, species traits, feats, equipment, spellcasting stats and spell list, and a combined weapon/damage-cantrip attack table with real attack bonuses and damage.
+- The module's own PDF and Journal Entry exports got a matching upgrade: a portrait, ability scores as real cards instead of a plain table, and the same combined weapons-and-damage-cantrips attack table.
+- **Class step: "what you get by level"** - a class's Learn More panel now has a collapsible table showing every feature it grants at each level 1-20, so you can see what's ahead before committing (or check an already-picked class's future).
+- **Equipment step improvements**: your starting gear is now grouped into collapsible sections by where it came from (class, background, or bought/homebrew); the manual "Add Item" shop shows a running itemized cart (each selected item and its price) instead of just a total; a new "Bonus Starting Gold" house rule lets a GM grant extra starting currency on top of the normal kit.
+- **Two more House Rules**: "Banned Feats" (hide specific feats from the Feats step, same as the existing banned species/classes) and "Disable Multiclassing" (a character can only ever have one class).
+
+### Removed
+
+- Ukrainian localization has been removed.
+
 ## 0.9.0
 
 ### New

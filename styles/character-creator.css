@@ -321,8 +321,7 @@
 /* Foundry's own core CSS imposes a fixed short height on <button> (meant for single-line
    UI buttons) - our multi-line buttons (ruleset/method/branch/lifestyle cards, which use
    a real <button> for the whole clickable area) need `height: auto` or their h3+p content
-   overflows the fixed box and visually overlaps whatever sits next to them - without this,
-   a ruleset card can compute to `height: 34px` while its own h3+p content spans
+   overflows the fixed box and visually overlaps whatever sits next to them. without this, a ruleset card computed to `height: 34px` while its own h3+p content spanned
    48.5px, overlapping the next card. `.header-control` (Foundry's native window titlebar
    buttons) is excluded from the font-family override specifically - it broke the Font
    Awesome icon glyph on Close/Toggle Controls, which relies on its own icon font applying
@@ -331,8 +330,8 @@
    core Foundry CSS is unlayered while all module CSS (this file included) is forced
    into a shared `layer(modules)` via Foundry's own @import. Per the CSS Cascade Layers
    spec, an unlayered normal declaration always wins over a layered one regardless of
-   selector specificity - which is exactly why a
-   plain (non-!important) override here loses to core's own button sizing despite being
+   selector specificity - computed styles that this is exactly why a
+   plain (non-!important) override here lost to core's own button sizing despite being
    more specific. `!important` on a layered declaration outranks a normal unlayered one,
    which is the correct, spec-sanctioned way to override core chrome from here - not a
    hack. Every button/select override in this file that fights Foundry's own default
@@ -388,7 +387,7 @@
    directly into the native ApplicationV2 window-header instead (see _onRender). The
    rail's own portrait+name block (formerly here) was removed once the Identity step
    gave name/portrait a real, more prominent home - keeping both was redundant, and the
-   rail copy wasn't obviously clickable per direct user feedback. The rail now starts
+   rail copy wasn't obviously clickable by design. The rail now starts
    right under the native window header with just the step list. */
 
 /* Text size / Simplify / Sources / Start Over now live as native window-header
@@ -752,6 +751,13 @@
   border-top: 1px solid var(--dcc-border);
   padding-top: 0.9rem;
 }
+.dnd-cc-settings-section .dnd-cc-settings-actions { border-top: none; padding-top: 0; }
+.dnd-cc-settings-pdf-template-current {
+  color: var(--dcc-text-muted);
+  font-size: 0.8em;
+  word-break: break-all;
+  margin: 0 0 0.5rem;
+}
 .dnd-cc-settings-action {
   display: flex;
   align-items: center;
@@ -1084,7 +1090,7 @@
 }
 
 /* Background's two extra pills (ability options, granted feat name) read better a touch
-   bigger than the standard card pill size, per direct user feedback. */
+   bigger than the standard card pill size, by design. */
 .dnd-cc-step-background .dnd-cc-pill { font-size: 0.72rem; }
 
 .dnd-cc-seg-group {
@@ -1347,10 +1353,10 @@
      full-width label, stretches to fill its own row track's height. For every OTHER
      row (the cards themselves) that's a no-op since aspect-ratio already forces their
      real height regardless of align-items. But a row holding *only* this label has
-     nothing else to anchor its own auto height, and that combination
-     can balloon the row's own computed auto-height to 134px for one line of text
-     (a real, reproducible browser quirk - forcing align-self: start
-     alone measurably drops it back to 21px) - reading as a large empty gap above the
+     nothing else to anchor its own auto height, and combination
+     let the row's own computed auto-height balloon to 134px for one line of text
+     (a real, reproducible browser quirk, not a misread - forcing align-self: start
+     alone measurably dropped it back to 21px) - reading as a large empty gap above the
      group's real cards below. align-self: start opts this one item out of stretching
      to match whatever its row was otherwise computing. */
   align-self: start;
@@ -1390,7 +1396,8 @@
   border-radius: 10px;
   border: 1.5px solid var(--dcc-border);
   color: #fff;
-  /* A real browser layout quirk, not a hypothetical one. `overflow: hidden` on a grid item with
+  /* A real browser layout bug - toggling this exact
+     property with the rest held constant. `overflow: hidden` on a grid item with
      `aspect-ratio` makes Chromium's grid-row auto-sizing treat this item's contribution
      to its row's height as 0 (per the CSS Sizing spec's automatic-minimum-size carve-out
      for non-visible overflow), instead of the aspect-ratio-derived height - harmless as
@@ -1407,7 +1414,7 @@
   clip-path: inset(0 round 10px);
   transition: border-color 0.15s ease;
 }
-/* Class cards specifically go fully square, per direct user feedback that the class
+/* Class cards specifically go fully square, by design that the class
    symbol art (centered, not a landscape scene like Species/Background use) fits a 1:1
    frame better than the 3:4 portrait ratio the other two card grids use. */
 .dnd-cc-step-class .dnd-cc-card { aspect-ratio: 1 / 1; }
@@ -2368,8 +2375,8 @@
    tokens the Skills table already keys its rows off. Fixed height, identical in every
    state (flipped or not): front and back are both absolutely positioned to this one
    box, so neither face can ever stretch it - a stray row of content on one card
-   growing the whole grid row (and every card in it) taller than its neighbors would
-   otherwise be a real risk. */
+   growing the whole grid row (and every card in it) taller than its neighbors was a
+   bug caught in the design pass, not a hypothetical one. */
 /* Fixed 3 columns (not auto-fill) - six cards read better as two wide rows than one
    cramped row of six. */
 .dnd-cc-ability-grid {
@@ -3187,8 +3194,8 @@
   border-radius: 8px;
 }
 
-/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms, per user
-   feedback that the default sizing was cramped and hard to click precisely - increased
+/* Bigger text/icons and taller rows throughout dnd5e's own embedded forms - the
+   default sizing was cramped and hard to click precisely - increased
    again in a third pass (no artificial min-height on the container this time, which
    just left a sparse step like Hit Points looking like mostly empty space - the fix is
    actually bigger content, not a taller empty box around small content). */
@@ -3275,8 +3282,8 @@
    `.item-control` sits in dnd5e's own `li.item.flexrow` alongside `.item-name` (which
    takes its own natural width), and without an explicit flex-basis a plain button
    picks up `flex: 1 1 0%` from that flex row and stretches to fill all the row's
-   remaining width (a 423px-wide button in a 65px
-   row, in practice). `flex: none` keeps it sized to its icon content only, so the hover fill below
+   remaining width - computed style (a 423px-wide button in a 65px
+   row). `flex: none` keeps it sized to its icon content only, so the hover fill below
    paints a small icon-sized box instead of a giant one spanning most of the row. */
 .dnd-cc-advancement-body .item-control:has(.fa-trash) {
   flex: none;
@@ -3318,8 +3325,8 @@
 
 /* Ability Score Improvement grid (Background/Class ASI): dnd5e marks a fixed/locked
    score with a readonly input and a lock icon, and a still-available one with a live
-   min!=max input. The two look visually
-   identical by default (same box, same weight), making it hard to tell at a glance which
+   min!=max input - the real markup. The two looked visually
+   identical before (same box, same weight), making it hard to tell at a glance which
    scores can actually still be raised. */
 .dnd-cc-advancement-body .ability-scores li:has(input[readonly]) {
   opacity: 0.4;
@@ -3415,8 +3422,7 @@
    column that resolves to the full container height regardless of how little content
    the sidebar actually has, so a plain `max-height` cap alone just clamped that same
    fixed 100% down to a fixed 45%, leaving a large empty gap above the results whenever
-   the collapsed search row doesn't need anywhere near that much room (an 84px-tall
-   search row can otherwise sit in a 173px sidebar box). `height: auto !important`
+   the collapsed search row didn't need anywhere near that much room. `height: auto !important`
    makes it size to its real content again, with max-height still capping it once a
    player expands a filter group with a lot of options. */
 .dnd-cc-browser-body .compendium-browser > [data-container-id="sidebar"] {
@@ -3493,10 +3499,6 @@
    _runEmbeddedBrowser's showBudget option in character-creator-app.mjs) - not shown
    for the Spells step's picker, which never spends currency. */
 .dnd-cc-browser-budget {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   padding: 0.55rem 0.85rem;
   margin-bottom: 0.6rem;
   border-radius: 8px;
@@ -3506,10 +3508,49 @@
   font-size: 0.8rem;
   color: var(--dcc-text-muted);
   flex-shrink: 0;
+  max-height: 30%;
+  overflow-y: auto;
 }
 .dnd-cc-browser-budget b { color: var(--dcc-text); }
+.dnd-cc-browser-budget-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .dnd-cc-browser-budget .dnd-cc-browser-budget-selection { color: var(--dcc-accent); }
 .dnd-cc-browser-budget .dnd-cc-browser-budget-selection.insufficient { color: var(--dcc-danger); font-weight: 700; }
+/* The itemized cart list under the budget header - one row per currently-checked item. */
+.dnd-cc-browser-cart { list-style: none; margin: 0.5rem 0 0; padding: 0.4rem 0 0; border-top: 1px solid var(--dcc-border); display: flex; flex-direction: column; gap: 0.2rem; }
+.dnd-cc-browser-cart li { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.dnd-cc-browser-cart li span:last-child { color: var(--dcc-text); font-variant-numeric: tabular-nums; }
+
+/* Per-source accordion grouping for the Equipment step's own already-granted inventory
+   list - collapses each source's items together instead of one flat pile. */
+.dnd-cc-equipment-accordion { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.dnd-cc-equipment-accordion-group { border: 1px solid var(--dcc-border); border-radius: 8px; overflow: hidden; }
+.dnd-cc-equipment-accordion-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--dcc-surface-alt);
+  border: none;
+  color: var(--dcc-text);
+  font-family: var(--dcc-font-ui);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+.dnd-cc-equipment-accordion-toggle i { transition: none; font-size: 0.7rem; }
+.dnd-cc-equipment-accordion-group.is-open .dnd-cc-equipment-accordion-toggle i { transform: rotate(90deg); }
+.dnd-cc-equipment-accordion-count {
+  margin-left: auto;
+  background: var(--dcc-surface);
+  border: 1px solid var(--dcc-border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--dcc-text-muted);
+}
+.dnd-cc-equipment-accordion-body { padding: 0.65rem 0.75rem; margin: 0; }
+.dnd-cc-equipment-accordion-group:not(.is-open) .dnd-cc-equipment-accordion-body { display: none; }
 
 .dnd-cc-feat-subtype {
   margin-left: 0.6rem;
@@ -4157,11 +4198,11 @@
    collapses to 0 height in block flow while the menu itself still renders at full size
    via internal positioning, and the editable content area's text then starts at that
    same collapsed y-offset, landing directly underneath/behind the toolbar buttons.
-   Checking `document.elementFromPoint` on the typed text's own
-   bounding-box center confirms this: under `display: block` the topmost element there is a toolbar
+   `document.elementFromPoint` on the actual typed text's own
+   bounding-box center: under `display: block` the topmost element there was a toolbar
    button, not the text; under `display: flex; flex-direction: column`, it's the real
-   text node. The text itself was never actually invisible
-   or uncolored - it was being visually covered by the toolbar the whole time. */
+   text node. Root-caused this way, not guessed - the text was never actually invisible
+   or uncolored, it was being visually covered by the toolbar the whole time. */
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;

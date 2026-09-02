@@ -14,7 +14,14 @@
     padding: 2rem;
     line-height: 1.4;
   }
-  h1 { margin: 0 0 0.2rem; font-size: 1.8em; }
+  h1 {
+    margin: 0 0 0.15rem;
+    font-family: Georgia, Cambria, "Times New Roman", serif;
+    font-size: 2.1em;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #5c231a;
+  }
   h2 {
     margin: 1.5rem 0 0.5rem;
     padding-bottom: 0.2rem;
@@ -22,7 +29,18 @@
     font-size: 1.15em;
     page-break-after: avoid;
   }
-  .headline { margin: 0 0 1rem; opacity: 0.8; }
+  .headline { margin: 0 0 1rem; opacity: 0.75; font-size: 0.95em; }
+  .header-row { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.1rem; }
+  .portrait {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+  }
+  .header-text h1, .header-text .headline { margin: 0; }
+  .header-text .headline { margin-top: 0.2rem; }
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
@@ -30,12 +48,37 @@
     margin-bottom: 1rem;
   }
   .stat-tile {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    background: #faf7f5;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
-  .stat-tile span { display: block; font-size: 0.75em; opacity: 0.7; }
-  .stat-tile strong { font-size: 1.1em; }
+  .stat-tile span { display: block; font-size: 0.75em; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-tile strong { font-size: 1.25em; color: #5c231a; }
+  .ability-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .ability-card {
+    border-radius: 10px;
+    padding: 0.6rem;
+    text-align: center;
+    background: #faf7f5;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+  .ability-card .ability-label { font-size: 0.72em; text-transform: uppercase; opacity: 0.7; letter-spacing: 0.04em; }
+  .ability-card .ability-score { font-size: 1.6em; font-weight: 700; margin: 0.15rem 0; color: #5c231a; }
+  .ability-card .ability-mod {
+    display: inline-block;
+    background: #782e22;
+    border-radius: 999px;
+    padding: 0.08rem 0.6rem;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #fff;
+  }
   table { border-collapse: collapse; width: 100%; margin-bottom: 0.5rem; }
   th, td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid #ddd; font-size: 0.92em; }
   .section { page-break-inside: avoid; margin-bottom: 1rem; }
@@ -60,13 +103,18 @@
 </head>
 <body>
 
-  <h1>{{characterName}}</h1>
-  <p class="headline">
-    {{#if classSummary}}{{classSummary}}{{else}}-{{/if}}
-    {{#if speciesName}} - {{speciesName}}{{/if}}
-    {{#if backgroundName}} - {{backgroundName}}{{/if}}
-    {{#if alignment}} - {{alignment}}{{/if}}
-  </p>
+  <div class="header-row">
+    {{#if actorImg}}<img class="portrait" src="{{actorImg}}" alt="">{{/if}}
+    <div class="header-text">
+      <h1>{{characterName}}</h1>
+      <p class="headline">
+        {{#if classSummary}}{{classSummary}}{{else}}-{{/if}}
+        {{#if speciesName}} - {{speciesName}}{{/if}}
+        {{#if backgroundName}} - {{backgroundName}}{{/if}}
+        {{#if alignment}} - {{alignment}}{{/if}}
+      </p>
+    </div>
+  </div>
 
   <div class="stat-grid">
     <div class="stat-tile"><span>HP</span><strong>{{hpText}}</strong></div>
@@ -79,16 +127,21 @@
     {{#if lifestyleLabel}}<div class="stat-tile"><span>Lifestyle</span><strong>{{lifestyleLabel}}</strong></div>{{/if}}
   </div>
 
-  <div class="section two-col">
-    <h2 style="column-span: all;">Abilities &amp; Skills</h2>
-    <table>
-      <thead><tr><th>Ability</th><th>Score</th><th>Mod</th></tr></thead>
-      <tbody>
-        {{#each abilities}}
-        <tr><td>{{this.label}}</td><td>{{this.totalText}}</td><td>{{this.modText}}</td></tr>
-        {{/each}}
-      </tbody>
-    </table>
+  <div class="section">
+    <h2>Ability Scores</h2>
+    <div class="ability-grid">
+      {{#each abilities}}
+      <div class="ability-card">
+        <div class="ability-label">{{this.label}}</div>
+        <div class="ability-score">{{this.totalText}}</div>
+        <div class="ability-mod">{{this.modText}}</div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Skills</h2>
     <table>
       <thead><tr><th>Skill</th><th>Prof.</th><th>Mod</th></tr></thead>
       <tbody>
@@ -98,6 +151,20 @@
       </tbody>
     </table>
   </div>
+
+  {{#if attacks.length}}
+  <div class="section">
+    <h2>Weapons &amp; Damage Cantrips</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Attack Bonus</th><th>Damage &amp; Type</th></tr></thead>
+      <tbody>
+        {{#each attacks}}
+        <tr><td>{{this.name}}</td><td>{{this.bonus}}</td><td>{{this.damage}}</td></tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
 
   <div class="section">
     <h2>Feats</h2>

@@ -1,3 +1,4 @@
+{{#if actorImg}}<img src="{{actorImg}}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:8px;float:left;margin:0 1rem 0.5rem 0;">{{/if}}
 <h1>{{characterName}}</h1>
 <p>
   {{#if classSummary}}{{classSummary}}{{else}}-{{/if}}
@@ -5,6 +6,7 @@
   {{#if backgroundName}} - {{backgroundName}}{{/if}}
   {{#if alignment}} - {{alignment}}{{/if}}
 </p>
+<div style="clear:both;"></div>
 
 <table>
   <tbody>
@@ -32,6 +34,18 @@
     {{/each}}
   </tbody>
 </table>
+
+{{#if attacks.length}}
+<h2>Weapons &amp; Damage Cantrips</h2>
+<table>
+  <thead><tr><th>Name</th><th>Attack Bonus</th><th>Damage &amp; Type</th></tr></thead>
+  <tbody>
+    {{#each attacks}}
+    <tr><td>{{this.name}}</td><td>{{this.bonus}}</td><td>{{this.damage}}</td></tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
 
 <h2>Feats</h2>
 {{#if feats.length}}

@@ -1,5 +1,6 @@
 import { ABILITY_KEYS, MODULE_ID, STANDARD_ARRAY } from "../constants.mjs";
-import { getPointBuyRange, isRerollAllowed } from "../services/house-rules.mjs";
+import { redenominateGp, totalGpEquivalent } from "../services/currency.mjs";
+import { getBonusStartingGoldGp, getPointBuyRange, isRerollAllowed } from "../services/house-rules.mjs";
 
 /**
  * Point Buy's per-point cost, generalized from the standard 5e table (8:0, 9:1, ...,
@@ -30,6 +31,7 @@ const ABILITY_ROLLS_FLAG = "abilityRolls";
 const ABILITY_ASSIGNMENTS_FLAG = "abilityAssignments";
 const EQUIPMENT_CHOICE_FLAG = "equipmentChoice";
 const EQUIPMENT_CURRENCY_FLAG = "equipmentCurrencyGranted";
+const BONUS_GOLD_APPLIED_FLAG = "bonusStartingGoldApplied";
 const LIFESTYLE_FLAG = "lifestyle";
 const PENDING_REVIEW_FLAG = "pendingReview";
 const CURRENT_STEP_FLAG = "currentStep";
@@ -402,6 +404,24 @@ export class CharacterDraft {
     await this.actor.setFlag(MODULE_ID, ABILITY_BONUS_FLAG, Object.fromEntries(ABILITY_KEYS.map((key) => [key, 0])));
   }
 
+  /**
+   * Grants the GM's "bonus starting gold" house rule (0 by default) on top of whatever
+   * currency the character's kit/wealth branch already provided - applied once per draft
+   * the first time the Equipment step is opened, not re-applied on every render (a
+   * BONUS_GOLD_APPLIED_FLAG flag, same "idempotent one-time grant" shape as
+   * ensureAbilityBaseline/ensureRuleset above). A no-op when the house rule is 0, so a
+   * table that never turns this on never touches currency at all here.
+   */
+  async ensureBonusStartingGold() {
+    if (this.actor.getFlag(MODULE_ID, BONUS_GOLD_APPLIED_FLAG)) return;
+    const bonusGp = getBonusStartingGoldGp();
+    if (bonusGp > 0) {
+      const currentGp = totalGpEquivalent(this.actor.system.currency);
+      await this.actor.update({ "system.currency": redenominateGp(currentGp + bonusGp) });
+    }
+    await this.actor.setFlag(MODULE_ID, BONUS_GOLD_APPLIED_FLAG, true);
+  }
+
   // --- Current step tracking -----------------------------------------------
   //
   // Which step id the wizard last showed for this actor. Written on every render (see
@@ -421,7 +441,7 @@ export class CharacterDraft {
 
   /**
    * Discard the draft entirely (e.g. the player cancels character creation). Real,
-   * permanent deletion - only ever safe to call as a GM. A non-GM user
+   * permanent deletion - only ever safe to call as a GM. a non-GM user
    * cannot delete an Actor document at all in Foundry's default permission model, even
    * with full Owner-level ownership on that specific actor ("User player lacks
    * permission to delete Actor", straight from Foundry's own access check) - Actor

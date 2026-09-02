@@ -288,7 +288,7 @@ function deduplicateByNameAndRuleset(items) {
  *
  * 2. Redundant generic content - a system-bundled book (SRD 5.1, SRD 5.2, ...) whose
  *    ruleset a *real, named* module (Player's Handbook, Forge of the Artificer, ...)
- *    also covers - exactly what a GM who owns the real book wants:
+ *    also covers. is exactly what a GM who owns the real book wants:
  *    hide the generic duplicate, not just narrow it by ruleset. Deliberately keyed off
  *    the package type (`system` vs anything else - matches the same signal
  *    `categorizePack` already uses to sort the Compendium Sources screen), not a
