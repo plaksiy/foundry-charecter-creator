@@ -307,7 +307,39 @@ const THEME_OPTIONS = [
   { value: "frostspire", labelKey: "DND-CC.SettingsPanel.ThemeFrostspire", swatch: "#142238", icon: "fa-snowflake" },
   { value: "marble", labelKey: "DND-CC.SettingsPanel.ThemeMarble", swatch: "#eef0f2", icon: "fa-chess-board" },
   { value: "meadow", labelKey: "DND-CC.SettingsPanel.ThemeMeadow", swatch: "#e2f0d4", icon: "fa-seedling" },
-  { value: "honeycomb", labelKey: "DND-CC.SettingsPanel.ThemeHoneycomb", swatch: "#faf1de", icon: "fa-cookie" }
+  { value: "honeycomb", labelKey: "DND-CC.SettingsPanel.ThemeHoneycomb", swatch: "#faf1de", icon: "fa-cookie" },
+  // A gradient theme's own swatch preview is the real gradient CSS value, not a single
+  // color - `background` accepts it directly, so the settings-panel swatch renders as a
+  // genuine mini gradient. contrastForHex can't parse a gradient string (falls back to
+  // white), so swatchContrast pins the icon color explicitly instead of relying on that.
+  {
+    value: "twilight",
+    labelKey: "DND-CC.SettingsPanel.ThemeTwilight",
+    swatch: "linear-gradient(135deg, #140f28 0%, #2b1854 45%, #170f2e 100%)",
+    swatchContrast: "#ede8f7",
+    icon: "fa-cloud-moon"
+  },
+  {
+    value: "ember",
+    labelKey: "DND-CC.SettingsPanel.ThemeEmber",
+    swatch: "linear-gradient(135deg, #1a0e08 0%, #4a1810 40%, #7a3010 75%, #2a0f08 100%)",
+    swatchContrast: "#ffe8d9",
+    icon: "fa-fire"
+  },
+  {
+    value: "aurora",
+    labelKey: "DND-CC.SettingsPanel.ThemeAurora",
+    swatch: "linear-gradient(135deg, #0a1f2e 0%, #123d4a 35%, #2d1f4a 70%, #0a1f2e 100%)",
+    swatchContrast: "#dff5f2",
+    icon: "fa-wand-sparkles"
+  },
+  {
+    value: "bloodmoon",
+    labelKey: "DND-CC.SettingsPanel.ThemeBloodmoon",
+    swatch: "linear-gradient(160deg, #1a0505 0%, #3d0a0a 50%, #0a0303 100%)",
+    swatchContrast: "#f5e0e0",
+    icon: "fa-droplet"
+  }
 ];
 
 const ACCENT_COLOR_PRIMARY = [
@@ -2944,7 +2976,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * the old character doesn't leave the player stranded with nothing open.
    */
   /**
-   * Change the character's portrait. as a real non-GM "player" user:
+   * Change the character's portrait. Tested as a real non-GM "player" user:
    * Foundry's FilePicker requires the FILES_BROWSE permission, which the Player role
    * doesn't have by default - same class of gap as Actor deletion (a world-level
    * permission gate, not a per-document ownership one), and the FilePicker just
@@ -4301,7 +4333,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
             <div class="dnd-cc-settings-swatch-row">
               ${THEME_OPTIONS.map((option) => `
                 <button type="button" class="dnd-cc-settings-swatch dnd-cc-settings-theme-swatch ${theme === option.value ? "active" : ""}"
-                  style="background:${esc(option.swatch)}; color:${esc(contrastForHex(option.swatch))}" data-set-theme="${esc(option.value)}"
+                  style="background:${esc(option.swatch)}; color:${esc(option.swatchContrast ?? contrastForHex(option.swatch))}" data-set-theme="${esc(option.value)}"
                   aria-label="${esc(game.i18n.localize(option.labelKey))}" data-tooltip="${esc(game.i18n.localize(option.labelKey))}">
                   <i class="fa-solid ${esc(option.icon)}"></i>
                 </button>

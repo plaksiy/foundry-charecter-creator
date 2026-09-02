@@ -113,7 +113,7 @@ function runAdvancementManager(manager, container) {
         // same render() call for a fully-automatic flow. `container.append(undefined)`
         // still "succeeds" in that case, but per the Element.append() spec any non-Node
         // argument is coerced to a string first - stringifying `undefined` inserts a
-        // literal "undefined" text node into the container. a species
+        // literal "undefined" text node into the container. A species
         // swap's removal manager left exactly this stray text node sitting before the
         // next manager's own element once the container was actually visible again.
         if (manager.element) container.append(manager.element);
@@ -128,8 +128,7 @@ function runAdvancementManager(manager, container) {
 // already embedded by the trick above) has its own internal "Browse" button that - unlike
 // every choice this app resolves itself - dnd5e renders by calling
 // `CompendiumBrowser.selectOne()` *directly*, bypassing our `runCompendiumBrowser` wrapper
-// entirely. That
-// meant clicking it always popped out a real floating window mid-wizard, and never got the
+// entirely - meaning clicking it always popped out a real floating window mid-wizard, and never got the
 // ruleset-aware source filtering the Spells/Equipment pickers already have. Fixed the same
 // way EmbeddedCompendiumBrowser fixes CompendiumBrowser itself: a thin subclass of dnd5e's
 // real `SubclassFlow` that overrides just the `browse` action, swapped in for the real one

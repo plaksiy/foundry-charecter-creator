@@ -3,7 +3,7 @@
  * rather than reproducing any rules text ourselves. `dnd5e.rules` holds the 2014 SRD
  * chapters (most single-concept terms live in "Appendix E: Rules"), `dnd5e.content24`
  * holds the 2024 free-rules content (most single-concept terms live in a proper
- * "Rules Glossary" entry). a plain `<a class="content-link" data-uuid="...">`
+ * "Rules Glossary" entry). A plain `<a class="content-link" data-uuid="...">`
  * pointing at a JournalEntryPage is enough for dnd5e's own tooltip manager to render its
  * real "rule-tooltip" hover preview - no custom tooltip UI needed on our side at all.
  */
@@ -16,7 +16,7 @@ const GLOSSARY_PACKS = {
 /**
  * key -> { "2014": {entry, page} | null, "2024": {entry, page} | null }.
  * `entry` is the JournalEntry name, `page` the JournalEntryPage name inside it - both
- * a real installed dnd5e 5.3.3. A null side means the term has no
+ * pages that exist on a real installed dnd5e system. A null side means the term has no
  * dedicated glossary page under that ruleset (e.g. 2024-only mechanics) - callers get a
  * plain, unlinked label back for that side instead of a broken link.
  */

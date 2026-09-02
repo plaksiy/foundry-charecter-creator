@@ -168,6 +168,65 @@
   --dcc-border-strong: #2e2210;
 }
 
+/* Four gradient-backed themes - unlike every theme above (a single flat --dcc-bg color),
+   these sweep the wizard's own outer background through a real multi-stop gradient.
+   Safe to do only for --dcc-bg specifically: it's painted via the `background` shorthand
+   at both of its two real use sites (the app root and .window-content), which accepts a
+   gradient value directly - --dcc-surface/--dcc-surface-alt stay solid colors on purpose,
+   since a handful of real rules elsewhere paint them via `background-color` (gradient-
+   incompatible), and solid cards read better layered on top of a moving gradient anyway. */
+.application.dnd-cc.dnd-cc-theme-twilight {
+  --dcc-bg: linear-gradient(135deg, #140f28 0%, #2b1854 45%, #170f2e 100%);
+  --dcc-surface: #221a3d;
+  --dcc-surface-alt: #2d2350;
+  --dcc-border: #4a3670;
+  --dcc-text: #ede8f7;
+  --dcc-text-muted: #a99bc7;
+  --dcc-accent: #e0b84a;
+  --dcc-accent-contrast: #1a1030;
+  --dcc-border-strong: #e0b84a;
+}
+/* A forge/volcanic sweep - deep ember reds and burnt orange, for a dwarven-forge or
+   dragon's-lair mood rather than the cooler tones every other dark theme leans on. */
+.application.dnd-cc.dnd-cc-theme-ember {
+  --dcc-bg: linear-gradient(135deg, #1a0e08 0%, #4a1810 40%, #7a3010 75%, #2a0f08 100%);
+  --dcc-surface: #2e1610;
+  --dcc-surface-alt: #3d1f16;
+  --dcc-border: #6b3320;
+  --dcc-text: #ffe8d9;
+  --dcc-text-muted: #d19b7a;
+  --dcc-accent: #ff9d4d;
+  --dcc-accent-contrast: #1a0e08;
+  --dcc-border-strong: #ff9d4d;
+}
+/* A mystical teal-to-violet sweep, arcane/fey in mood rather than natural (Wildwood) or
+   icy (Frostspire). */
+.application.dnd-cc.dnd-cc-theme-aurora {
+  --dcc-bg: linear-gradient(135deg, #0a1f2e 0%, #123d4a 35%, #2d1f4a 70%, #0a1f2e 100%);
+  --dcc-surface: #14293a;
+  --dcc-surface-alt: #1c3548;
+  --dcc-border: #3a6478;
+  --dcc-text: #dff5f2;
+  --dcc-text-muted: #7fb8bd;
+  --dcc-accent: #5ee0c4;
+  --dcc-accent-contrast: #0a1f2e;
+  --dcc-border-strong: #5ee0c4;
+}
+/* A dark, ominous red-to-black sweep - necromantic/vampiric in mood, the most dramatic
+   of the four gradient themes. A pale bone-gold accent (not another red) keeps buttons
+   and active states legible against it rather than blending into the gradient itself. */
+.application.dnd-cc.dnd-cc-theme-bloodmoon {
+  --dcc-bg: linear-gradient(160deg, #1a0505 0%, #3d0a0a 50%, #0a0303 100%);
+  --dcc-surface: #2a0d0d;
+  --dcc-surface-alt: #3a1414;
+  --dcc-border: #5c1f1f;
+  --dcc-text: #f5e0e0;
+  --dcc-text-muted: #b87d7d;
+  --dcc-accent: #e8b84a;
+  --dcc-accent-contrast: #1a0505;
+  --dcc-border-strong: #e8b84a;
+}
+
 /* The five "primary" solid accents, always visible in the Settings panel's own main
    swatch row - neutral (the theme's own default, no class needed), red, royal blue,
    amber, and a richer emerald green. --dcc-accent-bg isn't set here since it just

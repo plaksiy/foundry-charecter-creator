@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.10.0
+## 1.0.0
 
 ### New
 
@@ -9,6 +9,7 @@
 - **Class step: "what you get by level"** - a class's Learn More panel now has a collapsible table showing every feature it grants at each level 1-20, so you can see what's ahead before committing (or check an already-picked class's future).
 - **Equipment step improvements**: your starting gear is now grouped into collapsible sections by where it came from (class, background, or bought/homebrew); the manual "Add Item" shop shows a running itemized cart (each selected item and its price) instead of just a total; a new "Bonus Starting Gold" house rule lets a GM grant extra starting currency on top of the normal kit.
 - **Two more House Rules**: "Banned Feats" (hide specific feats from the Feats step, same as the existing banned species/classes) and "Disable Multiclassing" (a character can only ever have one class).
+- **Four gradient themes**: Twilight (dusk purple), Ember (forge red-orange), Aurora (arcane teal-violet), and Bloodmoon (dark red-black) - alongside the eight solid-color themes, each sweeps the whole wizard's background through a real multi-stop gradient instead of one flat color.
 
 ### Removed
 
