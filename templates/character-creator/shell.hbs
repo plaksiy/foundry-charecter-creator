@@ -36,9 +36,21 @@
       <i class="fa-solid fa-arrow-left"></i> {{localize "DND-CC.Back"}}
     </button>
     <div class="dnd-cc-step-counter">{{stepCounterLabel}}</div>
+    {{#if (eq currentStepId "review")}}
+    <button type="button" class="dnd-cc-finalize-button" data-finalize-character {{#if pendingReview}}disabled{{else}}{{#unless canFinalize}}disabled{{/unless}}{{/if}}>
+      {{#if pendingReview}}
+      <i class="fa-solid fa-hourglass-half"></i> {{localize "DND-CC.Review.PendingReviewShort"}}
+      {{else if levelUp}}
+      <i class="fa-solid fa-circle-check"></i> {{localize "DND-CC.LevelUp.Done"}}
+      {{else}}
+      <i class="fa-solid fa-shield-halved"></i> {{localize "DND-CC.Review.BuildCharacter"}}
+      {{/if}}
+    </button>
+    {{else}}
     <button type="button" class="dnd-cc-next" data-tooltip="{{nextTooltip}}" {{#unless canGoNext}}disabled{{/unless}}>
       {{nextLabel}} <i class="fa-solid fa-arrow-right"></i>
     </button>
+    {{/if}}
   </footer>
 
   <div class="dnd-cc-overlay" data-overlay hidden>

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1
+
+### New
+
+- The Cancel button shown while an embedded pick is open now reads "Stop Advancement" when it belongs to a class/species/background/feat choice (matching the native confirmation it already triggers), and still reads "Cancel" - now with its own confirmation - when it belongs to an item/spell browser (Add Item, spell picking, and similar).
+- Clicking Previous, Next, or a different step in the rail while an embedded pick is still open now warns before leaving it, instead of silently abandoning whatever was in progress.
+- The Backstory text box on the Identity step is taller.
+- On the Review step, "Build Character" now replaces the Next button in the footer instead of sitting in a separate row further up the page.
+- The README now discloses that this module was built with the help of Claude.
+
+### Fixed
+
+- Declining dnd5e's own "Stop Advancement?" prompt (choosing to keep going) could still leave the embedded panel abandoned and unresponsive, requiring the wizard to be reopened.
+
 ## 1.0.0
 
 ### New

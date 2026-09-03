@@ -136,14 +136,5 @@
     <button type="button" class="dnd-cc-export-pdf-button" data-download-blank-pdf>
       <i class="fa-solid fa-file-signature"></i> {{localize "DND-CC.Review.DownloadBlankPdf"}}
     </button>
-    {{#unless pendingReview}}
-    <button type="button" class="dnd-cc-finalize-button" data-finalize-character {{#unless canFinalize}}disabled{{/unless}}>
-      {{#if levelUp}}
-      <i class="fa-solid fa-circle-check"></i> {{localize "DND-CC.LevelUp.Done"}}
-      {{else}}
-      <i class="fa-solid fa-shield-halved"></i> {{localize "DND-CC.Review.BuildCharacter"}}
-      {{/if}}
-    </button>
-    {{/unless}}
   </div>
 </div>

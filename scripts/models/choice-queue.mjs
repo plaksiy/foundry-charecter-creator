@@ -88,7 +88,14 @@ function runAdvancementManager(manager, container) {
     manager.close = async (options = {}) => {
       if (container?.isConnected) container.style.visibility = "hidden";
       const result = await originalClose(container ? { ...options, animate: false } : options);
-      resolve(false);
+      // originalClose only actually tears the manager down if the player confirms
+      // dnd5e's own "Stop Advancement?" prompt (or there was nothing to confirm) -
+      // declining leaves it rendered and still open. Resolving false unconditionally
+      // here would tell the caller the flow was abandoned while the manager is still
+      // genuinely mid-flow, and the caller's own post-await render() would then wipe
+      // this container's host out from under a manager that never actually closed.
+      if (!manager.rendered) resolve(false);
+      else if (container?.isConnected) container.style.visibility = "";
       return result;
     };
 

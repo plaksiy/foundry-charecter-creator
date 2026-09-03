@@ -31,7 +31,10 @@
       "Other": "Other"
     },
     "Advancement": {
-      "Cancel": "Cancel"
+      "Cancel": "Cancel",
+      "StopAdvancement": "Stop Advancement",
+      "CancelBrowseTitle": "Cancel Browsing?",
+      "CancelBrowseConfirm": "Leave without picking anything? Whatever you've selected so far will be lost."
     },
     "Identity": {
       "Name": "Character Name",
@@ -487,6 +490,7 @@
       "SubmitReviewConfirm": "This will send {name} to your GM for approval. You'll be notified once it's approved and added to the Actor Directory.",
       "SubmitReviewSuccess": "{name} was submitted for GM review.",
       "PendingReviewBanner": "Submitted - awaiting GM review before this character is finalized.",
+      "PendingReviewShort": "Awaiting GM Review",
       "PendingReviewMessage": "{player} has finished building <strong>{name}</strong> and it's awaiting your review.",
       "ApproveButton": "Approve & Finalize",
       "ApprovedLabel": "Approved",

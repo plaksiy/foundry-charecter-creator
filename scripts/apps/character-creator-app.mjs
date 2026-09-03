@@ -3841,18 +3841,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * steps, precisely because nothing *else* is re-rendering our wizard's DOM out from
    * under it during that window.
    *
-   * The host always includes its own Cancel button, since going frameless drops the
-   * native popup's title-bar close (X) button along with the rest of the chrome -
-   * clicking it finds whichever matching instance (by class name - `AdvancementManager`
-   * by default, or `EmbeddedCompendiumBrowser` for the spell/equipment picker, see
-   * `_runEmbeddedBrowser` below) is currently live and calls `.close()` on it, which for
-   * an AdvancementManager still shows dnd5e's own "Stop Advancement?" confirmation
-   * first, exactly like the native popup's close button always did.
+   * The host always includes its own Cancel/Stop Advancement button, since going
+   * frameless drops the native popup's title-bar close (X) button along with the rest
+   * of the chrome - clicking it defers to `_cancelEmbeddedFlow` (below), which finds
+   * whichever matching instance (by class name - `AdvancementManager` by default, or
+   * `EmbeddedCompendiumBrowser` for the spell/equipment picker, see
+   * `_runEmbeddedBrowser` below) is currently live and closes it, confirming first
+   * when the flow itself has no native confirmation of its own.
    * @param {(host: HTMLElement) => Promise<void>} operation
    * @param {string[]} [appClassNames] - constructor names the Cancel button should close
    */
   async _runEmbeddedAdvancement(operation, appClassNames = ["AdvancementManager"]) {
     const content = this.element.querySelector(".dnd-cc-content");
+    const isAdvancementManager = appClassNames.includes("AdvancementManager");
 
     const host = document.createElement("div");
     host.className = "dnd-cc-advancement-host";
@@ -3860,13 +3861,10 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
     cancelButton.className = "dnd-cc-advancement-cancel";
-    cancelButton.innerHTML = `<i class="fa-solid fa-xmark"></i> ${game.i18n.localize("DND-CC.Advancement.Cancel")}`;
-    cancelButton.addEventListener("click", () => {
-      const app = Array.from(foundry.applications.instances.values()).find(
-        (a) => appClassNames.includes(a.constructor.name)
-      );
-      app?.close();
-    });
+    cancelButton.innerHTML = `<i class="fa-solid fa-xmark"></i> ${game.i18n.localize(
+      isAdvancementManager ? "DND-CC.Advancement.StopAdvancement" : "DND-CC.Advancement.Cancel"
+    )}`;
+    cancelButton.addEventListener("click", () => this._cancelEmbeddedFlow(appClassNames));
 
     const body = document.createElement("div");
     body.className = "dnd-cc-advancement-body";
@@ -3875,6 +3873,45 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     content.replaceChildren(host);
 
     await operation(body);
+  }
+
+  /**
+   * Closes whichever embedded Advancement/Browser flow is currently open, if any -
+   * shared by the host's own Cancel/Stop Advancement button and by _goToStep's own
+   * guard against silently abandoning an in-progress pick when the player clicks
+   * Previous, Next, or a rail step while a flow is open. An AdvancementManager
+   * already shows dnd5e's own native "Stop Advancement?" confirmation the moment
+   * close() is called, so this defers to that entirely; a CompendiumBrowser has no
+   * such native confirmation of its own, so this asks first.
+   * @param {string[]} [appClassNames] - which constructor name(s) to look for; only
+   *   passed explicitly by the Cancel button itself, which already knows which flow
+   *   it belongs to. _goToStep omits it and lets this check both, since at that point
+   *   the caller has no reason to know which kind (if either) is currently open.
+   * @returns {Promise<boolean>} true if nothing was open, or it's now closed; false
+   *   if the player declined to close it.
+   */
+  async _cancelEmbeddedFlow(appClassNames = ["AdvancementManager", "EmbeddedCompendiumBrowser"]) {
+    // `.element?.isConnected`, not just `.element` - foundry.applications.instances can
+    // hold a stale entry whose host div was already replaced by a later render without
+    // that instance ever actually closing (its own DOM location just vanished out from
+    // under it). Guarding only on `.element` truthiness would let a leftover reference
+    // like that permanently block every future navigation attempt, since close() on a
+    // disconnected app has nothing real left to reverse.
+    const app = Array.from(foundry.applications.instances.values()).find(
+      (a) => appClassNames.includes(a.constructor.name) && a.element?.isConnected
+    );
+    if (!app) return true;
+
+    if (app.constructor.name !== "AdvancementManager") {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: game.i18n.localize("DND-CC.Advancement.CancelBrowseTitle") },
+        content: `<p>${game.i18n.localize("DND-CC.Advancement.CancelBrowseConfirm")}</p>`
+      });
+      if (!confirmed) return false;
+    }
+
+    await app.close();
+    return !Array.from(foundry.applications.instances.values()).includes(app);
   }
 
   /**
@@ -5653,8 +5690,14 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     this.render();
   }
 
-  _goToStep(index) {
+  async _goToStep(index) {
     if (index < 0 || index >= this.orderedSteps.length) return;
+    // A rail click, Previous, or Next can land here while an embedded Advancement/
+    // Browser flow is still open on the current step - re-rendering out from under it
+    // would silently abandon whatever the player was mid-way through picking, with no
+    // warning at all. _cancelEmbeddedFlow is a no-op (resolves true immediately) when
+    // nothing is actually open, so this costs nothing on the far more common case.
+    if (!(await this._cancelEmbeddedFlow())) return;
     this.stepIndex = index;
     this.visitedSteps.add(this.orderedSteps[index].id);
     // Every caller (rail clicks, Back/Next, the various "pick it, keep moving"

@@ -1122,6 +1122,26 @@
   color: var(--dcc-text-muted);
 }
 
+/* The Review step's "Build Character" replaces the footer's own Next slot outright
+   (see shell.hbs) instead of sitting as a separate button further up the page, so its
+   primary action is always in the one place every other step's own Next already is.
+   .dnd-cc-finalize-button's own rules (flex:1, larger display-font sizing) were tuned
+   for sitting alongside the export buttons in .dnd-cc-review-actions - reset here to
+   match the footer's own compact button sizing instead. */
+.dnd-cc-footer .dnd-cc-finalize-button {
+  flex: none;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: normal;
+  border: 1px solid var(--dcc-accent);
+  border-radius: 7px;
+}
+.dnd-cc-footer .dnd-cc-finalize-button:disabled {
+  border-color: var(--dcc-border);
+}
+
 .dnd-cc-step-counter {
   font-family: var(--dcc-font-ui);
   font-weight: 700;
@@ -4333,7 +4353,7 @@
 .dnd-cc-step-identity prose-mirror {
   display: flex;
   flex-direction: column;
-  min-height: 180px;
+  min-height: 260px;
   border: 1px solid var(--dcc-border);
   border-radius: 8px;
   background: var(--dcc-surface);
