@@ -6,6 +6,8 @@ This module does not copy text from any book. It reads classes, species, backgro
 
 The module runs entirely locally. It does not send data anywhere, does not phone home, and does not collect any telemetry.
 
+**Disclosure:** this module was built with the help of Claude - not fully AI-generated, but just being transparent about the tools used.
+
 ## Requirements
 
 - Foundry VTT version 13 or 14.
