@@ -2,7 +2,7 @@
   "id": "foundryvtt-dnd-charecter-creator",
   "title": "D&D Character Creator",
   "description": "A step-by-step character creation wizard that reads classes, species, backgrounds, and equipment straight from your installed dnd5e compendiums.",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14"

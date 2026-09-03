@@ -1,29 +1,12 @@
 # Changelog
 
-## 1.1.0
-
-### New
-
-- **PDF export redesigned from scratch**, matching the wizard's own visual style instead of a plain table layout: a portrait, colored ability score cards with saving throws and skills, a combined weapons & damage-cantrips table (now with a Notes column), class features/species traits/feats, languages, equipment with Magic Item Attunement, coins, spellcasting stats, spell slots, and a full cantrips & prepared spells table (with a Notes column and extra blank rows to pencil in spells learned later). Reliably lands on exactly two pages: a long backstory shrinks to stay legible, and if it still doesn't fit, it's cut at the end of a sentence and clearly marked as trimmed rather than silently overflowing.
-- **Download Blank PDF Sheet**: a blank, hand-fillable version of the same two-page sheet, with no character data on it, for anyone who wants a physical paper copy. Uses your browser's own print dialog - no PDF library involved.
-- **Export to PDF directly from a character's own sheet header** - no need to open the full wizard (via Level Up) just to reach the Review step's export button.
-
-### Changed
-
-- Removed "Export to Official PDF Sheet" (the fillable-PDF-form feature from 1.0.0, where a GM pointed the module at their own purchased PDF). Filling in someone else's PDF form reliably turned out to be more trouble than it was worth across different sheet layouts - replaced entirely by the new PDF export above, which needs no GM setup at all.
-
-### Fixed
-
-- The Coins section (CP/SP/EP/GP/PP) never actually showed a value in the exported PDF, no matter how much currency the character had.
-- Spell Save DC was always blank in the exported PDF.
-- Hit Dice showed a doubled "d" (for example "0/1dd6" instead of "0/1d6").
-
 ## 1.0.0
 
 ### New
 
-- **Export to Official PDF Sheet**: the Review step can now fill in a real fillable PDF character sheet (any one you already own - this module never bundles a copy of it, since its layout is someone else's copyrighted work). A game master points the module at their own PDF from Foundry's own Module Settings screen (a standard file picker, no custom UI needed); once set, every player's export button fills in name, class, species, background, ability scores, saving throws, skills (with proficiency boxes), currency, languages, proficiencies, class features, species traits, feats, equipment, spellcasting stats and spell list, and a combined weapon/damage-cantrip attack table with real attack bonuses and damage.
-- The module's own PDF and Journal Entry exports got a matching upgrade: a portrait, ability scores as real cards instead of a plain table, and the same combined weapons-and-damage-cantrips attack table.
+- **PDF export redesigned from scratch**, matching the wizard's own visual style instead of a plain table layout: a portrait, colored ability score cards with saving throws and skills, a combined weapons & damage-cantrips table (with a Notes column), class features/species traits/feats, languages, equipment with Magic Item Attunement, coins, spellcasting stats, spell slots, and a full cantrips & prepared spells table (with a Notes column and extra blank rows to pencil in spells learned later). Reliably lands on exactly two pages: a long backstory shrinks to stay legible, and if it still doesn't fit, it's cut at the end of a sentence and clearly marked as trimmed rather than silently overflowing.
+- **Download Blank PDF Sheet**: a blank, hand-fillable version of the same two-page sheet, with no character data on it, for anyone who wants a physical paper copy. Uses your browser's own print dialog - no PDF library involved.
+- **Export to PDF directly from a character's own sheet header** - no need to open the full wizard (via Level Up) just to reach the Review step's export button.
 - **Class step: "what you get by level"** - a class's Learn More panel now has a collapsible table showing every feature it grants at each level 1-20, so you can see what's ahead before committing (or check an already-picked class's future).
 - **Equipment step improvements**: your starting gear is now grouped into collapsible sections by where it came from (class, background, or bought/homebrew); the manual "Add Item" shop shows a running itemized cart (each selected item and its price) instead of just a total; a new "Bonus Starting Gold" house rule lets a GM grant extra starting currency on top of the normal kit.
 - **Two more House Rules**: "Banned Feats" (hide specific feats from the Feats step, same as the existing banned species/classes) and "Disable Multiclassing" (a character can only ever have one class).
@@ -39,6 +22,9 @@
 ### Fixed
 
 - Every "Add Custom" button (class, species, background, feat, subclass) silently did nothing for a player who lacked Foundry's "Create Items" permission, which is off by default for the Player role. It now shows a clear warning explaining what permission is missing; see the Installation section of the README.
+- The exported PDF's Coins section (CP/SP/EP/GP/PP) never actually showed a value, no matter how much currency the character had.
+- The exported PDF's Spell Save DC was always blank.
+- The exported PDF's Hit Dice showed a doubled "d" (for example "0/1dd6" instead of "0/1d6").
 
 ### Removed
 
