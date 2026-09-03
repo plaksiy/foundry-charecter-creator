@@ -4,6 +4,7 @@ import {
   ABILITY_KEYS,
   ABILITY_METHODS,
   BACKGROUND_THEME_COLORS,
+  BLANK_SHEET_ABILITY_ICONS,
   CLASS_COMPLEXITY,
   CLASS_ROLES,
   CLASS_THEME_COLORS,
@@ -2710,7 +2711,292 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       personality: aboutContext.personality,
       biography: identityContext.biography,
       languages: aboutContext.languages,
-      lifestyleLabel: aboutContext.lifestyles.find((tier) => tier.selected)?.label ?? null
+      lifestyleLabel: aboutContext.lifestyles.find((tier) => tier.selected)?.label ?? null,
+      ...(await this._prepareLedgerPdfFields(identityContext.biography, reviewContext.feats, reviewContext.equipment, aboutContext.languages))
+    };
+  }
+
+  /**
+   * Strip HTML tags from a rich-text field (Backstory) for a plain-text PDF field -
+   * paragraph/line breaks are converted to real newlines first (plain .textContent
+   * otherwise collapses every block element straight into one unbroken line, which
+   * would make even a short multi-paragraph backstory read as a single dense blob).
+   */
+  _plainTextFromHtml(html) {
+    if (!html) return "";
+    const withBreaks = html.replace(/<\/p>|<\/div>|<br\s*\/?>/gi, "\n");
+    const div = document.createElement("div");
+    div.innerHTML = withBreaks;
+    return div.textContent.trim().replace(/\n{3,}/g, "\n\n");
+  }
+
+  /**
+   * Caps a list to `limit` entries for the printable Ledger PDF, which is meant to
+   * always land on exactly 2 physical pages regardless of how much a given character
+   * actually has - {shown, overflowCount} rather than silently dropping the rest, so a
+   * genuinely long list (many feats, a big spell list) is disclosed as "+N more" instead
+   * of just quietly vanishing past the edge of the printed page.
+   * @param {Array} items
+   * @param {number} limit
+   */
+  _capForPdf(items, limit) {
+    return { shown: items.slice(0, limit), overflowCount: Math.max(0, items.length - limit) };
+  }
+
+  /**
+   * The extra fields the "oath"-styled Ledger PDF export needs beyond what
+   * _prepareReviewContext/_prepareAboutContext/_prepareIdentityContext already expose -
+   * kept as its own method (not folded into _preparePdfExportContext directly) so
+   * journal-export.hbs's own use of _preparePdfExportContext's existing fields is never
+   * put at risk by this addition; this only ever adds new keys, never changes one an
+   * existing template already reads.
+   * @param {string} biographyHtml - identityContext.biography, passed in rather than
+   *   re-fetched so this doesn't redo that async call itself.
+   * @param {{name: string}[]} feats - reviewContext.feats, passed in for the same
+   *   reason - both are shared fields journal-export.hbs also reads, so this method
+   *   builds its own capped copies rather than mutating them in place.
+   * @param {{name: string, quantityText: string}[]} equipment - reviewContext.equipment
+   * @param {{label: string}[]} languages - aboutContext.languages
+   */
+  async _prepareLedgerPdfFields(biographyHtml, feats, equipment, languages) {
+    const actor = this.draft.actor;
+    const attributes = actor.system.attributes;
+    const abilitiesContext = this._prepareAbilitiesContext();
+    const aboutContext = this._prepareAboutContext();
+
+    const classItems = actor.items.filter((item) => item.type === "class");
+    const originalClass = classItems.find((item) => item.isOriginalClass) ?? classItems[0];
+    const totalLevel = classItems.reduce((sum, item) => sum + item.system.levels, 0);
+
+    // Handlebars helpers beyond the stock built-ins (#if/#each/#unless/#with/lookup)
+    // aren't registered anywhere in this project, so every proficient/on-off state a
+    // template needs is precomputed as a plain boolean here rather than compared
+    // in-template - same "no custom helpers" convention every other .hbs in this
+    // module already follows.
+    const ledgerAbilities = abilitiesContext.abilities.map((entry) => ({
+      ...entry,
+      icon: BLANK_SHEET_ABILITY_ICONS[entry.key],
+      savingThrow: { ...entry.savingThrow, proficient: entry.savingThrow.proficiencyTier !== "none" },
+      governedSkills: entry.governedSkills.map((skill) => ({ ...skill, proficient: skill.proficiencyTier !== "none" }))
+    }));
+
+    const weaponProfValues = Array.from(actor.system.traits.weaponProf?.value ?? [])
+      .map((key) => CONFIG.DND5E.weaponProficiencies[key] ?? key);
+    const weaponProfCustom = (actor.system.traits.weaponProf?.custom ?? "")
+      .split(";").map((s) => s.trim()).filter(Boolean);
+    const weaponProf = [...weaponProfValues, ...weaponProfCustom].join(", ");
+
+    // Tool proficiencies are a per-tool mapping (system.tools) keyed by a compendium
+    // uuid, not a plain CONFIG-labeled Set like weapon/armor - the key itself is never a
+    // display name, so it has to be resolved to a real Item to get one. A failed/missing
+    // lookup falls back to the raw key rather than crashing the whole export - better a
+    // slightly ugly label than a broken PDF.
+    const toolEntries = Object.entries(actor.system.tools ?? {}).filter(([, tool]) => (tool.value ?? 0) > 0);
+    const toolNames = [];
+    for (const [key, tool] of toolEntries) {
+      try {
+        const uuid = tool.id ?? CONFIG.DND5E.tools[key]?.id;
+        const item = uuid ? await fromUuid(uuid) : null;
+        toolNames.push(item?.name ?? key);
+      } catch {
+        toolNames.push(key);
+      }
+    }
+    const toolProfCustom = (actor.system.traits.toolProf?.custom ?? "").split(";").map((s) => s.trim()).filter(Boolean);
+    const toolProf = [...toolNames, ...toolProfCustom].join(", ");
+
+    const armorProf = actor.system.traits.armorProf?.value ?? new Set();
+
+    const speciesItem = actor.items.find((item) => item.type === "race");
+    const speciesTraitNames = (speciesItem ? itemsGrantedBy(actor, speciesItem.id) : []).map((item) => item.name);
+
+    const classFeatureNames = [];
+    for (const classItem of classItems) {
+      classFeatureNames.push(...itemsGrantedBy(actor, classItem.id).map((item) => item.name));
+      if (classItem.subclass) classFeatureNames.push(...itemsGrantedBy(actor, classItem.subclass.id).map((item) => item.name));
+    }
+
+    // `system.hd.denomination` already stores the full "d#" string (e.g. "d6"), not a
+    // bare number - a literal "d" between it and the level count would double up into
+    // "1dd6".
+    const hdMax = classItems
+      .map((item) => {
+        const die = String(item.system.hd?.denomination ?? item.system.hitDice ?? "d?");
+        return `${item.system.levels}${die.startsWith("d") ? die : `d${die}`}`;
+      })
+      .join(" + ");
+    const hdSpent = classItems.reduce((sum, item) => sum + (item.system.hd?.spent ?? 0), 0);
+
+    // Spellcasting stat block - the first spellcasting class only, a deliberate
+    // simplification for a printed sheet that only has room for one combined ability/
+    // save DC/attack bonus line rather than one per class.
+    const firstSpellcasterIdentifier = Object.keys(actor.spellcastingClasses ?? {})[0];
+    const firstSpellcaster = firstSpellcasterIdentifier ? actor.spellcastingClasses[firstSpellcasterIdentifier] : null;
+    let spellAbility = "";
+    let spellMod = "";
+    let spellSaveDc = "";
+    let spellAttackBonus = "";
+    if (firstSpellcaster) {
+      const abilityKey = this._effectiveSpellcasting(firstSpellcaster).ability;
+      const mod = actor.system.abilities[abilityKey]?.mod ?? 0;
+      const prof = attributes.prof ?? 0;
+      const attackBonus = mod + prof;
+      spellAbility = CONFIG.DND5E.abilities[abilityKey]?.label ?? abilityKey ?? "";
+      spellMod = mod >= 0 ? `+${mod}` : `${mod}`;
+      // `attributes.spelldc` is derived only for an NPC's innate spellcasting, not for a
+      // PC - computed directly here with the standard 8 + proficiency + ability mod
+      // formula instead.
+      spellSaveDc = 8 + prof + mod;
+      spellAttackBonus = attackBonus >= 0 ? `+${attackBonus}` : `${attackBonus}`;
+    }
+
+    // Reads each slot's own `level` field rather than assuming the "spellN" object key
+    // always matches level N - _maxSpellSlotLevel (above) needs the same read for the
+    // same reason: a Pact Magic slot lives under the key "pact", not "spellN", and a
+    // loop that only ever looked at spell1..spell9 would silently skip it.
+    const spellSlotLevels = Object.values(actor.system.spells ?? {})
+      .filter((slot) => (slot.type === "spell" || slot.type === "pact") && (slot.max ?? 0) > 0)
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0))
+      .map((slot) => {
+        const max = slot.max;
+        const expended = max - (slot.value ?? max);
+        return {
+          level: slot.level,
+          max,
+          pips: Array.from({ length: max }, (_, index) => ({ on: index < expended }))
+        };
+      });
+
+    // Per-spell casting-time/range/concentration-ritual-material detail for the big
+    // Cantrips & Prepared Spells table - wrapped defensively per spell (matching
+    // _prepareAttacksContext's own precedent) since a homebrew/unusual spell item's
+    // exact data shape isn't guaranteed.
+    const spellRows = actor.items
+      .filter((item) => item.type === "spell")
+      .sort((a, b) => (a.system.level ?? 0) - (b.system.level ?? 0) || a.name.localeCompare(b.name))
+      .map((item) => {
+        let castTime = "";
+        let range = "";
+        let concentration = false;
+        let ritual = false;
+        let material = false;
+        try {
+          castTime = item.labels?.activation ?? "";
+          range = item.labels?.range ?? "";
+          concentration = Boolean(item.system.properties?.has?.("concentration"));
+          ritual = Boolean(item.system.properties?.has?.("ritual"));
+          material = Boolean(item.system.properties?.has?.("material")) || Boolean(item.system.materials?.value);
+        } catch {
+          // Leave this row's flags at their safe defaults rather than break the export.
+        }
+        return {
+          level: item.system.level === 0 ? "C" : item.system.level,
+          name: item.name,
+          castTime,
+          range,
+          concentration,
+          ritual,
+          material,
+          sourceItem: item.system.sourceItem ?? ""
+        };
+      });
+
+    const deathSuccess = attributes.death?.success ?? 0;
+    const deathFail = attributes.death?.failure ?? 0;
+
+    // Appearance lives in the same `personality` array as Trait/Ideal/Bond/Flaw (see
+    // _prepareAboutContext) but the Ledger layout gives it its own dedicated frame -
+    // split it out here so the Backstory & Personality frame doesn't repeat it.
+    const appearanceEntry = aboutContext.personality.find((entry) => entry.key === "appearance");
+    const personalityWithoutAppearance = aboutContext.personality.filter((entry) => entry.key !== "appearance");
+
+    // A real backstory has no bounded length the way every other field on this sheet
+    // does, and unlike Class Features/Species Traits/Feats (short compendium item
+    // names) a player can genuinely write pages of it - shown as plain text (not the
+    // raw HTML journal-export.hbs still uses) so a cut can land exactly on a sentence
+    // boundary rather than mid-tag. Below BIOGRAPHY_SHRINK_LENGTH it prints at the
+    // frame's normal size; up to BIOGRAPHY_TRUNCATE_LENGTH it shrinks to stay legible
+    // without necessarily fitting one page (print already handles overflow onto a
+    // further page correctly now that this section is a stacked block, not a grid
+    // column); beyond that it's cut at the last real sentence end still inside the
+    // budget and flagged, rather than growing without limit.
+    const BIOGRAPHY_SHRINK_LENGTH = 500;
+    const BIOGRAPHY_TRUNCATE_LENGTH = 2200;
+    const biographyPlain = this._plainTextFromHtml(biographyHtml);
+    let biographyDisplay = biographyPlain;
+    let biographyTruncated = false;
+    if (biographyPlain.length > BIOGRAPHY_TRUNCATE_LENGTH) {
+      const cut = biographyPlain.slice(0, BIOGRAPHY_TRUNCATE_LENGTH);
+      const lastSentenceEnd = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+      biographyDisplay = lastSentenceEnd > 0 ? cut.slice(0, lastSentenceEnd + 1) : cut;
+      biographyTruncated = true;
+    }
+    const biographySizeClass = biographyPlain.length > BIOGRAPHY_SHRINK_LENGTH ? "small" : "";
+
+    // Every other list on this sheet is real compendium/actor data with no bounded
+    // length either (a multiclass character's class features, a high-level spell list,
+    // a long equipment haul) - capped the same "show N, disclose the rest as a count"
+    // way as the biography above, so the sheet reliably stays exactly 2 pages instead
+    // of only being safe for a typical low-level character.
+    const classFeaturesCapped = this._capForPdf(classFeatureNames, 10);
+    const speciesTraitsCapped = this._capForPdf(speciesTraitNames, 8);
+    const featsCapped = this._capForPdf(feats, 6);
+    const equipmentCapped = this._capForPdf(equipment.map((item) => `${item.name}${item.quantityText}`), 12);
+    const spellRowsCapped = this._capForPdf(spellRows, 28);
+    const languagesCapped = this._capForPdf(languages.map((l) => l.label), 10);
+
+    return {
+      subclassName: originalClass?.subclass?.name ?? "",
+      totalLevel,
+      xp: actor.system.details.xp?.value ?? "",
+      hpCurrent: attributes.hp.value,
+      hpMax: attributes.hp.max,
+      hpTemp: attributes.hp.temp || "",
+      hdMax,
+      hdSpent,
+      deathSuccessPips: [1, 2, 3].map((n) => n <= deathSuccess),
+      deathFailPips: [1, 2, 3].map((n) => n <= deathFail),
+      inspiration: Boolean(actor.system.attributes.inspiration),
+      ledgerAbilities,
+      weaponProf,
+      toolProf,
+      armorTraining: {
+        light: armorProf.has?.("lgt") ?? false,
+        medium: armorProf.has?.("med") ?? false,
+        heavy: armorProf.has?.("hvy") ?? false,
+        shields: armorProf.has?.("shl") ?? false
+      },
+      classFeatureNames: classFeaturesCapped.shown,
+      classFeatureOverflow: classFeaturesCapped.overflowCount,
+      speciesTraitNames: speciesTraitsCapped.shown,
+      speciesTraitOverflow: speciesTraitsCapped.overflowCount,
+      ledgerFeats: featsCapped.shown,
+      ledgerFeatOverflow: featsCapped.overflowCount,
+      ledgerEquipment: equipmentCapped.shown,
+      ledgerEquipmentOverflow: equipmentCapped.overflowCount,
+      ledgerLanguages: languagesCapped.shown,
+      ledgerLanguageOverflow: languagesCapped.overflowCount,
+      spellAbility,
+      spellMod,
+      spellSaveDc,
+      spellAttackBonus,
+      spellSlotLevels,
+      spellRows: spellRowsCapped.shown,
+      spellRowOverflow: spellRowsCapped.overflowCount,
+      // A few extra blank write-in lines under the real spell list, so a spellcaster
+      // has somewhere to pencil in a spell learned later without needing a fresh
+      // export - not shown at all past the overflow point, since a capped/truncated
+      // list already means the page has no more real room to spare.
+      spellBlankRows: spellRowsCapped.overflowCount ? [] : new Array(10).fill(0),
+      appearanceText: appearanceEntry?.value ?? "",
+      personalityWithoutAppearance,
+      biographyDisplay,
+      biographyTruncated,
+      biographySizeClass,
+      // Per-denomination object backing {{currency.cp}}/etc. in the template -
+      // _prepareReviewContext only exposes a joined currencyText string (e.g. "20 PP,
+      // 40 GP"), which the Coins boxes can't bind to individually.
+      currency: actor.system.currency
     };
   }
 
@@ -2724,9 +3010,15 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
    * (`window.open` right at the top of the handler, synchronously in the click event) -
    * opening it after an `await` risks the browser's popup blocker treating it as not
    * having come from a direct user gesture anymore.
+   * @param {Window} [existingPrintWindow] - an already-opened blank tab, for a caller
+   *   (the character sheet's own header-button shortcut, see addExportPdfHeaderButton
+   *   in main.mjs) that needs its own await (resolving a draft wrapper) between the
+   *   user's click and this method running, and so must open the tab itself,
+   *   synchronously, before that await - passing a already-open window here skips this
+   *   method's own popup-blocked guard entirely, since the caller already handled it.
    */
-  async _exportToPdf() {
-    const printWindow = window.open("", "_blank");
+  async _exportToPdf(existingPrintWindow = null) {
+    const printWindow = existingPrintWindow ?? window.open("", "_blank");
     if (!printWindow) {
       ui.notifications.warn(game.i18n.localize("DND-CC.Review.ExportPopupBlocked"));
       return;
@@ -2771,203 +3063,75 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     entry.sheet.render(true);
   }
 
-  /** Strip HTML tags from a rich-text field (Backstory) for a plain-text PDF field. */
-  _plainTextFromHtml(html) {
-    if (!html) return "";
-    const div = document.createElement("div");
-    div.innerHTML = html;
-    return div.textContent.trim();
+  /**
+   * The six ability columns for the blank printable sheet - governed skills read
+   * straight from CONFIG.DND5E.skills (whatever the installed dnd5e system actually
+   * defines) rather than a hardcoded duplicate list, same source _prepareAbilitiesContext
+   * already reads for the same purpose. No actor involved at all - this sheet carries no
+   * character data, only the structural layout. Uses BLANK_SHEET_ABILITY_ICONS (simple
+   * stroke-outline icons), not the detailed filled ABILITY_ICONS used elsewhere in this
+   * app - at the small size these render on the printed sheet, a dense filled icon
+   * collapses into an illegible dark blob.
+   * Iterates the fixed ABILITY_KEYS list, not a raw Object.entries(CONFIG.DND5E.abilities)
+   * - a world can have optional abilities (Honor, Sanity) registered in CONFIG.DND5E
+   * beyond the real six, and a stray extra card would render without any of its own
+   * accent color or icon, both keyed by ABILITY_KEYS-only lookups.
+   */
+  _blankSheetAbilities() {
+    return ABILITY_KEYS.map((key) => ({
+      key,
+      abbr: key.toUpperCase(),
+      full: CONFIG.DND5E.abilities[key]?.label ?? key,
+      icon: BLANK_SHEET_ABILITY_ICONS[key],
+      skills: Object.values(CONFIG.DND5E.skills)
+        .filter((skillConfig) => skillConfig.ability === key)
+        .map((skillConfig) => skillConfig.label)
+        .sort((a, b) => a.localeCompare(b))
+    }));
   }
 
   /**
-   * Flat, PDF-field-shaped export data for "Export to Official PDF Sheet" - reuses the
-   * same context builders every other export/review view already calls (abilities,
-   * skills, feats, spells) rather than re-deriving any of it, plus the handful of raw
-   * actor fields those views don't already expose in this shape (currency by
-   * denomination, weapon/tool proficiency labels, class features/species traits by
-   * name, a combined spell list). See pdf-form-export.mjs for what each field maps to
-   * on the actual PDF.
-   * @returns {Promise<object>}
+   * The 9 spell-slot levels for page 2's Spell Slots frame, each with a `pips` array
+   * (its own length only, no real data) for the template's {{#each}} to draw one diamond
+   * per pip - the max slot count a single-class full caster can ever have at that level
+   * (the same fixed reference table the official 2024 sheet itself prints), not tied to
+   * any real character.
    */
-  async _prepareOfficialPdfContext() {
-    const actor = this.draft.actor;
-    const reviewContext = await this._prepareReviewContext();
-    const aboutContext = this._prepareAboutContext();
-    const identityContext = await this._prepareIdentityContext();
-    const abilitiesContext = this._prepareAbilitiesContext();
-    const { skills } = await this._prepareSkillsContext();
+  static BLANK_SHEET_SPELL_SLOT_COUNTS = [4, 3, 3, 3, 3, 2, 2, 1, 1];
 
-    const classItems = actor.items.filter((item) => item.type === "class");
-    const originalClass = classItems.find((item) => item.isOriginalClass) ?? classItems[0];
-    const totalLevel = classItems.reduce((sum, item) => sum + item.system.levels, 0);
-
-    const abilities = {};
-    const saves = {};
-    for (const entry of abilitiesContext.abilities) {
-      abilities[entry.key] = { score: entry.totalText, modText: entry.modText };
-      saves[entry.key] = {
-        modText: entry.savingThrow.totalText,
-        proficient: entry.savingThrow.proficiencyTier !== "none"
-      };
-    }
-
-    const skillsByKey = {};
-    for (const skill of skills) {
-      skillsByKey[skill.key] = { modText: skill.totalText, proficient: skill.isProficient };
-    }
-
-    const weaponProfValues = Array.from(actor.system.traits.weaponProf?.value ?? [])
-      .map((key) => CONFIG.DND5E.weaponProficiencies[key] ?? key);
-    const weaponProfCustom = (actor.system.traits.weaponProf?.custom ?? "")
-      .split(";").map((s) => s.trim()).filter(Boolean);
-    const weaponProf = [...weaponProfValues, ...weaponProfCustom].join(", ");
-
-    // Tool proficiencies are a per-tool mapping (system.tools), not a plain Set like
-    // weapon/armor - each entry only has a compendium uuid to resolve a real name from,
-    // no plain label anywhere in CONFIG, so this needs a real (best-effort) lookup.
-    const toolEntries = Object.entries(actor.system.tools ?? {}).filter(([, tool]) => (tool.value ?? 0) > 0);
-    const toolNames = [];
-    for (const [key, tool] of toolEntries) {
-      try {
-        const uuid = tool.id ?? CONFIG.DND5E.tools[key]?.id;
-        const item = uuid ? await fromUuid(uuid) : null;
-        toolNames.push(item?.name ?? key);
-      } catch {
-        toolNames.push(key);
-      }
-    }
-    const toolProfCustom = (actor.system.traits.toolProf?.custom ?? "").split(";").map((s) => s.trim()).filter(Boolean);
-    const toolProf = [...toolNames, ...toolProfCustom].join(", ");
-
-    const speciesItem = actor.items.find((item) => item.type === "race");
-    const speciesTraits = (speciesItem ? itemsGrantedBy(actor, speciesItem.id) : [])
-      .map((item) => item.name).join(", ");
-
-    const classFeatureNames = [];
-    for (const classItem of classItems) {
-      classFeatureNames.push(...itemsGrantedBy(actor, classItem.id).map((item) => item.name));
-      if (classItem.subclass) classFeatureNames.push(...itemsGrantedBy(actor, classItem.subclass.id).map((item) => item.name));
-    }
-    const uniqueFeatureNames = Array.from(new Set(classFeatureNames));
-    const midpoint = Math.ceil(uniqueFeatureNames.length / 2);
-
-    const spells = actor.items
-      .filter((item) => item.type === "spell")
-      .sort((a, b) => (a.system.level ?? 0) - (b.system.level ?? 0) || a.name.localeCompare(b.name))
-      .map((item) => ({ level: item.system.level ?? 0, name: item.name }));
-
-    const firstSpellcasterIdentifier = Object.keys(actor.spellcastingClasses ?? {})[0];
-    const firstSpellcaster = firstSpellcasterIdentifier ? actor.spellcastingClasses[firstSpellcasterIdentifier] : null;
-    let spellcasting = null;
-    if (firstSpellcaster) {
-      const abilityKey = this._effectiveSpellcasting(firstSpellcaster).ability;
-      const mod = actor.system.abilities[abilityKey]?.mod ?? 0;
-      const attackBonus = mod + (actor.system.attributes.prof ?? 0);
-      const slots = {};
-      for (let level = 1; level <= 9; level++) {
-        const max = actor.system.spells[`spell${level}`]?.max ?? 0;
-        if (max > 0) slots[level] = max;
-      }
-      spellcasting = {
-        ability: CONFIG.DND5E.abilities[abilityKey]?.label ?? abilityKey ?? "",
-        mod: mod >= 0 ? `+${mod}` : `${mod}`,
-        saveDc: actor.system.attributes.spelldc ?? "",
-        attackBonus: attackBonus >= 0 ? `+${attackBonus}` : `${attackBonus}`,
-        slots
-      };
-    }
-
-    // Same combined weapon/damage-cantrip attack list _preparePdfExportContext already
-    // builds - the official sheet has room for exactly 6 rows.
-    const weapons = this._prepareAttacksContext();
-
-    return {
-      name: actor.name,
-      classText: reviewContext.classSummary ?? "",
-      subclass: originalClass?.subclass?.name ?? "",
-      species: reviewContext.speciesName ?? "",
-      background: reviewContext.backgroundName ?? "",
-      level: totalLevel || "",
-      xp: actor.system.details.xp?.value ?? "",
-      alignment: reviewContext.alignment ?? "",
-      ac: reviewContext.ac ?? "",
-      initiative: reviewContext.initiativeText ?? "",
-      speed: reviewContext.speed ?? "",
-      size: reviewContext.sizeLabel ?? "",
-      passivePerception: reviewContext.passivePerception ?? "",
-      profBonus: reviewContext.proficiencyBonusText ?? "",
-      hpCurrent: actor.system.attributes.hp.value,
-      hpMax: actor.system.attributes.hp.max,
-      hpTemp: actor.system.attributes.hp.temp || "",
-      hdMax: totalLevel || "",
-      abilities,
-      saves,
-      skills: skillsByKey,
-      currency: actor.system.currency,
-      languages: aboutContext.languages.map((l) => l.label).join(", "),
-      weaponProf,
-      toolProf,
-      classFeaturesCol1: uniqueFeatureNames.slice(0, midpoint).join(", "),
-      classFeaturesCol2: uniqueFeatureNames.slice(midpoint).join(", "),
-      speciesTraits,
-      feats: reviewContext.feats.map((f) => f.name).join(", "),
-      equipment: reviewContext.equipment.map((e) => `${e.name}${e.quantityText}`).join(", "),
-      backstoryPersonality: this._plainTextFromHtml(identityContext.biography),
-      appearance: aboutContext.personality.find((p) => p.key === "appearance")?.value ?? "",
-      spellcasting,
-      spells,
-      weapons
-    };
+  _blankSheetSpellSlotLevels() {
+    return CharacterCreatorApp.BLANK_SHEET_SPELL_SLOT_COUNTS.map((count, index) => ({
+      level: index + 1,
+      pips: new Array(count).fill(0)
+    }));
   }
 
   /**
-   * Fills a real fillable PDF character sheet the GM has personally configured (see
-   * _choosePdfTemplate) with this character's actual stats - unlike _exportToPdf's own
-   * print-your-own-page approach, this writes directly into the sheet's own text/
-   * checkbox fields. Never bundles any PDF of its own (see pdf-form-export.mjs and the
-   * officialPdfTemplatePath setting) - only the GM's own already-obtained file is read,
-   * fetched the same way an <img src="..."> would resolve any other Foundry Data path.
+   * Opens a blank, hand-fillable printable character sheet (matching the module's own
+   * "oath" visual design) in a new tab and triggers the print dialog - no character data
+   * at all, just the structural layout, for a player who wants a physical/paper copy to
+   * fill in by hand before or during play. Same window.open-before-any-await safety and
+   * print-via-browser approach as _exportToPdf (see its own doc comment for why - no PDF
+   * library is bundled).
    */
-  async _exportToOfficialPdf() {
-    const templatePath = game.settings.get(MODULE_ID, "officialPdfTemplatePath");
-    if (!templatePath) {
-      ui.notifications.warn(game.i18n.localize(
-        game.user.isGM ? "DND-CC.Review.OfficialPdfChooseFirst" : "DND-CC.Review.OfficialPdfNoTemplate"
-      ));
+  _downloadBlankPdfSheet() {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      ui.notifications.warn(game.i18n.localize("DND-CC.Review.ExportPopupBlocked"));
       return;
     }
 
-    let templateBytes;
-    try {
-      const response = await fetch(templatePath);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      templateBytes = await response.arrayBuffer();
-    } catch (err) {
-      console.error("D&D Character Creator | failed to load the PDF template", err);
-      ui.notifications.error(game.i18n.format("DND-CC.Review.OfficialPdfLoadFailed", { path: templatePath }));
-      return;
-    }
-
-    const data = await this._prepareOfficialPdfContext();
-    let filledBytes;
-    try {
-      const { buildFilledPdfBytes } = await import("../services/pdf-form-export.mjs");
-      filledBytes = await buildFilledPdfBytes(templateBytes, data);
-    } catch (err) {
-      console.error("D&D Character Creator | failed to fill the PDF template", err);
-      ui.notifications.error(game.i18n.localize("DND-CC.Review.OfficialPdfFillFailed"));
-      return;
-    }
-
-    const blob = new Blob([filledBytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${data.name || "character"}.pdf`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    foundry.applications.handlebars.renderTemplate(
+      `modules/${MODULE_ID}/templates/character-creator/blank-sheet.hbs`,
+      {
+        abilities: this._blankSheetAbilities(),
+        spellSlotLevels: this._blankSheetSpellSlotLevels(),
+        spellRows: new Array(22).fill(0)
+      }
+    ).then((html) => {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    });
   }
 
   /**
@@ -3654,7 +3818,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     );
     root.querySelector("[data-export-pdf]")?.addEventListener("click", () => this._exportToPdf());
     root.querySelector("[data-export-journal]")?.addEventListener("click", () => this._exportToJournal());
-    root.querySelector("[data-export-official-pdf]")?.addEventListener("click", () => this._exportToOfficialPdf());
+    root.querySelector("[data-download-blank-pdf]")?.addEventListener("click", () => this._downloadBlankPdfSheet());
   }
 
   /**

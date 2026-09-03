@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DnD Character Sheet by Plaksiy</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { background: #fff; margin: 0; padding: 1.6rem; }
+  .paper { width: 718px; margin: 0 auto 1.6rem; background: #fff; color: #1c1a16; font-family: "EB Garamond", Georgia, serif; font-size: 12.4px; line-height: 1.22; padding: 1.6em; display: flex; flex-direction: column; gap: 0.45em; }
+  .icon { width: 1em; height: 1em; display: inline-block; }
+  .icon path, .icon circle { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .frame { border: 1px solid #b9ae95; border-radius: 6px; background: #fff; position: relative; }
+  .frame-title { font-family: "Cinzel", Georgia, serif; font-weight: 600; font-size: 0.9em; letter-spacing: 0.03em; text-align: center; padding: 0.36em 0.5em 0.24em; border-bottom: 1px solid #c7bda0; color: #1c1a16; }
+  .frame-title.left { text-align: left; padding-left: 0.7em; }
+  .frame-pad { padding: 0.4em 0.6em; }
+
+  .write-area { flex: 1; min-height: 0; background-image: radial-gradient(#c7bda0 0.5px, transparent 0.5px); background-size: 0.9em 0.9em; background-position: 0.3em 0.3em; }
+
+  .id-header-frame { padding: 0; }
+  .id-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-content: center; gap: 1.1em; padding: 0.85em 0.7em 1em; }
+
+  .portrait-frame { width: 7.6em; height: 7.6em; border-radius: 50%; border: 1.9px solid #1c1a16; padding: 0.16em; position: relative; }
+  .portrait-frame::after { content: ""; position: absolute; inset: -0.36em; border: 1px solid #b9ae95; border-radius: 50%; }
+  .portrait-frame .disc { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .portrait-frame .disc .icon { width: 55%; height: 55%; color: #8a836e; }
+  .portrait-col { display: flex; flex-direction: column; align-items: center; gap: 0.3em; padding: 0 0.5em; }
+  .portrait-name-field { width: 100%; margin-top: 0.28em; }
+  .portrait-name-lbl { font-family: "JetBrains Mono", monospace; font-size: 0.66em; letter-spacing: 0.03em; color: #6b6450; text-transform: uppercase; text-align: center; display: block; }
+  .portrait-name { font-family: "Cinzel", serif; font-weight: 600; font-size: 1.15em; text-align: center; min-height: 1.3em; border-bottom: 1px solid #c7bda0; }
+  .portrait-align-field { width: 100%; margin-top: 0.3em; }
+  .portrait-align-lbl { font-family: "JetBrains Mono", monospace; font-size: 0.6em; letter-spacing: 0.03em; color: #6b6450; text-transform: uppercase; text-align: center; display: block; }
+  .portrait-align { font-size: 0.95em; text-align: center; min-height: 1.3em; border-bottom: 1px solid #c7bda0; }
+
+  .stat-frame { justify-self: end; padding: 0.3em 0.5em; }
+  .fields-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.08em 1.1em; width: 19.5em; }
+  .id-field.span2 { grid-column: 1 / -1; }
+  .id-field .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.66em; letter-spacing: 0.03em; color: #6b6450; text-transform: uppercase; display: flex; align-items: center; gap: 0.25em; }
+  .id-field .lbl .ic { width: 1em; height: 1em; color: #7a2020; }
+  .id-field .v { display: block; font-size: 1.05em; font-weight: 700; font-family: "JetBrains Mono", monospace; border-bottom: 1px solid #c7bda0; min-height: 1.1em; padding-bottom: 0.02em; }
+  .id-field.big .v { font-size: 1.15em; font-family: "Cinzel", serif; font-weight: 600; border-bottom: 1px solid #c7bda0; }
+  .hp-values { display: flex; gap: 1.1em; margin-top: 0.05em; }
+  .hp-sub { display: flex; flex-direction: column; flex: 1; }
+  .hp-sub-lbl { font-family: "JetBrains Mono", monospace; font-size: 0.66em; letter-spacing: 0.03em; color: #6b6450; text-transform: uppercase; }
+  .hp-sub .v { min-height: 1.15em; }
+  .vitals-row .hp-sub .v { font-size: 0.92em; white-space: nowrap; }
+  .vitals-row .hp-sub:first-child { flex: 1.35; }
+  .death-pips { display: flex; gap: 0.2em; padding-top: 0.08em; }
+  .pip { width: 0.65em; height: 0.65em; border-radius: 50%; border: 1.2px solid #1c1a16; display: inline-block; }
+
+  .id-plain-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85em 1em; width: 19.5em; align-content: center; padding: 0.3em 0.5em; }
+  .id-plain-row.span2 { grid-column: 1 / -1; }
+  .id-plain-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4em; border-bottom: 1px solid #c7bda0; padding-bottom: 0.35em; }
+  .id-plain-row .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.58em; letter-spacing: 0.01em; color: #6b6450; text-transform: uppercase; display: flex; align-items: center; gap: 0.2em; white-space: nowrap; flex-shrink: 0; }
+  .id-plain-row .lbl .ic { width: 1em; height: 1em; color: #7a2020; flex: none; }
+  .id-plain-row .val { font-family: "JetBrains Mono", monospace; font-size: 1.25em; font-weight: 700; margin-left: auto; }
+  .insp-diamond { width: 1.2em; height: 1.2em; }
+  .insp-diamond.off { color: #d8cfb4; }
+
+  .ab-columns { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.42em; align-items: stretch; }
+  .ab-col { display: flex; flex-direction: column; border: 1.3px solid var(--acc); border-radius: 9px; overflow: hidden; background: #fff; }
+  .ab-col.str { --acc: #8a3a24; } .ab-col.dex { --acc: #3a6b3f; } .ab-col.con { --acc: #a8791f; }
+  .ab-col.int { --acc: #2c4f7c; } .ab-col.wis { --acc: #2c6e6a; } .ab-col.cha { --acc: #5c3a7a; }
+  .ab-head { height: 7.5em; padding: 0.5em 0.3em 0.4em; text-align: center; background: color-mix(in srgb, var(--acc) 10%, #fff); border-bottom: 1px solid var(--acc); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ab-head .ic { width: 2.3em; height: 2.3em; color: var(--acc); margin-bottom: 0.08em; }
+  .ab-head .score-big { position: relative; display: inline-flex; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 2em; line-height: 1; color: #1c1a16; min-height: 1em; border-bottom: 1px solid #c7bda0; padding: 0 0.22em 0.06em 0; }
+  .ab-head .score-mod { position: absolute; top: -0.38em; right: -0.35em; font-size: 0.36em; font-weight: 700; color: var(--acc); line-height: 1; }
+  .ab-head .nm { font-family: "Cinzel", serif; font-weight: 600; font-size: 0.82em; letter-spacing: 0.02em; display: block; color: var(--acc); margin-top: 0.16em; }
+  .ab-head .nm .abbr { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 0.85em; opacity: 0.8; }
+  .ab-save-line { display: flex; align-items: center; gap: 0.3em; font-size: 0.8em; padding: 0.32em 0.4em; border-bottom: 1px solid #d8cfb4; }
+  .ab-save-line .circ { width: 0.68em; height: 0.68em; border-radius: 50%; border: 1.4px solid var(--acc); flex: none; }
+  .ab-save-line b { font-weight: 700; }
+  .ab-skills { padding: 0.28em 0.4em; flex: 1; }
+  .ab-skill-row { display: flex; align-items: center; gap: 0.3em; padding: 0.16em 0; font-size: 0.82em; }
+  .ab-skill-row .box { width: 0.62em; height: 0.62em; border-radius: 50%; border: 1.4px solid var(--acc); flex: none; }
+  .ab-skill-row .nm { flex: 1; line-height: 1.15; }
+  .ab-skill-row .md { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 0.9em; }
+  .ab-col-empty { padding: 0.6em 0.2em; text-align: center; font-size: 0.9em; color: #6b6450; }
+
+  .prof-frame-body { padding: 0.4em 0.65em; font-size: 0.92em; }
+  .prof-line { display: flex; gap: 0.55em; align-items: baseline; padding: 0.12em 0; border-bottom: 1px solid #d8cfb4; }
+  .prof-line:last-child { border-bottom: none; }
+  .prof-line .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.68em; letter-spacing: 0.03em; color: #6b6450; text-transform: uppercase; width: 6.4em; flex: none; }
+  .armor-checks { display: flex; gap: 0.75em; }
+  .armor-checks span { display: flex; align-items: center; gap: 0.22em; font-size: 0.94em; }
+  .armor-checks .dm { width: 0.66em; height: 0.66em; }
+  .armor-checks .dm.off { color: #d8cfb4; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9em; color: #1c1a16; }
+  table th { text-align: left; font-family: "JetBrains Mono", monospace; font-size: 0.68em; text-transform: uppercase; color: #6b6450; padding-bottom: 0.18em; border-bottom: 1px solid #c7bda0; }
+  table td { padding: 0.34em 0.15em; border-bottom: 1px solid #d8cfb4; }
+  .weapons-body { padding: 0.5em 0.65em; }
+
+  .lower-frames { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; }
+
+  /* ---- page 2 ---- */
+  .page2 { break-before: page; height: 1047px; }
+  .page2-columns { display: grid; grid-template-columns: 2fr 1fr; gap: 0.6em; flex: 1; min-height: 0; }
+  .page2-left, .page2-right { display: flex; flex-direction: column; gap: 0.6em; min-height: 0; }
+
+  .spell-top-row { display: grid; grid-template-columns: 1fr 2fr; gap: 0.6em; }
+  .spell-abil-frame .frame-pad { padding: 0.3em 0.5em; }
+  .spell-abil-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3em 0; border-bottom: 1px solid #d8cfb4; }
+  .spell-abil-row:last-child { border-bottom: none; }
+  .spell-abil-row .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.68em; letter-spacing: 0.02em; color: #6b6450; text-transform: uppercase; }
+  .spell-abil-row .v { font-size: 1.2em; font-weight: 700; font-family: "JetBrains Mono", monospace; border-bottom: 1px solid #c7bda0; min-width: 3em; text-align: center; }
+
+  .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2em 0.7em; padding: 0.35em 0.5em; }
+  .slot-row { display: flex; align-items: baseline; gap: 0.35em; padding: 0.15em 0; }
+  .slot-row .lbl { font-family: "Cinzel", serif; font-weight: 600; font-size: 0.72em; width: 3.8em; flex: none; }
+  .slot-row .total { width: 1.6em; border-bottom: 1px solid #c7bda0; font-family: "JetBrains Mono", monospace; font-size: 0.8em; text-align: center; flex: none; }
+  .slot-row .pips { display: flex; gap: 0.1em; flex-wrap: wrap; }
+  .slot-diamond { width: 0.62em; height: 0.62em; color: #a8791f; flex: none; }
+
+  .spell-table-body { padding: 0.35em 0.5em; flex: 1; min-height: 0; overflow: hidden; }
+  .spell-table-body table th { font-size: 0.64em; }
+  .spell-table-body table td { padding: 0.32em 0.1em; }
+
+  /* Trait/Ideal/Bond/Flaw as one compact 2x2 grid instead of four full-width stacked
+     lines - the four are each normally just a short phrase, so stacking them ate real
+     vertical space for very little actual content; freed-up room goes to Backstory's
+     own write area right below, which is the part that actually benefits from more
+     room. */
+  .personality-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.15em 0.6em; padding: 0.3em 0.5em 0.15em; flex: none; }
+  .personality-cell .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.6em; letter-spacing: 0.02em; color: #6b6450; text-transform: uppercase; display: block; }
+  .personality-cell .val { display: block; font-size: 0.86em; min-height: 1.2em; border-bottom: 1px solid #c7bda0; }
+  .backstory-lbl { font-family: "JetBrains Mono", monospace; font-size: 0.6em; letter-spacing: 0.02em; color: #6b6450; text-transform: uppercase; padding: 0.15em 0.5em 0; flex: none; }
+  .rcm-cell { display: flex; gap: 0.3em; align-items: center; white-space: nowrap; }
+  .rcm-cell span { display: flex; align-items: center; gap: 0.08em; }
+  .rcm-diamond { width: 0.55em; height: 0.55em; color: #c7bda0; }
+  .rcm-cell .rcm-lbl { font-size: 0.72em; color: #a89f88; }
+
+  .coins-body { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4em; padding: 0.4em 0.5em; }
+  .coin-box { border: 1px solid #b9ae95; border-radius: 5px; text-align: center; padding: 0.3em 0.2em; }
+  .coin-box .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.68em; color: #6b6450; display: block; }
+  .coin-box .v { font-size: 1.15em; font-weight: 700; font-family: "JetBrains Mono", monospace; border-bottom: 1px solid #c7bda0; min-height: 1.1em; }
+
+  .attune-row { display: flex; align-items: baseline; gap: 0.35em; padding: 0.18em 0; }
+  .attune-row .diamond { width: 0.6em; height: 0.6em; color: #a8791f; flex: none; }
+  .attune-row .v { flex: 1; border-bottom: 1px solid #c7bda0; min-height: 1.1em; }
+
+  @media print {
+    body { padding: 0; }
+    .paper { width: auto; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="paper">
+    <div class="frame id-header-frame"><div class="id-header">
+      <div class="stat-frame">
+        <div class="fields-grid">
+          <div class="id-field big span2"><span class="lbl">Class &amp; Subclass</span><span class="v"></span></div>
+          <div class="id-field"><span class="lbl">Species</span><span class="v"></span></div>
+          <div class="id-field"><span class="lbl">Background</span><span class="v"></span></div>
+          <div class="id-field hp-row span2">
+            <span class="lbl">Hit Points</span>
+            <span class="hp-values">
+              <span class="hp-sub"><span class="hp-sub-lbl">Current</span><span class="v"></span></span>
+              <span class="hp-sub"><span class="hp-sub-lbl">Max</span><span class="v"></span></span>
+              <span class="hp-sub"><span class="hp-sub-lbl">Temp</span><span class="v"></span></span>
+            </span>
+          </div>
+          <div class="id-field hp-row vitals-row span2">
+            <span class="hp-values">
+              <span class="hp-sub"><span class="hp-sub-lbl">Level</span><span class="v"> <small>(XP )</small></span></span>
+              <span class="hp-sub"><span class="hp-sub-lbl">Hit Dice</span><span class="v">/</span></span>
+              <span class="hp-sub"><span class="hp-sub-lbl">Death Saves</span><span class="death-pips"><span class="pip s"></span><span class="pip s"></span><span class="pip s"></span>&nbsp;<span class="pip f"></span><span class="pip f"></span><span class="pip f"></span></span></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="portrait-col">
+        <div class="portrait-frame"><div class="disc"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.6"/><path d="M5 20c1.3-4.2 4-6.2 7-6.2s5.7 2 7 6.2"/></svg></div></div>
+        <div class="portrait-name-field"><span class="portrait-name-lbl">Name</span><div class="portrait-name"></div></div>
+        <div class="portrait-align-field"><span class="portrait-align-lbl">Alignment</span><div class="portrait-align"></div></div>
+      </div>
+
+      <div class="id-plain-stats">
+        <div class="id-plain-row"><span class="lbl">Proficiency Bonus</span><span class="val"></span></div>
+        <div class="id-plain-row"><span class="lbl">Initiative</span><span class="val"></span></div>
+        <div class="id-plain-row"><span class="lbl">Speed</span><span class="val"></span></div>
+        <div class="id-plain-row"><span class="lbl">Size</span><span class="val"></span></div>
+        <div class="id-plain-row"><span class="lbl">Passive Perception</span><span class="val"></span></div>
+        <div class="id-plain-row"><span class="lbl"><svg class="icon ic" viewBox="0 0 24 24"><path d="M12 2.5l7.5 2.7v6.1c0 5-3.2 8.6-7.5 10.2C7.7 20.1 4.5 16.5 4.5 11.3V5.2z"/></svg>Armor Class</span><span class="val"></span></div>
+        <div class="id-plain-row span2"><span class="lbl">Heroic Inspiration</span><svg class="icon insp-diamond off" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg></div>
+      </div>
+    </div></div>
+
+    <div class="ab-columns">
+      {{#each abilities}}
+      <div class="ab-col {{this.key}}">
+        <div class="ab-head">
+          <svg class="icon ic" viewBox="0 0 24 24">{{{this.icon}}}</svg>
+          <div class="score-big"><span class="score-mod"></span></div>
+          <span class="nm">{{this.full}} <span class="abbr">({{this.abbr}})</span></span>
+        </div>
+        <div class="ab-save-line"><span class="circ"></span><b>Save</b></div>
+        <div class="ab-skills">
+          {{#each this.skills}}
+          <div class="ab-skill-row"><span class="box"></span><span class="nm">{{this}}</span><span class="md"></span></div>
+          {{/each}}
+          {{#unless this.skills.length}}
+          <div class="ab-col-empty">-</div>
+          {{/unless}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="frame">
+      <div class="frame-title left">Equipment Training &amp; Proficiencies</div>
+      <div class="prof-frame-body">
+        <div class="prof-line"><span class="lbl">Armor Training</span>
+          <span class="armor-checks">
+            <span><svg class="icon dm off" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg>Light</span>
+            <span><svg class="icon dm off" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg>Medium</span>
+            <span><svg class="icon dm off" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg>Heavy</span>
+            <span><svg class="icon dm off" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg>Shields</span>
+          </span>
+        </div>
+        <div class="prof-line"><span class="lbl">Weapons</span><span></span></div>
+        <div class="prof-line"><span class="lbl">Tools</span><span></span></div>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="frame-title">Weapons &amp; Damage Cantrips</div>
+      <div class="weapons-body">
+        <table><tr><th>Name</th><th>Atk Bonus / DC</th><th>Damage &amp; Type</th><th>Notes</th></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="frame" style="display:flex; flex-direction:column; height:11.4em;">
+      <div class="frame-title">Class Features</div>
+      <div class="write-area frame-pad" style="font-size:0.86em; overflow:hidden; flex:1;"></div>
+    </div>
+
+    <div class="lower-frames" style="height:11.4em;">
+      <div class="frame" style="display:flex; flex-direction:column;">
+        <div class="frame-title">Species Traits</div>
+        <div class="write-area frame-pad" style="font-size:0.86em; flex:1; overflow:hidden;"></div>
+      </div>
+      <div class="frame" style="display:flex; flex-direction:column;">
+        <div class="frame-title">Feats</div>
+        <div class="write-area frame-pad" style="font-size:0.86em; flex:1; overflow:hidden;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="paper page2">
+    <div class="page2-columns">
+      <div class="page2-left">
+        <div class="spell-top-row">
+          <div class="frame spell-abil-frame">
+            <div class="frame-title left">Spellcasting</div>
+            <div class="frame-pad">
+              <div class="spell-abil-row"><span class="lbl">Ability</span><span class="v"></span></div>
+              <div class="spell-abil-row"><span class="lbl">Modifier</span><span class="v"></span></div>
+              <div class="spell-abil-row"><span class="lbl">Save DC</span><span class="v"></span></div>
+              <div class="spell-abil-row"><span class="lbl">Attack Bonus</span><span class="v"></span></div>
+            </div>
+          </div>
+          <div class="frame">
+            <div class="frame-title">Spell Slots</div>
+            <div class="slot-grid">
+              {{#each spellSlotLevels}}
+              <div class="slot-row">
+                <span class="lbl">Level {{this.level}}</span>
+                <span class="total"></span>
+                <span class="pips">
+                  {{#each this.pips}}<svg class="icon slot-diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg>{{/each}}
+                </span>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+        </div>
+
+        <div class="frame" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+          <div class="frame-title">Cantrips &amp; Prepared Spells</div>
+          <div class="spell-table-body">
+            <table>
+              <tr><th>Lvl</th><th>Name</th><th>Cast Time</th><th>Range</th><th>C / R / M</th><th>Notes</th></tr>
+              {{#each spellRows}}
+              <tr>
+                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                <td>
+                  <span class="rcm-cell">
+                    <span><svg class="icon rcm-diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="rcm-lbl">C</span></span>
+                    <span><svg class="icon rcm-diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="rcm-lbl">R</span></span>
+                    <span><svg class="icon rcm-diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="rcm-lbl">M</span></span>
+                  </span>
+                </td>
+                <td>&nbsp;</td>
+              </tr>
+              {{/each}}
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="page2-right">
+        <div class="frame" style="height:8.4em; display:flex; flex-direction:column;">
+          <div class="frame-title">Appearance</div>
+          <div class="write-area frame-pad" style="flex:1;"></div>
+        </div>
+
+        <div class="frame" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+          <div class="frame-title">Backstory &amp; Personality</div>
+          <div class="personality-grid">
+            <div class="personality-cell"><span class="lbl">Trait</span><span class="val"></span></div>
+            <div class="personality-cell"><span class="lbl">Ideal</span><span class="val"></span></div>
+            <div class="personality-cell"><span class="lbl">Bond</span><span class="val"></span></div>
+            <div class="personality-cell"><span class="lbl">Flaw</span><span class="val"></span></div>
+          </div>
+          <div class="backstory-lbl">Backstory</div>
+          <div class="write-area frame-pad" style="flex:1;"></div>
+        </div>
+
+        <div class="frame" style="height:6.6em; display:flex; flex-direction:column;">
+          <div class="frame-title">Languages</div>
+          <div class="write-area frame-pad" style="flex:1;"></div>
+        </div>
+
+        <div class="frame" style="height:12.4em; display:flex; flex-direction:column;">
+          <div class="frame-title">Equipment</div>
+          <div class="write-area frame-pad" style="flex:1;"></div>
+          <div class="frame-pad" style="border-top:1px solid #c7bda0;">
+            <div class="spell-abil-row" style="border:none; padding:0.15em 0; font-family:'Cinzel', serif; font-size:0.72em; font-weight:600;">Magic Item Attunement</div>
+            <div class="attune-row"><svg class="icon diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="v"></span></div>
+            <div class="attune-row"><svg class="icon diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="v"></span></div>
+            <div class="attune-row"><svg class="icon diamond" viewBox="0 0 24 24"><path d="M12 2l7 10-7 10-7-10z"/></svg><span class="v"></span></div>
+          </div>
+        </div>
+
+        <div class="frame">
+          <div class="frame-title">Coins</div>
+          <div class="coins-body">
+            <div class="coin-box"><span class="lbl">CP</span><span class="v"></span></div>
+            <div class="coin-box"><span class="lbl">SP</span><span class="v"></span></div>
+            <div class="coin-box"><span class="lbl">EP</span><span class="v"></span></div>
+            <div class="coin-box"><span class="lbl">GP</span><span class="v"></span></div>
+            <div class="coin-box"><span class="lbl">PP</span><span class="v"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("load", () => window.print());
+  </script>
+
+</body>
+</html>

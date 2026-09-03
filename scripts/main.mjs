@@ -86,23 +86,6 @@ Hooks.once("init", () => {
     default: {}
   });
 
-  // A path/URL to a fillable PDF character sheet the GM personally supplies - never
-  // bundled with this module, since the sheet's own layout/artwork is the copyrighted
-  // work of whoever authored that specific PDF. "Export to Official PDF Sheet" (see
-  // pdf-form-export.mjs) fills this file's own form fields; empty means the feature
-  // isn't configured yet at this table. A native config:true setting with filePicker
-  // gets Foundry's own browse button for free in the standard Module Settings screen,
-  // rather than needing a custom picker UI of our own.
-  game.settings.register(MODULE_ID, "officialPdfTemplatePath", {
-    name: "DND-CC.Settings.OfficialPdfTemplate.Name",
-    hint: "DND-CC.Settings.OfficialPdfTemplate.Hint",
-    scope: "world",
-    config: true,
-    type: String,
-    default: "",
-    filePicker: "any"
-  });
-
   game.settings.registerMenu(MODULE_ID, "houseRulesMenu", {
     name: "DND-CC.HouseRules.MenuName",
     label: "DND-CC.HouseRules.MenuLabel",
@@ -341,6 +324,48 @@ function addLevelUpHeaderButton(app) {
 Hooks.on("renderCharacterActorSheet", addLevelUpHeaderButton);
 Hooks.on("renderTidy5eCharacterSheet", addLevelUpHeaderButton);
 Hooks.on("renderTidy5eCharacterSheetQuadrone", addLevelUpHeaderButton);
+
+// "Export to PDF" directly from a finished character's own sheet, without going through
+// the full wizard via "Level Up" just to reach its Review step's export button. This
+// builds a CharacterCreatorApp instance the same way Level Up does but never renders it -
+// just enough of a wrapper for _exportToPdf's own context builders (which all read from
+// app.draft.actor) to work headlessly. Deliberately wraps the actor with
+// `new CharacterDraft(actor)` directly rather than the instance's own _resolveDraft() -
+// that method's Level-Up path also calls ensureAbilityBaseline/ensureRuleset, real
+// actor-mutating bootstrap calls that make sense before opening the wizard proper but
+// have no business running just to generate a read-only PDF snapshot.
+function addExportPdfHeaderButton(app) {
+  const actor = app.actor;
+  if (!actor?.isOwner || CharacterDraft.isDraft(actor)) return;
+
+  const header = app.element.querySelector(".window-header");
+  if (!header || header.querySelector(".dnd-cc-export-pdf-header-button")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.classList.add("header-control", "icon", "fa-solid", "fa-file-pdf", "dnd-cc-export-pdf-header-button");
+  button.dataset.tooltip = game.i18n.localize("DND-CC.Review.ExportPdfSheetButtonTitle");
+  button.setAttribute("aria-label", game.i18n.localize("DND-CC.Review.ExportPdfSheetButtonLabel"));
+  button.addEventListener("click", async () => {
+    // Opened synchronously, in this very click handler, before the CharacterDraft
+    // wrapper below - _exportToPdf's own doc comment explains why: opening it after an
+    // await risks the browser's popup blocker no longer recognizing this as tied to the
+    // user's original click.
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      ui.notifications.warn(game.i18n.localize("DND-CC.Review.ExportPopupBlocked"));
+      return;
+    }
+    const exportApp = new CharacterCreatorApp({ actor });
+    exportApp.draft = new CharacterDraft(actor);
+    await exportApp._exportToPdf(printWindow);
+  });
+
+  header.insertBefore(button, header.querySelector('[data-action="close"]'));
+}
+Hooks.on("renderCharacterActorSheet", addExportPdfHeaderButton);
+Hooks.on("renderTidy5eCharacterSheet", addExportPdfHeaderButton);
+Hooks.on("renderTidy5eCharacterSheetQuadrone", addExportPdfHeaderButton);
 
 // XP-threshold level-up notification: whenever a finished character's XP changes and
 // crosses into "enough to level up," whisper both the GM and the character's own player

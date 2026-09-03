@@ -34,7 +34,7 @@ The module runs entirely locally. It does not send data anywhere, does not phone
 - A finished character can be leveled up later from its own character sheet, using the same guided steps as creation.
 - The "Add Custom" button quickly creates a placeholder for a homebrew class, species, background, feat, or subclass, which you can then finish by hand on its own item sheet.
 - The character's portrait and name can be edited from any step.
-- A finished character can be exported as a PDF (for printing), a Foundry Journal Entry, or filled directly into an official fillable PDF character sheet your game master has provided (see House Rules below). All three exports include a combined table of weapon attacks and damage-dealing cantrips with real, computed attack bonuses and damage.
+- A finished character can be exported as a printable PDF (matching the wizard's own visual design, with a portrait, ability score cards, and a full spell list) or a Foundry Journal Entry. A blank, hand-fillable version of the same PDF sheet - with no character data on it - can also be downloaded for a physical paper copy. Every export includes a combined table of weapon attacks and damage-dealing cantrips with real, computed attack bonuses and damage.
 - The "Start Over" button lets you delete the current draft character and begin a new one.
 - A Settings panel (the gear icon in the window's title bar) lets each player pick their own theme, accent color, text size, and a "Simplify" mode that strips card artwork and gradients - purely a personal display preference, not shared with the table.
   - Twelve themes are available: Dark, Light, Sepia, Wildwood, Frostspire, Meadow, Honeycomb, and five gradient themes (Twilight, Ember, Aurora, Bloodmoon, Sunspire) that sweep the whole window through a real color gradient instead of one flat background.
@@ -60,8 +60,6 @@ All settings are available through the module's menu in the world's Configure Se
 **Default Ruleset.** Which ruleset (2014, 2024, or both) a new character starts with.
 
 **Require GM review before finalizing.** When turned on, a player's "Build Character" button does not finish the character right away. Instead it sends the game master a chat card asking for approval. The game master is never subject to this setting. It is off by default.
-
-**Official PDF sheet template.** Point this at a fillable PDF character sheet you already own - the module never provides one, since its layout is someone else's copyrighted work. Once set, every player can fill it in directly from the Review step.
 
 **Character Creation Progress.** A button next to "Create Character" in the Actor Directory lists every player's in-progress draft and every finished character, with their current step and what's still missing, so the game master can jump in and help directly - including raising or lowering a finished character's level right from the dashboard.
 

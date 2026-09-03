@@ -6,6 +6,22 @@ export const MODULE_WEBSITE_URL = "https://plaksiy.dev";
 export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
 /**
+ * Simple stroke-outline (not filled) per-ability icons, used only on the printable blank
+ * character sheet (see _blankSheetAbilities in character-creator-app.mjs) - the detailed
+ * filled ABILITY_ICONS below read as a solid dark blob at the small size the sheet's
+ * ability cards render icons at when printed; plain low-detail line art stays legible
+ * there instead.
+ */
+export const BLANK_SHEET_ABILITY_ICONS = {
+  str: '<path d="M7 11V8a2 2 0 0 1 4 0M11 10.5V7a2 2 0 0 1 4 0v3.5M15 10.5V8a2 2 0 0 1 4 0v5c0 3-2 6-6 6H9c-2.5 0-4-1.5-4.5-3L3 12l1.4-1.2c.6-.5 1.5-.4 2 .2L7 12"/>',
+  dex: '<path d="M20 4c-6 0-12 4-14 12l-2 4 4-2C16 16 20 10 20 4z"/><path d="M9 15l6-6M7 17l3-3"/>',
+  con: '<path d="M12 20s-7-4.6-9.3-9.3C1.3 7.8 3 5 6 5c2 0 3.3 1.2 4 2.4C10.7 6.2 12 5 14 5c3 0 4.7 2.8 3.3 5.7C15 15.4 12 20 12 20z"/><path d="M6 12h2l1.5-3 2 5 1.5-3H16"/>',
+  int: '<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5h3z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5h-3z"/><path d="M9 4v13M15 4v13"/>',
+  wis: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/>',
+  cha: '<path d="M4 6c3-1.5 6-2 8-2s5 .5 8 2c0 6-2 12-8 14C6 18 4 12 4 6z"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/><path d="M9.5 14c1 .8 4 .8 5 0"/>'
+};
+
+/**
  * Per-ability icon, as raw inner-SVG markup - same shape/convention as STEP_DEFINITIONS'
  * per-step rail icons in character-creator-app.mjs (a `viewBox` plus inner markup, no
  * wrapping `<svg>` tag, `currentColor` fill so the Abilities step's flip cards can
@@ -120,9 +136,8 @@ export const CLASS_COMPLEXITY = {
  * keyed to the actual dominant non-neutral color in that class's real dnd5e/PHB icon art
  * (e.g. Cleric's icon background is a bright blue starfield, Sorcerer's is electric-blue
  * lightning, Wizard's is gold-lit), not a generic per-class stereotype. Fighter/Monk/
- * Paladin/Ranger were kept as explicit prior user choices even where they diverge from
- * their icon's own dominant tone - a deliberate design decision from an earlier round,
- * not an oversight. A class not listed here (homebrew, third-party) falls back to the
+ * Paladin/Ranger are deliberately kept off their icon's own dominant tone, not an
+ * oversight. A class not listed here (homebrew, third-party) falls back to the
  * deterministic name-hash color every other card type uses (hashCardColor).
  */
 export const CLASS_THEME_COLORS = {

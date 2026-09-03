@@ -472,15 +472,13 @@
       "PassivePerception": "Passive Perception",
       "NoProficientSkills": "No skill proficiencies yet.",
       "ExportPdf": "Export to PDF",
+      "ExportPdfSheetButtonLabel": "Export to PDF",
+      "ExportPdfSheetButtonTitle": "Export this character to a printable PDF sheet",
       "ExportPopupBlocked": "Your browser blocked the export tab. Please allow popups for this site and try again.",
       "ExportJournal": "Export to Journal",
       "ExportJournalSuccess": "Created a Journal Entry for {name}.",
       "JournalPageName": "Character Summary",
-      "ExportOfficialPdf": "Export to Official PDF Sheet",
-      "OfficialPdfNoTemplate": "Your GM hasn't set up a PDF sheet template yet - ask them to choose one in Foundry's Module Settings, under D&D Character Creator.",
-      "OfficialPdfChooseFirst": "Choose a fillable PDF sheet template first, in Foundry's Module Settings under D&D Character Creator.",
-      "OfficialPdfLoadFailed": "Couldn't load the PDF template at \"{path}\" - check that the file still exists there.",
-      "OfficialPdfFillFailed": "Something went wrong filling in the PDF. Check the browser console for details.",
+      "DownloadBlankPdf": "Download Blank PDF Sheet",
       "BuildCharacter": "Build Character",
       "FinalizeTitle": "Finish Character Creation?",
       "FinalizeConfirm": "This will finish creating {name} and add them to your Actor Directory. You can still edit the character afterward from its sheet.",
@@ -505,10 +503,6 @@
       "RequireGmReview": {
         "Name": "Require GM review before finalizing",
         "Hint": "When enabled, a player's \"Build Character\" submits the finished character for GM approval instead of finalizing it directly. The GM approves it from a whispered chat card. Off by default - GMs themselves are never gated by this."
-      },
-      "OfficialPdfTemplate": {
-        "Name": "Official PDF sheet template",
-        "Hint": "A fillable PDF character sheet you already own (this module doesn't provide one - the sheet's own layout is someone else's copyrighted work). Once set, every player's \"Export to Official PDF Sheet\" button on the Review step fills it in with their character's real stats. Leave empty to leave that button disabled."
       }
     },
     "CompendiumSources": {

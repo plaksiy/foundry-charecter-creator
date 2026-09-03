@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.0
+
+### New
+
+- **PDF export redesigned from scratch**, matching the wizard's own visual style instead of a plain table layout: a portrait, colored ability score cards with saving throws and skills, a combined weapons & damage-cantrips table (now with a Notes column), class features/species traits/feats, languages, equipment with Magic Item Attunement, coins, spellcasting stats, spell slots, and a full cantrips & prepared spells table (with a Notes column and extra blank rows to pencil in spells learned later). Reliably lands on exactly two pages: a long backstory shrinks to stay legible, and if it still doesn't fit, it's cut at the end of a sentence and clearly marked as trimmed rather than silently overflowing.
+- **Download Blank PDF Sheet**: a blank, hand-fillable version of the same two-page sheet, with no character data on it, for anyone who wants a physical paper copy. Uses your browser's own print dialog - no PDF library involved.
+- **Export to PDF directly from a character's own sheet header** - no need to open the full wizard (via Level Up) just to reach the Review step's export button.
+
+### Changed
+
+- Removed "Export to Official PDF Sheet" (the fillable-PDF-form feature from 1.0.0, where a GM pointed the module at their own purchased PDF). Filling in someone else's PDF form reliably turned out to be more trouble than it was worth across different sheet layouts - replaced entirely by the new PDF export above, which needs no GM setup at all.
+
+### Fixed
+
+- The Coins section (CP/SP/EP/GP/PP) never actually showed a value in the exported PDF, no matter how much currency the character had.
+- Spell Save DC was always blank in the exported PDF.
+- Hit Dice showed a doubled "d" (for example "0/1dd6" instead of "0/1d6").
+
 ## 1.0.0
 
 ### New
