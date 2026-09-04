@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6
+
+### Fixed
+
+- The Subclass step's "Select Subclass" placeholder was rendered in white text on a white/light border, unreadable under the Light theme (and any other light theme option).
+- Hovering the "Build Character" or "Done" (Level Up) button could shift its label to the same color as its own background, making the text briefly hard to read.
+
 ## 1.0.5
 
 ### New

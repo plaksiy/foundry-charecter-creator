@@ -1206,6 +1206,19 @@
   border: 1px solid var(--dcc-accent);
   border-radius: 7px;
 }
+/* Without this, the generic ".dnd-cc-footer button:hover" rule (meant for Previous/Next
+   in their plain, non-accent-filled resting state) takes over on hover and repaints the
+   label in plain accent color - identical to this button's own already-accent-filled
+   background, so the text reads as vanishing/shifting instead of staying legible. Mirrors
+   ".dnd-cc-next:hover" exactly, which already guards against the same thing. !important
+   because this specific fight (two rules of equal origin, one clearly more specific)
+   otherwise still lost to the generic rule in live testing - forcing it removes any
+   doubt rather than relying on a specificity margin that wasn't holding up. */
+.dnd-cc-footer .dnd-cc-finalize-button:hover:not(:disabled) {
+  color: var(--dcc-accent-contrast) !important;
+  text-shadow: var(--dcc-accent-text-shadow) !important;
+  filter: brightness(1.1);
+}
 .dnd-cc-footer .dnd-cc-finalize-button:disabled {
   background: var(--dcc-surface-alt);
   color: var(--dcc-text-muted);
@@ -3439,6 +3452,13 @@
   --dnd5e-color-table-row-odd: var(--dcc-surface);
   --dnd5e-color-table-row-even: var(--dcc-surface-alt);
   --table-background-color: var(--dcc-surface);
+  /* An empty "pill-lg" placeholder (the Subclass step's own "Select Subclass" button
+     before a pick is made) hardcodes white text/border via Foundry's own separate
+     dark/light body theme, not this app's own - left unrepointed, it renders
+     unreadable white-on-light text whenever this app's theme is light while Foundry's
+     own host UI theme is dark. */
+  --pill-empty-border: 2px dashed var(--dcc-border);
+  --pill-empty-text-color: var(--dcc-text-muted);
   color-scheme: dark;
 }
 
