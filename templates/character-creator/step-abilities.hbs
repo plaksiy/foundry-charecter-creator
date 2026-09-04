@@ -86,7 +86,11 @@
             </span>
             {{/if}}
             <div class="dnd-cc-ability-card-header" data-ability-flip-toggle="{{this.key}}">
-              {{#if this.icon}}
+              {{#if ../useFoundryAbilityIcons}}
+              {{#if this.foundryIconPath}}
+              <span class="dnd-cc-ability-icon dnd-cc-ability-icon-foundry" style="--dnd-cc-icon-url: url('{{this.foundryIconPath}}');" aria-hidden="true"></span>
+              {{/if}}
+              {{else if this.icon}}
               <svg class="dnd-cc-ability-icon" viewBox="{{this.iconViewBox}}" aria-hidden="true">{{{this.icon}}}</svg>
               {{/if}}
               <span class="dnd-cc-ability-card-abbr">{{this.abbr}}</span>

@@ -132,6 +132,27 @@ Hooks.once("init", () => {
     default: "dark"
   });
 
+  // Same client-scoped/config:false personal-preference pattern as accentColor/theme
+  // above - which icon set the Abilities step's six ability cards use: dnd5e's own
+  // official per-ability icons (the default), or this module's own hand-picked set
+  // as an alternative.
+  game.settings.register(MODULE_ID, "abilityIconSet", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "foundry"
+  });
+
+  // Same client-scoped/config:false personal-preference pattern as accentColor/theme
+  // above - whether the step rail shows full labels or is minimized down to just its
+  // icons (still clickable, still status-colored) to save horizontal space.
+  game.settings.register(MODULE_ID, "railCollapsed", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
   // Backing storage for the Settings panel's own color picker and two-color gradient
   // builder - only read/applied when accentColor is "custom"/"custom-gradient", so these
   // three keep whatever the player last picked even while a preset is active.

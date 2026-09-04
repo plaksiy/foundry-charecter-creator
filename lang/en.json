@@ -84,6 +84,9 @@
       "WarnColorLabel": "\"Needs attention\" color (step rail, warnings)",
       "WarnColorShort": "!",
       "AbilityColorsLabel": "Ability Colors",
+      "AbilityIconSetLabel": "Ability Icons",
+      "AbilityIconSetCustom": "Alternative",
+      "AbilityIconSetFoundry": "Foundry (Animals)",
       "ResetAppearance": "Reset Colors & Theme to Default"
     },
     "Website": {
@@ -111,6 +114,8 @@
     },
     "Accessibility": {
       "StepNavLabel": "Character creation steps",
+      "ToggleRailLabel": "Collapse or expand the step list",
+      "ToggleRailShort": "Collapse",
       "FontSizeLabel": "Text size",
       "FontSizeOption": "Text size: {size}",
       "ReduceImageryLabel": "Simplify",

@@ -10,6 +10,7 @@ import {
   CLASS_THEME_COLORS,
   COMPLEXITY_LEVELS,
   EQUIPMENT_ITEM_TYPES,
+  FOUNDRY_ABILITY_ICON_PATHS,
   MODULE_WEBSITE_URL,
   LIFESTYLE_TIERS,
   MAX_CLASS_LEVEL,
@@ -245,12 +246,10 @@ export const STEP_DEFINITIONS = [
   {
     id: "identity",
     label: "DND-CC.Steps.Identity",
-    iconViewBox: "0 0 48 48",
-    // An ID-badge-with-a-clip outline around a filled person silhouette - matches the
-    // rest of the rail's mix of stroke-outline container shapes with solid-fill interior
-    // elements (viewBox "0 0 48 48" is also the most common one already in use here,
-    // shared with Class).
-    icon: '<g fill="currentColor"><rect x="6" y="10" width="36" height="30" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="18" y="4" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="21" r="5.5"/><path d="M14 34C14 28.4772 18.4772 24 24 24C29.5228 24 34 28.4772 34 34V35H14V34Z"/></g>'
+    iconViewBox: "0 0 50 50",
+    // An ID card - outer frame, a person silhouette on the left, and a few short lines
+    // standing in for printed text on the right.
+    icon: '<g fill="currentColor"><path d="M49,7H1v36h48V7z M47,41H3V9h44V41z"/><path d="M23,27c0-2.449-1.773-4.483-4.101-4.909C19.577,21.237,20,20.172,20,19c0-2.757-2.243-5-5-5s-5,2.243-5,5c0,1.172,0.422,2.237,1.101,3.091C8.773,22.517,7,24.551,7,27v7h16V27z M15,16c1.654,0,3,1.346,3,3s-1.346,3-3,3s-3-1.346-3-3S13.346,16,15,16z M21,32H9v-5c0-1.654,1.346-3,3-3h6c1.654,0,3,1.346,3,3V32z"/><rect x="26" y="17" width="7" height="2"/><rect x="36" y="17" width="7" height="2"/><rect x="26" y="22" width="3" height="2"/><rect x="32" y="22" width="11" height="2"/><rect x="26" y="27" width="8" height="2"/><rect x="39" y="27" width="4" height="2"/><rect x="26" y="32" width="2" height="2"/><rect x="30" y="32" width="2" height="2"/><rect x="34" y="32" width="2" height="2"/><rect x="41" y="32" width="2" height="2"/></g>'
   },
   {
     id: "about",
@@ -2360,6 +2359,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         label: CONFIG.DND5E.abilities[key]?.label ?? key,
         iconViewBox: ABILITY_ICONS[key]?.viewBox,
         icon: ABILITY_ICONS[key]?.icon,
+        foundryIconPath: FOUNDRY_ABILITY_ICON_PATHS[key],
         hint: ABILITY_HINTS[key],
         base: base[key],
         bonusText: bonus[key] > 0 ? `+${bonus[key]}` : `${bonus[key]}`,
@@ -2392,7 +2392,8 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       allowRerolls: isRerollAllowed(),
       showAbilityTable: !!method,
       isAbilityStepComplete: this.draft.isAbilityAssignmentComplete,
-      allowedAbilityMethods: Object.fromEntries(ABILITY_METHODS.map((key) => [key, isAbilityGenerationMethodAllowed(key)]))
+      allowedAbilityMethods: Object.fromEntries(ABILITY_METHODS.map((key) => [key, isAbilityGenerationMethodAllowed(key)])),
+      useFoundryAbilityIcons: game.settings.get(MODULE_ID, "abilityIconSet") === "foundry"
     };
   }
 
@@ -3365,6 +3366,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const wizard = root.querySelector(".dnd-cc-wizard");
     if (wizard) wizard.style.zoom = fontScale;
     root.classList.toggle("dnd-cc-reduce-imagery", game.settings.get(MODULE_ID, "reduceImagery"));
+    wizard?.classList.toggle("rail-collapsed", game.settings.get(MODULE_ID, "railCollapsed"));
 
     // "neutral" needs no class of its own - it's the base .application.dnd-cc definition
     // in character-creator.css already, so removing every accent class covers it.
@@ -3452,6 +3454,17 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
 
     root.querySelector(".dnd-cc-back")?.addEventListener("click", () => this._goToStep(this.stepIndex - 1));
     root.querySelector(".dnd-cc-next")?.addEventListener("click", () => this._goToStep(this.stepIndex + 1));
+
+    // Purely a display preference (which steps are still reachable never changes), so
+    // this toggles the class directly instead of going through a full render - same
+    // "flipping/collapsing changes nothing about the draft" reasoning the ability
+    // flip-cards above already use. Persisted so it's remembered next time the wizard
+    // opens, unlike the flip cards' own always-starts-unflipped state.
+    root.querySelector("[data-toggle-rail]")?.addEventListener("click", async () => {
+      const collapsed = !wizard?.classList.contains("rail-collapsed");
+      wizard?.classList.toggle("rail-collapsed", collapsed);
+      await game.settings.set(MODULE_ID, "railCollapsed", collapsed);
+    });
 
     // Persistent identity bar - name/portrait must be editable from the moment the
     // wizard opens (before Ruleset) and on every step after, per the "persistent wizard
@@ -4508,6 +4521,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     const accentValue = String(game.settings.get(MODULE_ID, "accentColor"));
     const fontScaleValue = String(game.settings.get(MODULE_ID, "fontScale"));
     const reduceImagery = game.settings.get(MODULE_ID, "reduceImagery");
+    const abilityIconSet = String(game.settings.get(MODULE_ID, "abilityIconSet"));
     const accentIsExtra = ACCENT_GRADIENT_OPTIONS.some((o) => o.value === accentValue)
       || accentValue === "custom" || accentValue === "custom-gradient";
     const customColorValue = String(game.settings.get(MODULE_ID, "customAccentColor"));
@@ -4606,6 +4620,18 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
                   <span>${esc(a.key.toUpperCase())}</span>
                 </label>
               `).join("")}
+            </div>
+          </div>
+
+          <div class="dnd-cc-settings-section">
+            <h3>${esc(game.i18n.localize("DND-CC.SettingsPanel.AbilityIconSetLabel"))}</h3>
+            <div class="dnd-cc-settings-row">
+              <button type="button" class="dnd-cc-settings-choice ${abilityIconSet === "foundry" ? "active" : ""}" data-set-ability-icon-set="foundry">
+                ${esc(game.i18n.localize("DND-CC.SettingsPanel.AbilityIconSetFoundry"))}
+              </button>
+              <button type="button" class="dnd-cc-settings-choice ${abilityIconSet === "custom" ? "active" : ""}" data-set-ability-icon-set="custom">
+                ${esc(game.i18n.localize("DND-CC.SettingsPanel.AbilityIconSetCustom"))}
+              </button>
             </div>
           </div>
 
@@ -4768,6 +4794,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     wrapper.querySelectorAll("[data-set-font-scale]").forEach((el) => {
       el.addEventListener("click", async () => {
         await game.settings.set(MODULE_ID, "fontScale", el.dataset.setFontScale);
+        await reopen();
+      });
+    });
+
+    wrapper.querySelectorAll("[data-set-ability-icon-set]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        await game.settings.set(MODULE_ID, "abilityIconSet", el.dataset.setAbilityIconSet);
         await reopen();
       });
     });

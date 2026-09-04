@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.5
+
+### New
+
+- Each ability score card's icon can now use either dnd5e's own official per-ability icon set (the new default) or the module's own hand-picked set (now available as an "Alternative"), from the Settings panel.
+- The step rail can be collapsed down to just its icons to save horizontal space, and expanded back with one click. The choice is remembered.
+- A new icon for the Identity step in the rail.
+
+### Fixed
+
+- Several controls did not reflect the accent color you actually chose, or showed a leftover fixed red highlight regardless of it: the Class step's complexity filter (All/Low/Average/High), a selected Class/Species/Background card, and the ability score generation method tabs (Standard Array/Point Buy/Roll/Manual).
+- The "Next" and "Build Character" footer buttons did not always fill with the accent color once a step was actually ready, and could show a stray shadow under their label text while a step was not ready yet.
+- The +/- controls on an embedded ability score improvement pick used a raw, unthemed glow on hover; replaced with the app's own accent color, sized to fit each control instead of one oversized block.
+- A stray scrollbar could appear on the Abilities step at the wizard's default window size.
+- With the step rail collapsed, the Class/Species/Background card grids did not reliably use the extra reclaimed width for one more column.
+
 ## 1.0.1
 
 ### New

@@ -6,6 +6,29 @@ export const MODULE_WEBSITE_URL = "https://plaksiy.dev";
 export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
 /**
+ * dnd5e's own official per-ability icon files (CONFIG.DND5E.abilities[key].icon) - a
+ * real alternative to this module's own hand-picked ABILITY_ICONS below, offered as a
+ * second icon-set option on the Abilities step (Settings panel). These are real files
+ * served from the installed dnd5e system, not bundled by this module, and are authored
+ * with `fill: var(--icon-fill, #fff)` for recoloring - applied here as a CSS mask
+ * instead (background-color: currentColor through a mask-image) so they still pick up
+ * each ability's own accent color the same way the custom icon set already does,
+ * without needing to fetch and inline the raw SVG markup. Root-relative (leading `/`),
+ * not a bare relative path - a `url()` reached through a CSS custom property resolves
+ * against the *stylesheet's* own location, not wherever the inline style setting the
+ * variable happens to sit, so a bare relative path here would resolve underneath this
+ * module's own styles/ folder instead of Foundry's real site root.
+ */
+export const FOUNDRY_ABILITY_ICON_PATHS = {
+  str: "/systems/dnd5e/icons/svg/abilities/strength.svg",
+  dex: "/systems/dnd5e/icons/svg/abilities/dexterity.svg",
+  con: "/systems/dnd5e/icons/svg/abilities/constitution.svg",
+  int: "/systems/dnd5e/icons/svg/abilities/intelligence.svg",
+  wis: "/systems/dnd5e/icons/svg/abilities/wisdom.svg",
+  cha: "/systems/dnd5e/icons/svg/abilities/charisma.svg"
+};
+
+/**
  * Simple stroke-outline (not filled) per-ability icons, used only on the printable blank
  * character sheet (see _blankSheetAbilities in character-creator-app.mjs) - the detailed
  * filled ABILITY_ICONS below read as a solid dark blob at the small size the sheet's

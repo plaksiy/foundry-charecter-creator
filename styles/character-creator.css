@@ -416,6 +416,7 @@
   height: auto !important;
   min-height: 0 !important;
   line-height: normal !important;
+  box-shadow: none !important;
 }
 
 .dnd-cc-open-button {
@@ -887,8 +888,66 @@
   border-right: 1px solid var(--dcc-border);
   background: var(--dcc-surface);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: none;
 }
+
+/* margin-top: auto anchors this to the true bottom of the rail regardless of how many
+   steps there are, instead of a fixed gap that can leave dead space below it - the
+   plain (border-less, background-less) look reads as a footer control, not another
+   step in the list above it. Sized and aligned to match .dnd-cc-step exactly (same
+   icon box, same label font) rather than its own smaller/centered treatment, so it
+   reads as one more row in the same list instead of a visually distinct control. */
+/* justify-content needs !important - Foundry's own core button CSS sets it to `center`
+   unlayered, which otherwise always wins over this rule regardless of specificity (the
+   same cascade-layers fight already documented several times elsewhere in this file).
+   Without it, this button's icon+label renders centered partway across the row instead
+   of flush left like every .dnd-cc-step above it. */
+.dnd-cc-rail-toggle {
+  margin-top: auto;
+  flex: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  color: var(--dcc-text-muted);
+  cursor: pointer;
+}
+.dnd-cc-rail-toggle:hover { background: var(--dcc-surface-alt); color: var(--dcc-text); }
+/* Same focus treatment as .dnd-cc-step below, not Foundry's own default button focus
+   ring (a heavy red outline that reads as an error state, not a focus indicator). */
+.dnd-cc-rail-toggle:focus-visible {
+  outline: 2px solid var(--dcc-accent);
+  outline-offset: 1px;
+}
+.dnd-cc-rail-toggle .dnd-cc-step-icon i { font-size: 1.15rem; }
+.dnd-cc-rail-toggle-label {
+  font-family: var(--dcc-font-ui);
+  font-weight: 600;
+  font-size: 1.01rem;
+  color: inherit;
+}
+
+/* Minimizes the rail down to just its icons (still status-colored, still clickable) -
+   a real width change on the wizard's own grid, not just a visual hide, so the content
+   pane actually gets the reclaimed space. Purely a display preference (see the
+   data-toggle-rail handler in _onRender), so this only ever needs a class toggle, no
+   step data is affected. */
+.dnd-cc-wizard.rail-collapsed { grid-template-columns: 64px 1fr; }
+.dnd-cc-wizard.rail-collapsed .dnd-cc-step-label,
+.dnd-cc-wizard.rail-collapsed .dnd-cc-missing-hint,
+.dnd-cc-wizard.rail-collapsed .dnd-cc-rail-toggle-label { display: none; }
+.dnd-cc-wizard.rail-collapsed .dnd-cc-rail-toggle { justify-content: center !important; padding: 0.5rem 0.3rem; }
+.dnd-cc-wizard.rail-collapsed .dnd-cc-step { justify-content: center; padding: 0.5rem 0.3rem; }
+.dnd-cc-wizard.rail-collapsed .dnd-cc-rail-toggle i { transform: rotate(180deg); }
 
 .dnd-cc-steps ol {
   list-style: none;
@@ -1120,6 +1179,7 @@
   background: var(--dcc-surface-alt);
   border-color: var(--dcc-border);
   color: var(--dcc-text-muted);
+  text-shadow: none;
 }
 
 /* The Review step's "Build Character" replaces the footer's own Next slot outright
@@ -1128,6 +1188,11 @@
    .dnd-cc-finalize-button's own rules (flex:1, larger display-font sizing) were tuned
    for sitting alongside the export buttons in .dnd-cc-review-actions - reset here to
    match the footer's own compact button sizing instead. */
+/* background/color/text-shadow repeated here even though the base .dnd-cc-finalize-
+   button rule already sets them - that base rule is only one class selector, and the
+   generic ".dnd-cc-footer button" reset (one class + one type selector, so higher
+   specificity) was silently winning the tie for these specific properties, leaving
+   the button always muted/unfilled regardless of enabled state. */
 .dnd-cc-footer .dnd-cc-finalize-button {
   flex: none;
   padding: 0.5rem 1rem;
@@ -1135,10 +1200,16 @@
   font-weight: 700;
   font-size: 0.85rem;
   letter-spacing: normal;
+  background: var(--dcc-accent-bg);
+  color: var(--dcc-accent-contrast);
+  text-shadow: var(--dcc-accent-text-shadow);
   border: 1px solid var(--dcc-accent);
   border-radius: 7px;
 }
 .dnd-cc-footer .dnd-cc-finalize-button:disabled {
+  background: var(--dcc-surface-alt);
+  color: var(--dcc-text-muted);
+  text-shadow: none;
   border-color: var(--dcc-border);
 }
 
@@ -1247,11 +1318,14 @@
 }
 .dnd-cc-seg-group button:last-child { border-right: none; }
 .dnd-cc-seg-group button:focus-visible { outline: 1px solid var(--dcc-accent); outline-offset: -1px; }
-.dnd-cc-seg-group button.active {
+/* Prefixed with .application.dnd-cc, matching the base ".dnd-cc-seg-group button" rule
+   above - without it, this loses the specificity tie against that rule (3 classes + 1
+   type there vs. 2 classes + 1 type here) and the active segment never actually shows
+   its accent background. */
+.application.dnd-cc .dnd-cc-seg-group button.active {
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
   text-shadow: var(--dcc-accent-text-shadow);
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
 }
 
 .dnd-cc-filter-label {
@@ -1347,7 +1421,6 @@
 .dnd-cc-ruleset-card.selected {
   border-color: var(--dcc-accent);
   background: var(--dcc-surface-alt);
-  box-shadow: 0 0 0 1px var(--dcc-accent);
   /* border-image-source only accepts an <image> value (a gradient qualifies, a plain
      hex string doesn't) - when --dcc-accent-bg is a solid color this is simply invalid
      and ignored, leaving the border-color above in effect; when it's a real gradient,
@@ -1457,6 +1530,16 @@
   gap: 1.1rem;
 }
 
+/* auto-fill's own column count is computed from each track's *maximum* (250px), not its
+   200px floor - correct per spec, but it means the ~150-190px the rail's collapse
+   frees up (see .dnd-cc-wizard.rail-collapsed) isn't enough on its own to fit a genuine
+   5th 250px column, so it was just sitting there as unexplained centered padding
+   instead of doing anything useful. Capping the max lower specifically while collapsed
+   lets that same auto-fill math actually land on 5 columns instead. */
+.dnd-cc-wizard.rail-collapsed .dnd-cc-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 225px));
+}
+
 /* One continuous grid holding every labeled per-source group (see _groupBySource in
    character-creator-app.mjs) plus the trailing "Add Custom" card(s) - previously each
    group and the custom-card row were separate <ul> grids stacked vertically, which
@@ -1545,7 +1628,6 @@
 .dnd-cc-card:hover { border-color: var(--dcc-accent); }
 .dnd-cc-card.selected {
   border-color: var(--dcc-accent);
-  box-shadow: 0 0 0 1px var(--dcc-accent), 0 8px 24px rgba(223, 0, 0, 0.25);
 }
 .dnd-cc-card::before {
   content: "";
@@ -2458,7 +2540,7 @@
 .dnd-cc-ability-method-picker {
   display: flex;
   gap: 0.5rem;
-  margin: 0.7rem 0 0.4rem;
+  margin: 0.4rem 0 0.3rem;
 }
 /* height comes from padding + !important, not an explicit height value - Foundry's
    own core button CSS loads unlayered while ours loads in layer(modules), so a plain
@@ -2479,7 +2561,12 @@
   cursor: pointer;
 }
 .dnd-cc-method-tab:hover { border-color: var(--dcc-accent); color: var(--dcc-text); }
-.dnd-cc-method-tab.selected {
+/* Needs the same .application.dnd-cc prefix as the base rule above, purely to match its
+   specificity - .dnd-cc-method-tab.selected alone has fewer class selectors than
+   .application.dnd-cc .dnd-cc-method-tab, so the base rule's own `border`
+   shorthand (which sets border-color too) always won this tie and silently left a
+   "selected" tab visually identical to every other tab. */
+.application.dnd-cc .dnd-cc-method-tab.selected {
   border-color: var(--dcc-accent);
   background: var(--dcc-accent-bg);
   color: var(--dcc-accent-contrast);
@@ -2490,10 +2577,16 @@
   font-family: var(--dcc-font-ui);
   font-size: 0.82rem;
   color: var(--dcc-text-muted);
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.4rem;
 }
 
-.dnd-cc-ability-body { margin-top: 0.3rem; }
+.dnd-cc-ability-body { margin-top: 0.15rem; }
+/* Browser default <p> margin (~8px top+bottom) on the "assign a value..." warning was
+   the last bit of avoidable slack keeping this step just over the fixed window's real
+   content height, forcing a scrollbar for a single stray pixel of overflow - trimmed
+   here rather than on .dnd-cc-empty-state itself, which is shared by many other
+   contexts that don't have the same tight budget. */
+.dnd-cc-step-abilities .dnd-cc-empty-state { margin: 0.3rem 0 0; }
 
 /* One color-keyed flip card per ability - the same --dcc-str/dex/con/int/wis/cha
    tokens the Skills table already keys its rows off. Fixed height, identical in every
@@ -2510,7 +2603,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   align-items: start;
-  gap: 0.85rem;
+  gap: 0.35rem;
 }
 @media (max-width: 760px) { .dnd-cc-ability-grid { grid-template-columns: repeat(2, 1fr); } }
 
@@ -2637,6 +2730,25 @@
   color: var(--card-accent);
   fill: currentColor;
   margin-bottom: 0.25rem;
+}
+
+/* dnd5e's own official ability icons (the alternate "Foundry" icon set, see
+   FOUNDRY_ABILITY_ICON_PATHS) are real external SVG files, not markup this module
+   controls the fill of directly - recolored by using the file as a CSS mask instead
+   and painting the mask with a plain background-color, which does pick up
+   currentColor/the card's own accent the same way the inline custom icon set already
+   does. */
+.dnd-cc-ability-icon-foundry {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-image: var(--dnd-cc-icon-url);
+  mask-image: var(--dnd-cc-icon-url);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 .dnd-cc-ability-card-abbr {
   font-family: var(--dcc-font-display);
@@ -2826,7 +2938,7 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   list-style: none;
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.3rem;
   padding: 0;
 }
 .dnd-cc-ability-pool-chip {
@@ -3485,7 +3597,7 @@
 .dnd-cc-advancement-body .ability-scores li:not(:has(input[readonly])) {
   background: var(--dcc-surface-alt);
   border-radius: 6px;
-  box-shadow: inset 0 0 0 1px var(--dcc-accent);
+  border: 1px solid var(--dcc-accent);
 }
 .dnd-cc-advancement-body .ability-scores li:not(:has(input[readonly])) label {
   color: var(--dcc-accent);
@@ -3493,6 +3605,39 @@
 }
 .dnd-cc-advancement-body .ability-scores .delta .fa-lock {
   color: var(--dcc-text-muted);
+}
+/* dnd5e's own core ".control-button:hover" rule (used by the +/- point-buy controls
+   here, and by any other control-button elsewhere in an embedded advancement form)
+   applies a glowing text-shadow via Foundry's own --color-shadow-primary token, tuned
+   for Foundry's native dark UI chrome and not adapted to this app's own accent/theme
+   system - it can read as an odd colored blur, especially against a light theme.
+   Replaced with a plain accent-filled pill, matching the trash-icon hover treatment. */
+.dnd-cc-advancement-body .control-button:hover:not(:disabled),
+.dnd-cc-advancement-body .control-button:focus-visible:not(:disabled) {
+  text-shadow: none;
+  color: var(--dcc-accent-contrast);
+  background: var(--dcc-accent-bg);
+  border-radius: 4px;
+}
+/* The ability-score +/- controls span two native grid rows (the value row plus the
+   delta row beneath), much taller than a typical icon-sized control-button - the
+   solid accent-fill pill above reads as an oversized, heavy block here rather than a
+   small hover cue. A plain icon recolor keeps the same "something's interactive"
+   feedback without the disproportionate fill. */
+.dnd-cc-advancement-body .ability-scores .control-button:hover:not(:disabled),
+.dnd-cc-advancement-body .ability-scores .control-button:focus-visible:not(:disabled) {
+  background: none;
+  color: var(--dcc-accent);
+}
+/* Safety net for every other button in an embedded advancement form (nav Next/Previous,
+   any control this stylesheet doesn't style individually) - dnd5e's own core
+   ".dnd5e2 button:hover" applies the same raw Foundry glow via box-shadow. Only
+   box-shadow is touched here, not text-shadow, since a hover state legitimately using
+   --dcc-accent-text-shadow for text contrast against its own accent-filled background
+   (the nav Next/Complete buttons) needs to keep that. */
+.dnd-cc-advancement-body button:hover:not(:disabled),
+.dnd-cc-advancement-body button:focus-visible:not(:disabled) {
+  box-shadow: none;
 }
 
 /*
@@ -3738,7 +3883,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.5rem;
 }
 .dnd-cc-step-header-row .dnd-cc-step-intro { margin-bottom: 0; }
 .dnd-cc-step-header-actions { display: flex; gap: 0.5rem; flex: none; }
@@ -4337,7 +4482,6 @@
 .dnd-cc-lifestyle-tier.selected {
   border-color: var(--dcc-accent);
   background: var(--dcc-surface-alt);
-  box-shadow: 0 0 0 1px var(--dcc-accent);
 }
 .dnd-cc-lifestyle-label { font-family: var(--dcc-font-ui); font-weight: 700; font-size: 0.8rem; }
 .dnd-cc-lifestyle-cost { font-family: var(--dcc-font-ui); font-size: 0.68rem; color: var(--dcc-text-muted); }
