@@ -23,6 +23,15 @@
           {{#if this.isOriginalClass}}<span class="dnd-cc-pill" style="border-color:{{this.lightColor}};color:{{this.lightColor}}">{{localize "DND-CC.Class.OriginalClass"}}</span>{{/if}}
           {{#each this.pills}}<span class="dnd-cc-pill" style="border-color:{{../lightColor}};color:{{../lightColor}}">{{this}}</span>{{/each}}
         </div>
+        {{#if this.unresolvedLevels.length}}
+        <div class="dnd-cc-class-row-fix-levels">
+          {{#each this.unresolvedLevels}}
+          <button type="button" class="dnd-cc-fix-level-button" data-modify-class-level="{{../id}}:{{this.level}}" title="{{localize 'DND-CC.Class.FixLevelTooltip' level=this.level titles=this.titles}}">
+            <i class="fa-solid fa-wrench"></i> {{localize "DND-CC.Class.FixLevel" level=this.level}}
+          </button>
+          {{/each}}
+        </div>
+        {{/if}}
       </div>
       {{#if ../levelUp}}
       <span class="dnd-cc-class-row-level dnd-cc-class-row-level-static">

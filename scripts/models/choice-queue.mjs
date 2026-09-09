@@ -99,9 +99,28 @@ function runAdvancementManager(manager, container) {
       return result;
     };
 
-    const rendering = manager.render(true);
     if (container) {
-      rendering.then(() => {
+      // Re-append after EVERY render, not just the first - not the one-shot
+      // `rendering.then()` this used to be. `_insertElement` (the ApplicationV2 method
+      // that puts a freshly-rendered app's element into `document.body`) only ever
+      // fires on an app's first render, which is normally exactly the render our
+      // `.then()` callback was waiting on - fine for a flow with only 1-2 automatic
+      // steps before its first real interactive one (a fresh item pick, a level-up by
+      // 1). `AdvancementManager.forModifyChoices` (see modifyClassLevelChoices) can have
+      // a long run of automatic reverse/restore steps ahead of the interactive one - its
+      // own step-advance logic re-renders itself several times in a row processing those,
+      // and the manager's element isn't actually attached to
+      // the DOM at all yet by the time the *outer* `render(true)` call's own promise
+      // resolves - `container.append(undefined-or-not-yet-real-element)` was a no-op
+      // every time after that, permanently leaving the container empty with the real
+      // manager silently floating detached in `document.body`. Wrapping `render` itself
+      // (rather than the one call this function makes) means every one of the
+      // manager's own internal re-renders, automatic or interactive, re-triggers this
+      // same append - each one is a cheap, idempotent DOM move once the element already
+      // lives in `container`.
+      const originalRender = manager.render.bind(manager);
+      manager.render = async (...args) => {
+        const result = await originalRender(...args);
         // A container can arrive here already carrying a leftover `visibility: hidden`
         // from a PRIOR manager's own close() (see above) - applies to any call site that
         // runs more than one manager through the same container in a row (e.g.
@@ -110,20 +129,23 @@ function runAdvancementManager(manager, container) {
         // between. Left uncleared, the new manager's own content renders correctly but
         // stays invisible until the caller's outer render() eventually fires. Clearing
         // it here is a no-op for the common single-manager-per-container case.
-        container.style.visibility = "";
+        //
         // A manager whose steps are all `automatic` (a removeItemWithAdvancement
         // reversal, most commonly) can finish and call its own close() - which nulls
-        // out `element` as part of ApplicationV2's own teardown - before this .then()
-        // callback gets a turn to run, since close() can fire synchronously within the
-        // same render() call for a fully-automatic flow. `container.append(undefined)`
-        // still "succeeds" in that case, but per the Element.append() spec any non-Node
-        // argument is coerced to a string first - stringifying `undefined` inserts a
-        // literal "undefined" text node into the container. A species
-        // swap's removal manager can leave exactly this stray text node sitting before
-        // the next manager's own element once the container is visible again.
-        if (manager.element) container.append(manager.element);
-      });
+        // out `element` as part of ApplicationV2's own teardown - before this callback
+        // gets a turn to run, since close() can fire synchronously within the same
+        // render() call for a fully-automatic flow. Guarding on `manager.element` (not
+        // just truthy-checking the return value) is what stops that case from appending
+        // a literal "undefined" text node - per the Element.append() spec, any non-Node
+        // argument is coerced to a string first.
+        if (manager.element && container.isConnected) {
+          container.style.visibility = "";
+          container.append(manager.element);
+        }
+        return result;
+      };
     }
+    manager.render(true);
   });
 }
 
@@ -849,7 +871,20 @@ export function hasItemOfType(actor, type) {
  * @returns {string[]} the title of each advancement still missing a real choice
  */
 export function unresolvedAdvancementTitles(item, level = Infinity) {
-  const titles = [];
+  return unresolvedAdvancementEntries(item, level).map((entry) => entry.title);
+}
+
+/**
+ * Same check as unresolvedAdvancementTitles, but keeping each advancement's own
+ * `level` alongside its title - the "Redo this level" fix (below) needs to know
+ * exactly which level to re-run through AdvancementManager.forModifyChoices, not just
+ * that something, somewhere, is unresolved.
+ * @param {Item} item
+ * @param {number} [level=Infinity]
+ * @returns {{title: string, level: number}[]}
+ */
+export function unresolvedAdvancementEntries(item, level = Infinity) {
+  const entries = [];
   for (const advancement of Object.values(item.advancement?.byId ?? {})) {
     if (typeof advancement.level === "number" && advancement.level > level) continue;
 
@@ -869,28 +904,29 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
 
     if (advancement.type === "Trait") {
       const required = (advancement.configuration?.choices ?? []).reduce((sum, c) => sum + (c.count ?? 0), 0);
-      if (required > 0 && countEntries(advancement.value?.chosen) < required) titles.push(advancement.title);
+      if (required > 0 && countEntries(advancement.value?.chosen) < required) {
+        entries.push({ title: advancement.title, level: advancement.level ?? 0 });
+      }
     }
 
     if (advancement.type === "ItemChoice") {
+      // Unlike every other type here, ItemChoice can require its own choice at several
+      // distinct levels for one class (Metamagic at 2/10/14/18) - `advancement.level`
+      // alone would only ever report the first of those, which is wrong for "which
+      // level does this specific unresolved pick actually belong to." Its own
+      // `configuration.choices` says which shape `value.added` is in: level-keyed
+      // ({"2": {itemId: uuid}, "10": {...}}) when there's more than one tier, or the
+      // flat {itemId: uuid} map itself when there's only ever one - same distinction
+      // itemsAtRiskFromLevelDecrease already relies on elsewhere in this file.
       const choices = advancement.configuration?.choices ?? {};
-      const required = Object.entries(choices)
-        .filter(([atLevel, c]) => Number(atLevel) <= level && c?.count)
-        .reduce((sum, [, c]) => sum + c.count, 0);
-      if (required === 0) continue;
-
-      // `value.added` shows up two different shapes in the wild depending on whether
-      // the advancement can apply at more than one level: a flat {itemId: uuid} map
-      // when there's only ever one choice tier (e.g. a Fighting Style), or a
-      // level-keyed {level: {itemId: uuid}} map when it repeats (e.g. Metamagic).
-      // Counting values that are themselves objects as nested
-      // per-level entries, and anything else as one flat entry, covers both without
-      // needing to know in advance which shape a given advancement uses.
-      let added = 0;
-      for (const entry of entryValues(advancement.value?.added)) {
-        added += entry && typeof entry === "object" ? countEntries(entry) : 1;
+      const choiceLevels = Object.keys(choices);
+      const addedRaw = advancement.value?.added ?? {};
+      for (const [atLevel, config] of Object.entries(choices)) {
+        const tierLevel = Number(atLevel);
+        if (tierLevel > level || !config?.count) continue;
+        const added = choiceLevels.length > 1 ? (addedRaw[atLevel] ?? {}) : addedRaw;
+        if (countEntries(added) < config.count) entries.push({ title: advancement.title, level: tierLevel });
       }
-      if (added < required) titles.push(advancement.title);
     }
 
     if (advancement.type === "AbilityScoreImprovement") {
@@ -905,14 +941,14 @@ export function unresolvedAdvancementTitles(item, level = Infinity) {
       // count would treat as "non-empty" the moment they exist at all.
       const hasAssignments = advancement.value?.assignments && Object.keys(advancement.value.assignments).length > 0;
       const hasFeat = advancement.value?.feat && Object.keys(advancement.value.feat).length > 0;
-      if (!hasAssignments && !hasFeat) titles.push(advancement.title);
+      if (!hasAssignments && !hasFeat) entries.push({ title: advancement.title, level: advancement.level ?? 0 });
     }
 
     if (advancement.type === "Subclass" && !advancement.value?.uuid) {
-      titles.push(advancement.title || "Subclass");
+      entries.push({ title: advancement.title || "Subclass", level: advancement.level ?? 0 });
     }
   }
-  return titles;
+  return entries;
 }
 
 /**
@@ -1102,5 +1138,31 @@ export async function changeClassLevel(actor, classItemId, levelDelta, container
   patchEmbeddedAdvancementFlows();
   const { AdvancementManager } = dnd5e.applications.advancement;
   const manager = AdvancementManager.forLevelChange(actor, classItemId, levelDelta, container ? EMBEDDED_WINDOW_OPTIONS : {});
+  return runAdvancementManager(manager, container);
+}
+
+/**
+ * Redo just one level's own choices on a class item, without touching any other level -
+ * dnd5e's real `AdvancementManager.forModifyChoices` (the same API its own Item sheet
+ * uses for a class item's per-level "modify choices" button, per
+ * `ItemSheet5e#_modifyAdvancementChoices` in the compiled system source) builds a
+ * three-part step list: automatically reverse every advancement from `level` through the
+ * class's current level, interactively re-resolve only the ones that actually apply at
+ * `level` itself, then automatically restore everything above it - so a player who missed
+ * a choice at one level while leveling up doesn't have to remove the whole class and redo
+ * every level from scratch (`_reviewClass`'s own "Redo this class's choices," which stays
+ * the fallback for "redo everything") just to fix that one level.
+ * @param {Actor} actor
+ * @param {string} classItemId
+ * @param {number} level - the specific level whose choices should be redone
+ * @param {HTMLElement} [container] - see runAdvancementManager
+ * @returns {Promise<boolean>} resolves true if completed, false if cancelled or if there
+ *   was nothing to redo at that level (steps.length === 0)
+ */
+export async function modifyClassLevelChoices(actor, classItemId, level, container) {
+  patchEmbeddedAdvancementFlows();
+  const { AdvancementManager } = dnd5e.applications.advancement;
+  const manager = AdvancementManager.forModifyChoices(actor, classItemId, level, container ? EMBEDDED_WINDOW_OPTIONS : {});
+  if (!manager.steps.length) return false;
   return runAdvancementManager(manager, container);
 }

@@ -30,11 +30,13 @@ import {
   isStepComplete,
   itemsAtRiskFromLevelDecrease,
   itemsGrantedBy,
+  modifyClassLevelChoices,
   previewClassLevelGains,
   removeItemWithAdvancement,
   runCompendiumBrowser,
   snapshotAbilities,
   triggerAdvancement,
+  unresolvedAdvancementEntries,
   unresolvedAdvancementTitles
 } from "../models/choice-queue.mjs";
 import {
@@ -883,7 +885,19 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       for (let value = 1; value <= maxForThisClass; value++) {
         levelOptions.push({ value, selected: value === item.system.levels });
       }
-      const missing = unresolvedAdvancementTitles(item, item.system.levels);
+      const missingEntries = unresolvedAdvancementEntries(item, item.system.levels);
+      const missing = missingEntries.map((entry) => entry.title);
+      // Distinct levels with at least one unresolved choice, each pairing its own titles
+      // with a "Fix Level N" action (modifyClassLevelChoices) - lets a player redo just
+      // that one level's own picks instead of _reviewClass's "remove the whole class and
+      // redo everything from level 1" fallback, which is the only other recovery path
+      // once a level's choice has already been clicked past unanswered.
+      const unresolvedLevels = Array.from(new Set(missingEntries.map((entry) => entry.level)))
+        .sort((a, b) => a - b)
+        .map((level) => ({
+          level,
+          titles: missingEntries.filter((entry) => entry.level === level).map((entry) => entry.title).join(", ")
+        }));
       // A class Item's primaryAbility.value is a real Set, not an
       // array - a plain .length check silently reads undefined (=> always falsy) on it,
       // the same Set-vs-array gotcha documented in choice-queue.mjs's countEntries.
@@ -916,6 +930,7 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
         missingHint: missing.length
           ? game.i18n.format("DND-CC.Class.MissingChoices", { list: missing.join(", ") })
           : null,
+        unresolvedLevels,
         abilityMismatchHint: this._classAbilityMismatchHint(primaryAbilities)
       };
     });
@@ -3560,6 +3575,13 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    root.querySelectorAll("[data-modify-class-level]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const [classId, level] = el.dataset.modifyClassLevel.split(":");
+        await this._modifyClassLevelChoices(classId, Number(level));
+      });
+    });
+
     root.querySelectorAll("[data-class-level]").forEach((el) => {
       el.addEventListener("change", async (event) => {
         await this._setClassLevel(el.dataset.classLevel, Number(event.currentTarget.value));
@@ -5427,6 +5449,34 @@ export class CharacterCreatorApp extends HandlebarsApplicationMixin(ApplicationV
     if (completed && this.levelUp && game.user.isGM) await notifyLevelChange(this.draft.actor);
 
     return completed;
+  }
+
+  /**
+   * Redo just one level's own unresolved choices on a class item - the Class step's
+   * per-level "Fix Level N" action (see _prepareClassesContext's unresolvedLevels),
+   * for when a player clicked past a choice while leveling up and it's now stuck
+   * showing the rail's gold "warn" state with no way back short of `_reviewClass`'s
+   * full "remove the whole class and redo every level" fallback. Runs entirely through
+   * dnd5e's own `AdvancementManager.forModifyChoices` (see modifyClassLevelChoices) as
+   * one continuous embedded flow - reverse-then-forward-then-restore all happen inside
+   * that single manager, so unlike _reviewClass this needs none of its own
+   * remove/restore-on-cancel bookkeeping; a cancelled flow just leaves the class exactly
+   * as it already was, dnd5e's own manager clone never having committed anything.
+   * @param {string} classItemId
+   * @param {number} level - the specific level to redo, from the class row's own
+   *   unresolvedLevels list
+   */
+  async _modifyClassLevelChoices(classItemId, level) {
+    const classItem = this.draft.actor.items.get(classItemId);
+    if (!classItem) return;
+
+    await this._runEmbeddedAdvancement(async (host) => {
+      const before = snapshotAbilities(this.draft.actor);
+      await modifyClassLevelChoices(this.draft.actor, classItemId, level, host);
+      await this.draft.recordAbilityDelta(diffAbilities(before, snapshotAbilities(this.draft.actor)));
+    });
+
+    this.render();
   }
 
   /**

@@ -2197,6 +2197,32 @@
   cursor: help;
 }
 
+.dnd-cc-class-row-fix-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.application.dnd-cc button.dnd-cc-fix-level-button {
+  height: auto !important;
+  padding: 0.2rem 0.55rem !important;
+  border: 1px solid var(--dcc-warn) !important;
+  border-radius: 20px !important;
+  background: transparent !important;
+  color: var(--dcc-warn) !important;
+  font-family: var(--dcc-font-ui);
+  font-size: 0.72rem;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+.application.dnd-cc button.dnd-cc-fix-level-button:hover {
+  background: var(--dcc-warn) !important;
+  color: var(--dcc-bg) !important;
+}
+
 .dnd-cc-class-row-level {
   display: flex;
   align-items: center;
@@ -3460,6 +3486,25 @@
   --pill-empty-border: 2px dashed var(--dcc-border);
   --pill-empty-text-color: var(--dcc-text-muted);
   color-scheme: dark;
+}
+
+/* dnd5e's own .pill-lg.empty rule (dnd5e.css) renders at opacity: 0.25 and takes its
+   background from --dnd5e-background-card, neither of which the variable repoint above
+   touches - repointing --pill-empty-border/--pill-empty-text-color alone still leaves a
+   near-invisible ghost box under a light theme, since a faint border/text color at 25%
+   opacity reads as barely-there regardless of which color it actually is. Overridden
+   directly as a real, fully-opaque button instead of fighting the variable indirection. */
+.dnd-cc-advancement-body .pill-lg.empty {
+  opacity: 1;
+  background: var(--dcc-surface-alt);
+  border: 2px solid var(--dcc-border);
+  color: var(--dcc-text);
+}
+
+.dnd-cc-advancement-body .pill-lg.empty[data-action]:not(.disabled):hover {
+  opacity: 1;
+  border-color: var(--dcc-accent);
+  color: var(--dcc-accent);
 }
 
 .dnd-cc-advancement-body [data-application-part="header"] h3 {

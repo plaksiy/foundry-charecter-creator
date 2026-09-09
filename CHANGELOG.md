@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.7
+
+### New
+
+- **"Fix Level" button**: if a class's level-up choices were skipped or clicked past unanswered, the Class step now shows a small button for each affected level ("Fix Level 3", for example) that redoes just that level's own choices - hit points, skills, subclass, and so on - without touching any other level or removing the class. "Redo This Class's Choices" (the pencil icon) is still there for redoing everything from level 1 up, if that's what you want instead.
+
+### Fixed
+
+- The "Select Subclass" placeholder (and any other empty choice placeholder, like Warlock's "Otherworldly Patron") was still hard to read under the Light theme even after the 1.0.6 fix - it needed a real background and full opacity, not just a different border/text color.
+- Some equipment choices (for example a class or background offering "(a) one fixed item or (b) any item of a category") could show raw HTML markup as plain text instead of a clickable item link.
+- Redoing a class's choices - either through "Fix Level" or "Redo This Class's Choices" - could show a blank panel with no way to continue if the class had several levels' worth of automatic steps to process before reaching the first one that needed your input.
+
 ## 1.0.6
 
 ### Fixed

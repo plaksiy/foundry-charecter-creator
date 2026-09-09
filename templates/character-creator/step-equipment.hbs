@@ -22,7 +22,7 @@
     <ul class="dnd-cc-equipment-pending">
       {{#each this.pendingChoices}}
       <li class="dnd-cc-equipment-pending-entry">
-        <span>{{this.label}}</span>
+        <span>{{{this.label}}}</span>
         {{#if this.isFocus}}
         <select data-equipment-focus="{{this.key}}:{{this.id}}">
           <option value="">-</option>
